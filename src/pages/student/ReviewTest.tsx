@@ -1,0 +1,462 @@
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import {
+  CheckCircle,
+  XCircle,
+  ArrowLeft,
+  Award,
+  Target,
+  BookOpen,
+  Trophy,
+  Home,
+  Zap,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  RotateCw
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
+interface Question {
+  id: string;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_answer: string;
+  subject: string | null;
+  topic: string | null;
+  explanation: string | null;
+}
+
+interface TestAnswer {
+  id: string;
+  question_id: string;
+  selected_answer: string | null;
+  is_correct: boolean;
+  marks_obtained: number;
+  questions: Question;
+}
+
+interface TestAttempt {
+  id: string;
+  score: number;
+  total_marks: number;
+  percentage: number;
+  passed: boolean;
+  started_at: string;
+  completed_at: string;
+  mock_tests: {
+    id: string;
+    title: string;
+    passing_marks: number;
+  };
+}
+
+const ReviewTest = () => {
+  const navigate = useNavigate();
+  const { attemptId } = useParams();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState<TestAttempt | null>(null);
+  const [answers, setAnswers] = useState<TestAnswer[]>([]);
+  const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
+
+  useEffect(() => {
+    loadTestReview();
+  }, [attemptId]);
+
+  const loadTestReview = async () => {
+    if (!attemptId) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+
+    const [attemptResult, answersResult] = await Promise.all([
+      supabase.from("test_attempts").select(`*, mock_tests (id, title, passing_marks)`).eq("id", attemptId).eq("user_id", session.user.id).single(),
+      supabase.from("test_answers").select(`*, questions (*)`).eq("attempt_id", attemptId).order("created_at")
+    ]);
+
+    if (attemptResult.error || !attemptResult.data) {
+      toast({ title: "Error", description: "Test attempt not found", variant: "destructive" });
+      navigate("/student/results");
+      return;
+    }
+
+    setAttempt(attemptResult.data as any);
+    setAnswers(answersResult.data as any || []);
+    setLoading(false);
+  };
+
+  const toggleQuestion = (id: string) => {
+    setExpandedQuestions(prev => {
+      const newSet = new Set(prev);
+      newSet.has(id) ? newSet.delete(id) : newSet.add(id);
+      return newSet;
+    });
+  };
+
+  const filteredAnswers = answers.filter(a => {
+    if (filter === "correct") return a.is_correct;
+    if (filter === "incorrect") return !a.is_correct && a.selected_answer;
+    if (filter === "skipped") return !a.selected_answer;
+    return true;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex flex-col items-center gap-4"
+        >
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30">
+            <Trophy className="w-8 h-8 text-white" />
+          </div>
+          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (!attempt || !answers.length) {
+    return (
+      <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-3xl p-8 shadow-xl text-center max-w-sm"
+        >
+          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="w-7 h-7 text-slate-400" />
+          </div>
+          <p className="text-slate-800 text-lg font-bold mb-2">No data found</p>
+          <p className="text-slate-500 text-sm mb-6">This test review is not available</p>
+          <Button onClick={() => navigate("/student/results")} className="bg-indigo-600 text-white rounded-xl h-11 w-full">
+            Back to Results
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const correctAnswers = answers.filter(a => a.is_correct).length;
+  const incorrectAnswers = answers.filter(a => !a.is_correct && a.selected_answer).length;
+  const skippedAnswers = answers.filter(a => !a.selected_answer).length;
+
+  return (
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 pb-8">
+      {/* ═══════════════════════════════════════════════════════════════
+          PREMIUM HERO HEADER - Pass/Fail Gradient
+          ═══════════════════════════════════════════════════════════════ */}
+      <header className="relative overflow-hidden"
+        style={{
+          background: attempt.passed
+            ? 'linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #0d9488 100%)'
+            : 'linear-gradient(135deg, #ef4444 0%, #f43f5e 50%, #e11d48 100%)'
+        }}
+      >
+        {/* Decorative Elements */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/40 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/30 rounded-full translate-y-1/2 -translate-x-1/3 blur-2xl" />
+        </div>
+
+        <div className="relative px-5 pt-4 pb-10 md:pt-6 md:pb-12">
+          {/* Navigation */}
+          <div className="flex items-center justify-between mb-8">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/student/results")}
+              className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"
+            >
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate("/")}
+              className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"
+            >
+              <Home className="w-5 h-5 text-white" />
+            </motion.button>
+          </div>
+
+          {/* Result Display */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-4 border-4 border-white/30"
+              style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)' }}
+            >
+              {attempt.passed ? (
+                <Trophy className="w-12 h-12 md:w-14 md:h-14 text-yellow-300" />
+              ) : (
+                <XCircle className="w-12 h-12 md:w-14 md:h-14 text-white" />
+              )}
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-white mb-2 font-mono">{attempt.percentage}%</h1>
+            <p className="text-white/80 text-sm md:text-base mb-3">{attempt.score} / {attempt.total_marks} marks</p>
+            <Badge className={`${attempt.passed ? 'bg-white/20 text-white' : 'bg-white/20 text-white'} text-sm px-4 py-1.5 border border-white/30`}>
+              {attempt.passed ? '🎉 Congratulations! You Passed!' : '📚 Keep Practicing!'}
+            </Badge>
+            <p className="text-white/70 text-xs md:text-sm mt-4 font-medium">{attempt.mock_tests.title}</p>
+          </motion.div>
+        </div>
+      </header>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          STATS CARDS - Floating Above Header
+          ═══════════════════════════════════════════════════════════════ */}
+      <div className="px-5 -mt-5">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="bg-white rounded-[24px] p-5 grid grid-cols-3 gap-4"
+          style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)' }}
+        >
+          <div className="text-center">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto mb-2"
+              style={{ boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}
+            >
+              <CheckCircle className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-slate-900 font-mono">{correctAnswers}</p>
+            <p className="text-[10px] md:text-xs text-slate-500 font-semibold">Correct</p>
+          </div>
+          <div className="text-center">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-red-500 to-rose-500 flex items-center justify-center mx-auto mb-2"
+              style={{ boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)' }}
+            >
+              <XCircle className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-slate-900 font-mono">{incorrectAnswers}</p>
+            <p className="text-[10px] md:text-xs text-slate-500 font-semibold">Incorrect</p>
+          </div>
+          <div className="text-center">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-2"
+              style={{ boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)' }}
+            >
+              <Target className="w-5 h-5 text-white" />
+            </div>
+            <p className="text-xl md:text-2xl font-bold text-slate-900 font-mono">{skippedAnswers}</p>
+            <p className="text-[10px] md:text-xs text-slate-500 font-semibold">Skipped</p>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          MAIN CONTENT
+          ═══════════════════════════════════════════════════════════════ */}
+      <main className="px-5 pt-6 space-y-4 max-w-4xl mx-auto">
+        {/* Filter Chips */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide scroll-native">
+          {[
+            { key: "all", label: `All (${answers.length})` },
+            { key: "correct", label: `Correct (${correctAnswers})` },
+            { key: "incorrect", label: `Wrong (${incorrectAnswers})` },
+            { key: "skipped", label: `Skipped (${skippedAnswers})` },
+          ].map(({ key, label }) => (
+            <motion.button
+              key={key}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setFilter(key as any)}
+              className={`chip-animated whitespace-nowrap shrink-0 ${filter === key ? 'active' : ''}`}
+            >
+              {label}
+            </motion.button>
+          ))}
+        </div>
+
+        {/* Questions List */}
+        <div className="space-y-3">
+          {filteredAnswers.map((answer, index) => {
+            const isExpanded = expandedQuestions.has(answer.id);
+            const originalIndex = answers.findIndex(a => a.id === answer.id);
+
+            return (
+              <motion.div
+                key={answer.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.03 }}
+                className="bg-white rounded-[20px] overflow-hidden"
+                style={{ boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)' }}
+              >
+                {/* Question Header */}
+                <div
+                  onClick={() => toggleQuestion(answer.id)}
+                  className="p-4 cursor-pointer active:bg-slate-50 transition-colors"
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Status Icon */}
+                    <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center shrink-0 ${answer.is_correct
+                      ? 'bg-gradient-to-br from-emerald-500 to-teal-500'
+                      : answer.selected_answer
+                        ? 'bg-gradient-to-br from-red-500 to-rose-500'
+                        : 'bg-gradient-to-br from-amber-500 to-orange-500'
+                      }`}
+                      style={{
+                        boxShadow: answer.is_correct
+                          ? '0 4px 12px rgba(16, 185, 129, 0.25)'
+                          : answer.selected_answer
+                            ? '0 4px 12px rgba(239, 68, 68, 0.25)'
+                            : '0 4px 12px rgba(245, 158, 11, 0.25)'
+                      }}
+                    >
+                      {answer.is_correct ? (
+                        <CheckCircle className="w-5 h-5 text-white" />
+                      ) : answer.selected_answer ? (
+                        <XCircle className="w-5 h-5 text-white" />
+                      ) : (
+                        <Target className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+
+                    {/* Question Text */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-slate-400">Q{originalIndex + 1}</span>
+                        <Badge className={`text-[10px] ${answer.is_correct
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : answer.selected_answer
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-amber-100 text-amber-700'
+                          }`}>
+                          {answer.is_correct ? 'Correct' : answer.selected_answer ? 'Wrong' : 'Skipped'}
+                        </Badge>
+                      </div>
+                      <p className={`text-slate-900 text-sm md:text-base leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                        {answer.questions.question_text}
+                      </p>
+                    </div>
+
+                    {/* Expand Icon */}
+                    <div className="shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                      {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-slate-500" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-slate-500" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Content */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="border-t border-slate-100"
+                    >
+                      <div className="p-4 space-y-3">
+                        {/* Options */}
+                        {['A', 'B', 'C', 'D'].map(option => {
+                          const isCorrect = option === answer.questions.correct_answer;
+                          const isSelected = option === answer.selected_answer;
+                          const optionText = answer.questions[`option_${option.toLowerCase()}` as keyof Question];
+
+                          return (
+                            <div
+                              key={option}
+                              className={`p-3.5 rounded-xl border-2 ${isCorrect
+                                ? 'bg-emerald-50 border-emerald-400'
+                                : isSelected
+                                  ? 'bg-red-50 border-red-400'
+                                  : 'bg-slate-50 border-slate-200'
+                                }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${isCorrect
+                                  ? 'bg-emerald-500 text-white'
+                                  : isSelected
+                                    ? 'bg-red-500 text-white'
+                                    : 'bg-slate-200 text-slate-600'
+                                  }`}>
+                                  {option}
+                                </span>
+                                <div className="flex-1">
+                                  <p className={`text-sm ${isCorrect ? 'text-emerald-800' : isSelected ? 'text-red-800' : 'text-slate-700'
+                                    }`}>
+                                    {optionText}
+                                  </p>
+                                  {isCorrect && (
+                                    <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">
+                                      ✓ Correct Answer
+                                    </span>
+                                  )}
+                                  {isSelected && !isCorrect && (
+                                    <span className="text-[10px] text-red-600 font-semibold mt-1 inline-block">
+                                      ✗ Your Answer
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Explanation */}
+                        {answer.questions.explanation && (
+                          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                <Lightbulb className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div>
+                                <h4 className="font-semibold text-blue-800 text-sm mb-1">Explanation</h4>
+                                <p className="text-blue-900 text-sm whitespace-pre-line leading-relaxed">
+                                  {answer.questions.explanation}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="pt-4 space-y-3 pb-8">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate(`/student/take-test/${attempt.mock_tests.id}`)}
+            className="w-full btn-native bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25"
+          >
+            <RotateCw className="w-5 h-5" />
+            Retake This Test
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => navigate("/student/exams")}
+            className="w-full btn-native bg-slate-100 text-slate-700"
+          >
+            <Zap className="w-5 h-5" />
+            Try Another Test
+          </motion.button>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default ReviewTest;
