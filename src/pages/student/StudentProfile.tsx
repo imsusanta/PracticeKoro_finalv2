@@ -92,7 +92,6 @@ const StudentProfile = () => {
     } catch (error) {
       console.error('Logout error:', error);
     }
-    // Always clear storage and navigate, even if signOut fails
     localStorage.clear();
     navigate("/");
   };
@@ -118,44 +117,38 @@ const StudentProfile = () => {
     setSaving(false);
   };
 
-  // Loading State - Inside Layout for smooth transitions
   if (loading) {
     return (
       <StudentLayout title="Profile" subtitle="Your account">
-        <div className="w-full md:max-w-4xl md:mx-auto flex items-center justify-center min-h-[50vh]">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center gap-4"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center">
-              <User className="w-8 h-8 text-white" />
+        <div className="w-full flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center">
+              <User className="w-6 h-6 text-white" />
             </div>
-            <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          </motion.div>
+            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          </div>
         </div>
       </StudentLayout>
     );
   }
 
-  // Payment Locked State - Inside Layout for smooth transitions
   if (approvalStatus === "payment_locked") {
     return (
       <StudentLayout title="Profile" subtitle="Your account">
-        <div className="w-full md:max-w-4xl md:mx-auto flex items-center justify-center min-h-[50vh]">
+        <div className="w-full flex items-center justify-center min-h-[50vh]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-sm w-full"
+            className="text-center w-full px-4"
           >
-            <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-slate-400" />
+            <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-slate-400" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Locked</h2>
-            <p className="text-slate-500 mb-8">Complete payment to continue</p>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">Account Locked</h2>
+            <p className="text-sm text-slate-500 mb-6">Complete payment to continue</p>
             <button
               onClick={() => window.open("https://wa.me/919547771118", "_blank")}
-              className="w-full bg-emerald-500 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+              className="w-full bg-emerald-500 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
               <MessageSquare className="w-5 h-5" />
               Contact Support
@@ -166,106 +159,86 @@ const StudentProfile = () => {
     );
   }
 
-  // Get initials for avatar
   const initials = profile?.full_name
     ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'ST';
 
   return (
     <StudentLayout title="Profile" subtitle="Your account">
-      <div className="w-full max-w-2xl mx-auto space-y-4 pb-24 overflow-x-hidden">
+      <div className="w-full space-y-3 pb-24">
 
-        {/* ═══════════════════════════════════════════════════════════════
-            PREMIUM PROFILE HEADER
-            ═══════════════════════════════════════════════════════════════ */}
+        {/* Compact Profile Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card-premium p-5 md:p-6"
+          className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700"
         >
-          <div className="flex items-center gap-4">
-            {/* Avatar with Initials */}
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0"
-              style={{ boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)' }}
-            >
-              <span className="text-xl md:text-2xl font-bold text-white">{initials}</span>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-3">
+              {/* Avatar */}
+              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <span className="text-lg font-bold text-white">{initials}</span>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <h2 className="font-bold text-white text-base truncate">{profile?.full_name || "Student"}</h2>
+                <p className="text-xs text-indigo-200 truncate">{profile?.email}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {approvalStatus === "approved" ? (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-100 bg-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <CheckCircle className="w-3 h-3" />
+                      Verified
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-100 bg-amber-500/30 px-2 py-0.5 rounded-full">
+                      <Clock className="w-3 h-3" />
+                      Pending
+                    </span>
+                  )}
+                  <span className="text-[10px] text-indigo-200">{accountDays === 0 ? 'Today' : `${accountDays}d`}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-slate-900 text-base md:text-xl truncate font-display">{profile?.full_name || "Student"}</h2>
-              <p className="text-xs sm:text-sm text-slate-500 truncate">{profile?.email}</p>
-              <div className="flex items-center gap-2 mt-1.5 sm:mt-2">
-                {approvalStatus === "approved" ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                    <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    Verified
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    Pending
-                  </span>
-                )}
-                <span className="text-[10px] sm:text-xs text-slate-400">{accountDays === 0 ? 'Joined today' : `${accountDays}d member`}</span>
+            {/* Stats Row */}
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className="bg-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+                <span className="text-xl font-bold text-white block">{statistics.totalTests}</span>
+                <span className="text-[9px] font-medium text-indigo-100 uppercase">Tests</span>
+              </div>
+              <div className="bg-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
+                <span className="text-xl font-bold text-white block">{statistics.passRate}%</span>
+                <span className="text-[9px] font-medium text-indigo-100 uppercase">Pass Rate</span>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            STATS CARDS
-            ═══════════════════════════════════════════════════════════════ */}
+        {/* Account Details Form */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 gap-3"
+          className="bg-white rounded-xl border border-slate-100 overflow-hidden"
         >
-          <div className="card-premium p-4 text-center">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mx-auto mb-3"
-              style={{ boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)' }}
-            >
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-            <p className="text-2xl font-bold text-emerald-600 font-mono">{statistics.totalTests}</p>
-            <p className="text-xs text-slate-500 font-medium">Tests Taken</p>
-          </div>
-          <div className="card-premium p-4 text-center">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mx-auto mb-3"
-              style={{ boxShadow: '0 4px 12px rgba(59, 130, 246, 0.25)' }}
-            >
-              <Shield className="w-5 h-5 text-white" />
-            </div>
-            <p className="text-2xl font-bold text-blue-600 font-mono">{statistics.passRate}%</p>
-            <p className="text-xs text-slate-500 font-medium">Pass Rate</p>
-          </div>
-        </motion.div>
-
-        {/* ═══════════════════════════════════════════════════════════════
-            ACCOUNT DETAILS FORM
-            ═══════════════════════════════════════════════════════════════ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card-premium overflow-hidden"
-        >
-          <div className="p-4 bg-slate-50/80 border-b border-slate-100">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Account Details</p>
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
+            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Account Details</p>
           </div>
 
-          <div className="p-4 border-b border-slate-100">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shrink-0">
-                <User className="w-5 h-5 text-blue-600" />
+          <div className="p-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <User className="w-4 h-4 text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide mb-1">Full Name</p>
+                <p className="text-[9px] text-slate-400 font-medium uppercase mb-0.5">Full Name</p>
                 {isEditing ? (
                   <Input
                     value={formData.full_name}
                     onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    className="input-native h-11"
+                    className="h-9 text-sm"
                     placeholder="Your name"
                   />
                 ) : (
@@ -275,18 +248,18 @@ const StudentProfile = () => {
             </div>
           </div>
 
-          <div className="p-4">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center shrink-0">
-                <Phone className="w-5 h-5 text-green-600" />
+          <div className="p-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                <Phone className="w-4 h-4 text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide mb-1">WhatsApp Number</p>
+                <p className="text-[9px] text-slate-400 font-medium uppercase mb-0.5">WhatsApp</p>
                 {isEditing ? (
                   <Input
                     value={formData.whatsapp_number}
                     onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value.replace(/\D/g, '') })}
-                    className="input-native h-11"
+                    className="h-9 text-sm"
                     placeholder="10 digit number"
                     maxLength={10}
                   />
@@ -297,89 +270,83 @@ const StudentProfile = () => {
             </div>
           </div>
 
-          <div className="p-4 border-t border-slate-100">
+          <div className="p-3 border-t border-slate-100">
             {isEditing ? (
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setIsEditing(false)}
-                  className="flex-1 h-11 rounded-xl border-slate-200"
+                  className="flex-1 h-10 rounded-xl text-sm"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={saving}
-                  className="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700"
+                  className="flex-1 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-sm"
                 >
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? "Saving..." : "Save"}
                 </Button>
               </div>
             ) : (
-              <motion.button
-                whileTap={{ scale: 0.98 }}
+              <button
                 onClick={() => setIsEditing(true)}
-                className="w-full btn-native bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                className="w-full h-10 rounded-xl bg-indigo-50 text-indigo-700 font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
               >
                 <Pencil className="w-4 h-4" />
                 Edit Profile
-              </motion.button>
+              </button>
             )}
           </div>
         </motion.div>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            QUICK LINKS - Native iOS/Android Style
-            ═══════════════════════════════════════════════════════════════ */}
+        {/* Quick Links */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="card-premium overflow-hidden"
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-xl border border-slate-100 overflow-hidden"
         >
-          <motion.button
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => navigate("/student/results")}
-            className="flex items-center gap-4 p-4 w-full text-left border-b border-slate-100 hover:bg-slate-50/80 transition-colors"
+            className="flex items-center gap-3 p-3 w-full text-left border-b border-slate-100 active:bg-slate-50 transition-colors"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center shrink-0">
-              <TrendingUp className="w-5 h-5 text-amber-600" />
+            <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 text-amber-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-slate-900 text-sm">Results</p>
-              <p className="text-xs text-slate-400">View your performance</p>
+              <p className="text-[10px] text-slate-400">View performance</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-300" />
-          </motion.button>
+            <ChevronRight className="w-4 h-4 text-slate-300" />
+          </button>
 
-          <motion.button
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={() => navigate("/student/exams")}
-            className="flex items-center gap-4 p-4 w-full text-left border-b border-slate-100 hover:bg-slate-50/80 transition-colors"
+            className="flex items-center gap-3 p-3 w-full text-left border-b border-slate-100 active:bg-slate-50 transition-colors"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shrink-0">
-              <BookOpen className="w-5 h-5 text-blue-600" />
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+              <BookOpen className="w-4 h-4 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-slate-900 text-sm">Mock Tests</p>
-              <p className="text-xs text-slate-400">Browse all tests</p>
+              <p className="text-[10px] text-slate-400">Browse tests</p>
             </div>
-            <ChevronRight className="w-5 h-5 text-slate-300" />
-          </motion.button>
+            <ChevronRight className="w-4 h-4 text-slate-300" />
+          </button>
 
-          <motion.button
-            whileTap={{ scale: 0.98 }}
+          <button
             onClick={handleLogout}
-            className="flex items-center gap-4 p-4 w-full text-left hover:bg-red-50/80 transition-colors"
+            className="flex items-center gap-3 p-3 w-full text-left active:bg-red-50 transition-colors"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center shrink-0">
-              <LogOut className="w-5 h-5 text-red-600" />
+            <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+              <LogOut className="w-4 h-4 text-red-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-red-600 text-sm">Logout</p>
-              <p className="text-xs text-slate-400">Sign out of account</p>
+              <p className="text-[10px] text-slate-400">Sign out</p>
             </div>
-          </motion.button>
+          </button>
         </motion.div>
       </div>
     </StudentLayout>
