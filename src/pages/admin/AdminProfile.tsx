@@ -47,7 +47,12 @@ const AdminProfile = () => {
       .maybeSingle();
 
     if (!roleData) {
-      await supabase.auth.signOut();
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error('Sign out error:', err);
+      }
+      localStorage.clear();
       toast({
         title: "Access Denied",
         description: "You do not have admin privileges",

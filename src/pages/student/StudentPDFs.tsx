@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -6,17 +6,19 @@ import {
   FileText,
   Search,
   ExternalLink,
-  FolderOpen,
-  X
+  BookOpen,
+  X,
+  TrendingUp,
+  Download
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import StudentLayout from "@/components/student/StudentLayout";
-import { motion } from "framer-motion";
 
 interface PDF {
   id: string;
   title: string;
   file_path: string;
-  file_size: number | null;
+  file_size: number;
   exam_id: string;
 }
 
@@ -30,258 +32,218 @@ const StudentPDFs = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [pdfs, setPdfs] = useState<PDF[]>([]);
-  const [exams, setExams] = useState<{ [key: string]: string }>({});
+  const [exams, setExams] = useState<Exam[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExam, setSelectedExam] = useState<string>("all");
 
   useEffect(() => {
-    checkAuthAndLoadData();
+    loadData();
   }, []);
 
-  const checkAuthAndLoadData = async () => {
+  const loadData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/login");
-      return;
-    }
-    await loadPDFs();
+    if (!session) { navigate("/login"); return; }
+
+    const [pdfsRes, examsRes] = await Promise.all([
+      supabase.from("pdfs").select("*").order("created_at", { ascending: false }),
+      supabase.from("exams").select("id, name").eq("is_active", true).order("name")
+    ]);
+
+    if (pdfsRes.data) setPdfs(pdfsRes.data);
+    if (examsRes.data) setExams(examsRes.data);
     setLoading(false);
   };
 
-  const loadPDFs = async () => {
-    const { data: examsData } = await supabase
-      .from("exams")
-      .select("id, name")
-      .eq("is_active", true);
-
-    const examsMap: { [key: string]: string } = {};
-    examsData?.forEach((exam: Exam) => {
-      examsMap[exam.id] = exam.name;
-    });
-    setExams(examsMap);
-
-    const { data: pdfsData, error } = await supabase
-      .from("pdfs")
-      .select("id, title, file_path, file_size, exam_id")
-      .order("created_at", { ascending: false });
+  const handleDownload = async (pdf: PDF) => {
+    const { data, error } = await supabase.storage
+      .from('study-materials')
+      .createSignedUrl(pdf.file_path, 3600);
 
     if (error) {
-      toast({ title: "Error", description: "Failed to load materials", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Failed to load PDF link",
+        variant: "destructive",
+      });
       return;
     }
 
-    setPdfs(pdfsData || []);
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, '_blank');
+    }
   };
 
-  const filteredPdfs = useMemo(() => {
-    let result = pdfs;
+  const formatFileSize = (bytes: number) => {
+    if (!bytes) return "PDF";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
-    if (selectedExam !== "all") {
-      result = result.filter(pdf => pdf.exam_id === selectedExam);
-    }
+  const filteredPdfs = pdfs.filter(pdf => {
+    const matchesSearch = pdf.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesExam = selectedExam === "all" || pdf.exam_id === selectedExam;
+    return matchesSearch && matchesExam;
+  });
 
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(pdf => pdf.title.toLowerCase().includes(q));
-    }
-
-    return result;
-  }, [pdfs, searchQuery, selectedExam]);
-
-  const examList = Object.entries(exams);
+  if (loading) {
+    return (
+      <StudentLayout title="PDF Hub" subtitle="Study materials">
+        <div className="w-full max-w-3xl mx-auto flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center animate-pulse">
+              <FileText className="w-8 h-8 text-white" />
+            </div>
+            <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
 
   return (
-    <StudentLayout title="Study PDFs" subtitle="Your materials">
-      {/* Mobile: No extra padding (Layout has px-4), Desktop: wider */}
-      <div className="w-full md:max-w-4xl md:mx-auto pb-8">
+    <StudentLayout title="Study Center" subtitle="Learning materials">
+      <div className="w-full max-w-3xl mx-auto space-y-6 pb-32 pt-2 px-4 overflow-x-hidden">
 
         {/* ═══════════════════════════════════════════════════════════════
-            MOBILE STATS - Simple 2-column cards
+            PREMIUM STUDY HERO
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-2 gap-2 mb-4 md:hidden"
+          className="relative overflow-hidden rounded-[32px] p-6 md:p-8 bg-gradient-to-br from-indigo-900 via-indigo-800 to-violet-900 shadow-2xl shadow-indigo-200"
         >
-          <div className="bg-white rounded-2xl p-3 text-center border border-slate-100">
-            <p className="text-lg font-bold text-red-500">{pdfs.length}</p>
-            <p className="text-[10px] text-slate-500">Total PDFs</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 text-center border border-slate-100">
-            <p className="text-lg font-bold text-slate-900">{examList.length}</p>
-            <p className="text-[10px] text-slate-500">Categories</p>
-          </div>
-        </motion.div>
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[size:20px_20px]" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-indigo-500/20 rounded-full blur-2xl -ml-24 -mb-24" />
 
-        {/* Desktop Stats Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="hidden md:block relative overflow-hidden rounded-[32px] bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 mb-6"
-          style={{ boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)' }}
-        >
-          <div className="absolute inset-0 opacity-40">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/30 rounded-full blur-3xl -mr-24 -mt-24" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-orange-500/20 rounded-full blur-2xl -ml-20 -mb-20" />
-          </div>
-          <div className="relative z-10 p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-red-500/20 backdrop-blur-sm flex items-center justify-center border border-red-500/30">
-                <FileText className="w-4 h-4 text-red-400" />
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                <FileText className="w-5 h-5 text-indigo-200" />
               </div>
-              <span className="text-xs font-bold uppercase tracking-[0.15em] text-red-400">Study Materials</span>
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-200">Study Materials</span>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-3xl font-black tracking-tight text-red-400 font-mono">{pdfs.length}</p>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Total PDFs</p>
+            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight">
+              Premium <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 to-violet-300">Study Vault</span>
+            </h1>
+            <p className="text-indigo-100/70 max-w-lg text-sm leading-relaxed">
+              Access curated PDFs, notes, and previous year papers to boost your preparation.
+            </p>
+
+            <div className="flex items-center gap-6 pt-2">
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-white">{pdfs.length}</span>
+                <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">Total PDFs</span>
               </div>
-              <div className="space-y-1 border-l border-white/10 pl-4">
-                <p className="text-3xl font-black tracking-tight text-slate-100 font-mono">{examList.length}</p>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Categories</p>
+              <div className="w-px h-10 bg-white/10" />
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-white">{exams.length}</span>
+                <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">Categories</span>
               </div>
             </div>
           </div>
         </motion.div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            SEARCH INPUT
+            SEARCH & FILTERS
             ═══════════════════════════════════════════════════════════════ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="relative mb-3"
-        >
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search materials..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center"
-            >
-              <X className="w-3 h-3 text-slate-500" />
-            </button>
-          )}
-        </motion.div>
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4">
+            <div className="relative w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search PDFs by title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white border border-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-slate-700 placeholder:text-slate-400 shadow-sm"
+              />
+            </div>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            CATEGORY PILLS - Horizontal scroll with edge-to-edge
-            ═══════════════════════════════════════════════════════════════ */}
-        {examList.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15 }}
-            className="mb-4 -mx-4 px-4 md:mx-0 md:px-0"
-          >
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
               <button
                 onClick={() => setSelectedExam("all")}
-                className={`shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap ${selectedExam === "all"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-200"
+                className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all ${selectedExam === "all" ? "bg-slate-900 text-white shadow-lg" : "bg-white text-slate-600 border border-slate-100 hover:border-indigo-200"
                   }`}
               >
-                All
+                All Hubs
               </button>
-              {examList.map(([id, name]) => (
+              {exams.map(e => (
                 <button
-                  key={id}
-                  onClick={() => setSelectedExam(id)}
-                  className={`shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap ${selectedExam === id
-                    ? "bg-indigo-600 text-white"
-                    : "bg-white text-slate-600 border border-slate-200"
+                  key={e.id}
+                  onClick={() => setSelectedExam(e.id)}
+                  className={`shrink-0 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${selectedExam === e.id ? "bg-slate-900 text-white shadow-lg" : "bg-white text-slate-600 border border-slate-100 hover:border-indigo-200"
                     }`}
                 >
-                  {name}
+                  {e.name}
                 </button>
               ))}
             </div>
-          </motion.div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════
-            PDF LIST
-            ═══════════════════════════════════════════════════════════════ */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm md:text-lg font-bold text-slate-900">Documents</h3>
-            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-xs font-semibold">
-              {filteredPdfs.length}
-            </span>
           </div>
 
-          <div className="space-y-2 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-            {loading ? (
-              <>
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="animate-pulse bg-white h-14 rounded-2xl border border-slate-100" />
-                ))}
-              </>
-            ) : filteredPdfs.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-10 bg-white rounded-2xl border border-slate-100 md:col-span-2"
-              >
-                <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <FolderOpen className="w-5 h-5 text-slate-400" />
-                </div>
-                <p className="text-slate-900 font-semibold text-sm">No materials found</p>
-                <p className="text-slate-500 text-xs mt-1">Try a different search</p>
-              </motion.div>
-            ) : (
-              filteredPdfs.map((pdf, index) => (
-                <motion.button
-                  key={pdf.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => window.open(supabase.storage.from('pdfs').getPublicUrl(pdf.file_path).data.publicUrl, '_blank')}
-                  className="w-full bg-white rounded-2xl p-3 md:p-5 border border-slate-100 text-left active:bg-slate-50 transition-colors hover:shadow-lg hover:border-indigo-200"
+          {/* ═══════════════════════════════════════════════════════════════
+              PDF GRID
+              ═══════════════════════════════════════════════════════════════ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <AnimatePresence mode="popLayout">
+              {filteredPdfs.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="col-span-full py-20 text-center"
                 >
-                  <div className="flex items-center gap-2">
-                    {/* File Icon */}
-                    <div className="shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-red-100 md:bg-gradient-to-br md:from-red-500 md:to-rose-600 flex items-center justify-center">
-                      <FileText className="w-4 h-4 md:w-6 md:h-6 text-red-500 md:text-white" />
-                    </div>
+                  <FileText className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                  <h3 className="text-lg font-bold text-slate-900">No PDFs found</h3>
+                  <p className="text-slate-500 text-sm">Try refining your search or filter</p>
+                </motion.div>
+              ) : (
+                filteredPdfs.map((pdf, idx) => (
+                  <motion.div
+                    layout
+                    key={pdf.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: idx * 0.03 }}
+                  >
+                    <div className="card-premium h-full flex flex-col group overflow-hidden">
+                      <div className="p-5 flex-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                            <FileText className="w-5 h-5" />
+                          </div>
+                          <span className="px-2 py-1 rounded-lg bg-slate-50 text-slate-500 text-[9px] font-bold uppercase tracking-wider">
+                            {formatFileSize(pdf.file_size)}
+                          </span>
+                        </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-slate-900 text-[13px] md:text-[15px] leading-snug truncate">
-                        {pdf.title}
-                      </h4>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="text-[10px] text-slate-500">
-                          {pdf.file_size ? `${(pdf.file_size / (1024 * 1024)).toFixed(1)} MB` : 'PDF'}
-                        </span>
-                        {exams[pdf.exam_id] && (
-                          <>
-                            <span className="text-slate-300">•</span>
-                            <span className="text-[10px] text-slate-500 truncate max-w-[80px]">
-                              {exams[pdf.exam_id]}
-                            </span>
-                          </>
-                        )}
+                        <h4 className="font-bold text-slate-900 text-sm leading-snug mb-2 group-hover:text-indigo-600 transition-colors line-clamp-2">
+                          {pdf.title}
+                        </h4>
+
+                        <div className="mt-4 flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Category</span>
+                          <span className="text-xs font-bold text-indigo-600 truncate">{exams.find(e => e.id === pdf.exam_id)?.name || 'General'}</span>
+                        </div>
+                      </div>
+
+                      <div className="p-4 border-t border-slate-50 bg-slate-50/30">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => handleDownload(pdf)}
+                          className="w-full py-2.5 rounded-xl bg-white border border-slate-200 text-indigo-600 font-bold text-xs flex items-center justify-center gap-2 hover:bg-white hover:border-indigo-600 hover:shadow-lg transition-all"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          View/Download
+                        </motion.button>
                       </div>
                     </div>
-
-                    {/* Action Icon */}
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                    </div>
-                  </div>
-                </motion.button>
-              ))
-            )}
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

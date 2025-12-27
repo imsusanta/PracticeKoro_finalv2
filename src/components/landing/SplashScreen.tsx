@@ -71,8 +71,8 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                             }}
                             className="mx-auto mb-6"
                         >
-                            <div className="w-24 h-24 md:w-28 md:h-28 rounded-3xl bg-white shadow-2xl flex items-center justify-center">
-                                <CheckCircle className="w-14 h-14 md:w-16 md:h-16 text-primary" />
+                            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl bg-white shadow-2xl flex items-center justify-center">
+                                <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-primary" />
                             </div>
                         </motion.div>
 
@@ -81,7 +81,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.5 }}
-                            className="text-3xl md:text-4xl font-bold text-white tracking-tight"
+                            className="text-2xl sm:text-4xl font-bold text-white tracking-tight"
                         >
                             Practice Koro
                         </motion.h1>

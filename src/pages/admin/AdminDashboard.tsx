@@ -322,7 +322,7 @@ const AdminDashboard = () => {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 md:gap-5 grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {statCards.map((stat, index) => (
             <motion.div
               key={index}

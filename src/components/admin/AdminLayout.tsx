@@ -58,8 +58,8 @@ const SidebarToggleButton = () => {
 // Page transition config
 const pageTransition = {
     duration: 0.25,
-    ease: "easeInOut" as const,
-};
+    ease: "easeInOut",
+} as const;
 
 // Read initial sidebar state from cookie
 const getInitialSidebarState = (): boolean => {
@@ -79,10 +79,14 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
     const [sidebarOpen, setSidebarOpen] = useState(getInitialSidebarState);
 
     const handleLogout = async () => {
+        try {
+            await supabase.auth.signOut();
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
         // Clear sidebar state cookie so next login starts fresh
         document.cookie = 'sidebar:state=true; path=/; max-age=0';
-        setSidebarOpen(true);
-        await supabase.auth.signOut();
+        localStorage.clear();
         navigate("/");
     };
 
@@ -99,7 +103,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
     ];
 
     return (
-        <div className="h-screen md:h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 relative md:overflow-hidden flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 relative flex flex-col overflow-x-hidden">
             {/* Animated Background Gradient Orbs */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
                 <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-emerald-200/50 to-teal-200/50 rounded-full blur-3xl animate-pulse" />
@@ -283,16 +287,18 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={pageTransition}
-                            className="flex-1 p-4 md:p-6 pb-24 md:pb-6 relative z-10"
+                            className="flex-1 p-4 md:p-6 pb-32 md:pb-6 relative z-10 w-full max-w-7xl mx-auto"
                         >
-                            {children}
+                            <div className="w-full">
+                                {children}
+                            </div>
                         </motion.main>
                     </AnimatePresence>
 
                     {/* Enhanced Bottom Navigation (Mobile) */}
-                    <nav className="md:hidden fixed bottom-0 left-0 right-0 safe-area-bottom z-30">
-                        <div className="mx-3 mb-3 rounded-2xl bg-white/80 backdrop-blur-xl border border-white/50 shadow-xl shadow-gray-300/30">
-                            <div className="flex items-center justify-around h-16 px-2">
+                    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-safe-area-bottom pointer-events-none">
+                        <div className="mx-auto mb-4 rounded-2xl bg-white/90 backdrop-blur-xl border border-white/40 shadow-2xl pointer-events-auto max-w-md">
+                            <div className="flex items-center justify-around h-16 p-2">
                                 {managementTools.slice(0, 4).map((tool, index) => {
                                     const Icon = tool.icon;
                                     const isActive = location.pathname === tool.path;
@@ -301,13 +307,13 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                         <Link
                                             key={tool.path}
                                             to={tool.path}
-                                            className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition-all duration-300 ${isActive
-                                                ? `text-white bg-gradient-to-br ${colorSet.activeBg} shadow-lg scale-105`
-                                                : "text-gray-400 hover:text-emerald-600 hover:bg-white/50"
+                                            className={`relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-300 ${isActive
+                                                ? `text-white bg-gradient-to-br ${colorSet.activeBg} shadow-lg shadow-emerald-500/20 scale-105`
+                                                : "text-gray-400 hover:text-emerald-600"
                                                 }`}
                                         >
-                                            <Icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? "scale-110" : ""}`} />
-                                            <span className={`text-[9px] font-semibold mt-1 truncate max-w-full px-1 ${isActive ? "text-white" : ""}`}>
+                                            <Icon className={`w-5 h-5 relative z-10 transition-transform duration-300 ${isActive ? "scale-110" : ""}`} />
+                                            <span className={`relative z-10 text-[8px] font-bold mt-1.5 truncate max-w-full px-1 uppercase tracking-tighter ${isActive ? "text-white" : "text-gray-500"}`}>
                                                 {tool.name.split(" ")[0]}
                                             </span>
                                         </Link>
@@ -321,14 +327,14 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                             <button
                                                 className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition-all duration-300 ${managementTools.slice(4).some(t => location.pathname === t.path)
                                                     ? "text-emerald-600 bg-emerald-50 shadow-sm"
-                                                    : "text-gray-400 hover:text-emerald-600 hover:bg-white/50"
+                                                    : "text-gray-400 hover:text-emerald-600"
                                                     }`}
                                             >
                                                 <Menu className="w-5 h-5" />
-                                                <span className="text-[9px] font-semibold mt-1">More</span>
+                                                <span className="text-[9px] font-bold mt-1">More</span>
                                             </button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="mb-2 w-56 p-2 rounded-2xl bg-white/95 backdrop-blur-xl border-white/50 shadow-2xl z-[100]">
+                                        <DropdownMenuContent align="end" className="mb-4 w-56 p-2 rounded-2xl bg-white/95 backdrop-blur-xl border-white/50 shadow-2xl z-[100]">
                                             <div className="grid grid-cols-2 gap-2">
                                                 {managementTools.slice(4).map((tool, index) => {
                                                     const Icon = tool.icon;

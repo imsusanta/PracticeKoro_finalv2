@@ -1,307 +1,231 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import {
   Trophy,
   ChevronRight,
-  XCircle,
-  BookOpen,
-  Zap,
-  Lock,
+  Clock,
   BarChart2,
-  Target,
-  Clock
+  Award,
+  ArrowRight
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import StudentLayout from "@/components/student/StudentLayout";
+import { format } from "date-fns";
 
 interface TestAttempt {
   id: string;
   test_id: string;
+  test_title: string;
   score: number;
   total_marks: number;
   percentage: number;
   passed: boolean;
   completed_at: string;
-  test_title?: string;
 }
 
 const StudentResults = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [attempts, setAttempts] = useState<TestAttempt[]>([]);
-  const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
+  const [stats, setStats] = useState({ passed: 0, avg: 0 });
 
   useEffect(() => {
-    checkAuthAndLoadData();
+    loadResults();
   }, []);
 
-  const checkAuthAndLoadData = async () => {
+  const loadResults = async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/login");
-      return;
-    }
+    if (!session) { navigate("/login"); return; }
 
-    const approvalResult = await supabase
-      .from("approval_status")
-      .select("status")
-      .eq("user_id", session.user.id)
-      .single();
-
-    setApprovalStatus(approvalResult.data?.status || "pending");
-    await loadTestAttempts(session.user.id);
-    setLoading(false);
-  };
-
-  const loadTestAttempts = async (userId: string) => {
     const { data, error } = await supabase
       .from("test_attempts")
-      .select(`*, mock_tests:test_id (title)`)
-      .eq("user_id", userId)
+      .select(`
+        id,
+        test_id,
+        score,
+        total_marks,
+        percentage,
+        passed,
+        completed_at,
+        mock_tests (title)
+      `)
+      .eq("user_id", session.user.id)
+      .eq("is_active", false)
       .order("completed_at", { ascending: false });
 
-    if (!error && data) {
-      setAttempts(data.map((a: any) => ({
+    if (data) {
+      const formattedAttempts = data.map((a: any) => ({
         id: a.id,
         test_id: a.test_id,
+        test_title: a.mock_tests?.title || "Unknown Test",
         score: a.score,
         total_marks: a.total_marks,
         percentage: a.percentage,
         passed: a.passed,
-        completed_at: a.completed_at,
-        test_title: a.mock_tests?.title || "Test",
-      })));
+        completed_at: a.completed_at
+      }));
+      setAttempts(formattedAttempts);
+
+      if (formattedAttempts.length > 0) {
+        const passed = formattedAttempts.filter(a => a.passed).length;
+        const avg = Math.round(formattedAttempts.reduce((acc, curr) => acc + curr.percentage, 0) / formattedAttempts.length);
+        setStats({ passed, avg });
+      }
+    }
+    setLoading(false);
+  };
+
+  const formatDate = (dateStr: string) => {
+    try {
+      return format(new Date(dateStr), "MMM d, yyyy • h:mm a");
+    } catch (e) {
+      return dateStr;
     }
   };
 
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    const now = new Date();
-    const days = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    if (days < 7) return `${days}d ago`;
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-
-  // Loading State - Inside Layout for smooth transitions
   if (loading) {
     return (
       <StudentLayout title="Results" subtitle="Your performance">
-        <div className="w-full md:max-w-4xl md:mx-auto flex items-center justify-center min-h-[50vh]">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center gap-4"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center">
+        <div className="w-full md:max-w-5xl md:mx-auto flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center animate-pulse">
               <Trophy className="w-8 h-8 text-white" />
             </div>
-            <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          </motion.div>
+            <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+          </div>
         </div>
       </StudentLayout>
     );
   }
-
-  // Payment Locked State - Inside Layout for smooth transitions
-  if (approvalStatus === "payment_locked") {
-    return (
-      <StudentLayout title="Results" subtitle="Your performance">
-        <div className="w-full md:max-w-4xl md:mx-auto flex items-center justify-center min-h-[50vh]">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-sm w-full"
-          >
-            <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-slate-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Account Locked</h2>
-            <p className="text-slate-500 mb-8">Complete payment to view results</p>
-            <button
-              onClick={() => navigate("/student/dashboard")}
-              className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold active:scale-[0.98] transition-transform"
-            >
-              Back to Dashboard
-            </button>
-          </motion.div>
-        </div>
-      </StudentLayout>
-    );
-  }
-
-  const passed = attempts.filter(a => a.passed).length;
-  const avg = attempts.length ? Math.round(attempts.reduce((s, a) => s + a.percentage, 0) / attempts.length) : 0;
 
   return (
     <StudentLayout title="Results" subtitle="Your performance">
-      {/* Mobile: No extra padding (Layout has px-4), Desktop: wider */}
-      <div className="w-full md:max-w-4xl md:mx-auto pb-8">
+      <div className="w-full max-w-3xl mx-auto space-y-6 pb-32 pt-2 px-4 overflow-x-hidden">
 
         {/* ═══════════════════════════════════════════════════════════════
-            MOBILE STATS - Simple 3-column cards
+            PREMIUM ACHIEVEMENT HERO
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-3 gap-2 mb-4 md:hidden"
+          className="relative overflow-hidden rounded-[32px] p-6 md:p-10 bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 shadow-2xl shadow-emerald-200"
         >
-          <div className="bg-white rounded-2xl p-3 text-center border border-slate-100">
-            <p className="text-lg font-bold text-emerald-600">{passed}</p>
-            <p className="text-[10px] text-slate-500">Passed</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 text-center border border-slate-100">
-            <p className="text-lg font-bold text-indigo-600">{avg}%</p>
-            <p className="text-[10px] text-slate-500">Avg</p>
-          </div>
-          <div className="bg-white rounded-2xl p-3 text-center border border-slate-100">
-            <p className="text-lg font-bold text-slate-900">{attempts.length}</p>
-            <p className="text-[10px] text-slate-500">Total</p>
-          </div>
-        </motion.div>
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[size:20px_20px]" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-400/20 rounded-full blur-2xl -ml-24 -mb-24" />
 
-        {/* Desktop Stats Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="hidden md:block relative overflow-hidden rounded-[32px] bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 mb-6"
-          style={{ boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)' }}
-        >
-          <div className="absolute inset-0 opacity-40">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/30 rounded-full blur-3xl -mr-24 -mt-24" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-500/20 rounded-full blur-2xl -ml-20 -mb-20" />
-          </div>
-          <div className="relative z-10 p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center border border-emerald-500/30">
-                <Trophy className="w-4 h-4 text-emerald-400" />
-              </div>
-              <span className="text-xs font-bold uppercase tracking-[0.15em] text-emerald-400">Overall Achievement</span>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1">
-                <p className="text-3xl font-black tracking-tight text-emerald-400 font-mono">{passed}</p>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Passed</p>
-              </div>
-              <div className="space-y-1 border-l border-white/10 pl-4">
-                <p className="text-3xl font-black tracking-tight text-blue-400 font-mono">{avg}%</p>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Average</p>
-              </div>
-              <div className="space-y-1 border-l border-white/10 pl-4">
-                <p className="text-3xl font-black tracking-tight text-slate-100 font-mono">{attempts.length}</p>
-                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">Attempts</p>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* ═══════════════════════════════════════════════════════════════
-            RESULTS LIST
-            ═══════════════════════════════════════════════════════════════ */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm md:text-lg font-bold text-slate-900">Recent Attempts</h3>
-            <span className="bg-slate-100 text-slate-600 px-2 py-1 rounded-lg text-xs font-semibold">
-              {attempts.length}
-            </span>
-          </div>
-
-          <div className="space-y-2 md:grid md:grid-cols-2 md:gap-4 md:space-y-0">
-            {attempts.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-10 bg-white rounded-2xl border border-slate-100 md:col-span-2"
-              >
-                <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="w-5 h-5 text-slate-400" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="space-y-4 flex-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-inner">
+                  <Trophy className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-slate-900 font-semibold text-sm">No results yet</p>
-                <p className="text-slate-500 text-xs mt-1">Take a test to see your results</p>
-                <button
-                  onClick={() => navigate("/student/exams")}
-                  className="mt-3 bg-indigo-600 text-white px-5 py-2 rounded-xl text-xs font-semibold active:scale-[0.98] transition-transform"
-                >
-                  Start a Test
-                </button>
-              </motion.div>
-            ) : (
-              <>
-                {attempts.map((attempt, index) => (
-                  <motion.button
-                    key={attempt.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => navigate(`/student/test-review/${attempt.id}`)}
-                    className="w-full bg-white rounded-2xl p-3 md:p-5 border border-slate-100 text-left active:bg-slate-50 transition-colors hover:shadow-lg hover:border-indigo-200"
-                  >
-                    <div className="flex items-center gap-2">
-                      {/* Status Icon */}
-                      <div className={`shrink-0 w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center ${attempt.passed
-                        ? "bg-emerald-100 md:bg-gradient-to-br md:from-emerald-500 md:to-teal-500"
-                        : "bg-red-100 md:bg-gradient-to-br md:from-red-500 md:to-rose-500"
-                        }`}>
-                        {attempt.passed ? (
-                          <Trophy className="w-4 h-4 md:w-6 md:h-6 text-emerald-600 md:text-white" />
-                        ) : (
-                          <XCircle className="w-4 h-4 md:w-6 md:h-6 text-red-500 md:text-white" />
-                        )}
-                      </div>
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Performance Summary</span>
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black text-white leading-tight">
+                Your <span className="text-emerald-300">Success</span> Journey
+              </h1>
+              <p className="text-emerald-50/70 max-w-md text-sm md:text-base leading-relaxed">
+                Track your mock test history, analyze scores, and keep improving your weak areas.
+              </p>
+            </div>
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-slate-900 text-[13px] md:text-[15px] leading-snug truncate">
-                          {attempt.test_title}
-                        </h4>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-slate-500">
-                            {attempt.score}/{attempt.total_marks}
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span className="text-[10px] text-slate-500">
-                            {formatDate(attempt.completed_at)}
-                          </span>
+            <div className="bg-white/10 backdrop-blur-md rounded-[28px] border border-white/20 p-6 flex gap-8 items-center shrink-0">
+              <div className="text-center">
+                <p className="text-3xl font-black text-white">{attempts.length}</p>
+                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest mt-1">Attempts</p>
+              </div>
+              <div className="w-px h-12 bg-white/10" />
+              <div className="text-center">
+                <p className="text-3xl font-black text-emerald-300">{stats.passed}</p>
+                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest mt-1">Passes</p>
+              </div>
+              <div className="w-px h-12 bg-white/10" />
+              <div className="text-center">
+                <p className="text-3xl font-black text-white">{stats.avg}%</p>
+                <p className="text-[10px] font-bold text-emerald-200 uppercase tracking-widest mt-1">Average</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            DETAILED RESULTS LIST
+            ═══════════════════════════════════════════════════════════════ */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <BarChart2 className="w-5 h-5 text-indigo-600" />
+              Recent Attempts
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <AnimatePresence mode="popLayout">
+              {attempts.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="card-premium p-12 text-center"
+                >
+                  <Award className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                  <h4 className="font-bold text-slate-900">No attempts yet</h4>
+                  <p className="text-sm text-slate-500 mt-1">Start your first test to see your performance here.</p>
+                </motion.div>
+              ) : (
+                attempts.map((attempt, idx) => (
+                  <motion.div
+                    key={attempt.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="card-premium p-5 md:p-6 group hover:translate-x-1 transition-all cursor-pointer"
+                    onClick={() => navigate(`/student/test-review/${attempt.id}`)}
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${attempt.passed ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                          }`}>
+                          <Award className="w-7 h-7" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-slate-900 text-base md:text-lg truncate group-hover:text-indigo-600 transition-colors">
+                            {attempt.test_title}
+                          </h4>
+                          <div className="flex items-center gap-3 mt-1.5">
+                            <span className="flex items-center gap-1 text-xs text-slate-500">
+                              <Clock className="w-3.5 h-3.5 text-slate-400" />
+                              {formatDate(attempt.completed_at)}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${attempt.passed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                              }`}>
+                              {attempt.passed ? 'Passed' : 'Failed'}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Score */}
-                      <div className={`shrink-0 px-2 py-1 rounded-lg ${attempt.passed ? "bg-emerald-50" : "bg-red-50"
-                        }`}>
-                        <span className={`text-sm font-bold ${attempt.passed ? "text-emerald-600" : "text-red-500"
-                          }`}>
-                          {attempt.percentage.toFixed(0)}%
-                        </span>
+                      <div className="flex items-center gap-6 justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-slate-50">
+                        <div className="text-right">
+                          <p className="text-2xl font-black text-slate-900 tracking-tight">{attempt.percentage}%</p>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{attempt.score}/{attempt.total_marks} Marks</p>
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          className="w-12 h-12 rounded-xl bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center transition-all"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </motion.button>
                       </div>
                     </div>
-                  </motion.button>
-                ))}
-
-                {/* Practice More CTA */}
-                <motion.button
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: attempts.length * 0.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate("/student/exams")}
-                  className="w-full bg-slate-900 rounded-2xl p-3 md:p-5 flex items-center gap-2 text-left md:col-span-2 hover:bg-slate-800 transition-colors"
-                >
-                  <div className="w-10 h-10 md:w-14 md:h-14 bg-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shrink-0">
-                    <Zap className="w-4 h-4 md:w-6 md:h-6 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-white text-[13px] md:text-base">Practice More</p>
-                    <p className="text-slate-400 text-[10px] md:text-sm">Keep improving!</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-                </motion.button>
-              </>
-            )}
+                  </motion.div>
+                ))
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>

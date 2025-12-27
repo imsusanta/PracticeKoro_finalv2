@@ -108,16 +108,16 @@ const Login = () => {
         </button>
       </div>
 
-      <main className="flex-1 flex flex-col px-5 pb-8">
-        <div className="w-full max-w-sm mx-auto space-y-6">
+      <main className="flex-1 flex flex-col items-center justify-center px-5 pb-8 md:px-8">
+        <div className="w-full max-w-sm md:max-w-md lg:max-w-lg mx-auto space-y-6">
           {/* Logo & Title */}
           <div className="text-center space-y-4 py-6">
             <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-xl shadow-emerald-500/30">
               <Zap className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Welcome Back</h1>
-              <p className="text-sm text-gray-500 mt-1">Sign in to continue learning</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Welcome Back</h1>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1">Sign in to continue learning</p>
             </div>
           </div>
 
@@ -144,6 +144,7 @@ const Login = () => {
                       type="email"
                       required
                       placeholder="you@example.com"
+                      autoComplete="email"
                       className="h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       value={emailFormData.email}
                       onChange={(e) => setEmailFormData({ ...emailFormData, email: e.target.value })}
@@ -166,7 +167,8 @@ const Login = () => {
                         type={showPassword ? "text" : "password"}
                         required
                         placeholder="••••••••"
-                        className="h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors pr-10"
+                        autoComplete="current-password"
+                        className="h-11 sm:h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors pr-10"
                         value={emailFormData.password}
                         onChange={(e) => setEmailFormData({ ...emailFormData, password: e.target.value })}
                       />
@@ -195,7 +197,7 @@ const Login = () => {
                       required
                       placeholder="10-digit number"
                       maxLength={10}
-                      className="h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                      className="h-11 sm:h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       value={whatsappFormData.whatsappNumber}
                       onChange={(e) => {
                         const value = e.target.value.replace(/\D/g, '');
@@ -212,7 +214,8 @@ const Login = () => {
                         type={showPassword ? "text" : "password"}
                         required
                         placeholder="••••••••"
-                        className="h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors pr-10"
+                        autoComplete="current-password"
+                        className="h-11 sm:h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors pr-10"
                         value={whatsappFormData.password}
                         onChange={(e) => setWhatsappFormData({ ...whatsappFormData, password: e.target.value })}
                       />

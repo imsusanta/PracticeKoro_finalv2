@@ -138,10 +138,10 @@ export default function ResetPassword() {
                 <Input
                   id="newPassword"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Enter new password"
+                  placeholder="New password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="pl-10 pr-10"
+                  className="pl-10 pr-10 h-11 sm:h-12"
                   disabled={loading}
                   required
                   minLength={6}

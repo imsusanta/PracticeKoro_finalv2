@@ -206,11 +206,11 @@ const ReviewTest = () => {
               )}
             </div>
             <h1 className="text-4xl md:text-5xl font-black text-white mb-2 font-mono">{attempt.percentage}%</h1>
-            <p className="text-white/80 text-sm md:text-base mb-3">{attempt.score} / {attempt.total_marks} marks</p>
-            <Badge className={`${attempt.passed ? 'bg-white/20 text-white' : 'bg-white/20 text-white'} text-sm px-4 py-1.5 border border-white/30`}>
+            <p className="text-white/80 text-[13px] md:text-base mb-3">{attempt.score} / {attempt.total_marks} marks</p>
+            <Badge className={`${attempt.passed ? 'bg-white/20 text-white' : 'bg-white/20 text-white'} text-[11px] sm:text-sm px-4 py-1.5 border border-white/30`}>
               {attempt.passed ? '🎉 Congratulations! You Passed!' : '📚 Keep Practicing!'}
             </Badge>
-            <p className="text-white/70 text-xs md:text-sm mt-4 font-medium">{attempt.mock_tests.title}</p>
+            <p className="text-white/70 text-[11px] md:text-sm mt-4 font-medium px-4">{attempt.mock_tests.title}</p>
           </motion.div>
         </div>
       </header>
@@ -245,12 +245,12 @@ const ReviewTest = () => {
             <p className="text-[10px] md:text-xs text-slate-500 font-semibold">Incorrect</p>
           </div>
           <div className="text-center">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-2"
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-2"
               style={{ boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3)' }}
             >
               <Target className="w-5 h-5 text-white" />
             </div>
-            <p className="text-xl md:text-2xl font-bold text-slate-900 font-mono">{skippedAnswers}</p>
+            <p className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 font-mono">{skippedAnswers}</p>
             <p className="text-[10px] md:text-xs text-slate-500 font-semibold">Skipped</p>
           </div>
         </motion.div>

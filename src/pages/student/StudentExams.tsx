@@ -13,7 +13,8 @@ import {
   Target,
   CheckCircle,
   Sparkles,
-  Award
+  Award,
+  ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentLayout from "@/components/student/StudentLayout";
@@ -122,31 +123,25 @@ const StudentExams = () => {
     : 0;
   const passedTests = Object.values(testAttempts).filter(t => t.passed).length;
 
-  // Loading State - Inside Layout for smooth transitions (both mobile and desktop)
   if (loading) {
     return (
       <StudentLayout title="Mock Tests" subtitle="Practice & improve">
-        <div className="w-full md:max-w-4xl md:mx-auto flex items-center justify-center min-h-[50vh]">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center gap-4"
-          >
-            <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center">
+        <div className="w-full md:max-w-5xl md:mx-auto flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl bg-indigo-600 flex items-center justify-center animate-pulse">
               <BookOpen className="w-8 h-8 text-white" />
             </div>
             <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          </motion.div>
+          </div>
         </div>
       </StudentLayout>
     );
   }
 
-  // Payment Locked State - Inside Layout for smooth transitions (both mobile and desktop)
   if (approvalStatus === "payment_locked") {
     return (
       <StudentLayout title="Mock Tests" subtitle="Practice & improve">
-        <div className="w-full md:max-w-4xl md:mx-auto flex items-center justify-center min-h-[50vh]">
+        <div className="w-full md:max-w-5xl md:mx-auto flex items-center justify-center min-h-[50vh]">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -159,7 +154,7 @@ const StudentExams = () => {
             <p className="text-slate-500 mb-8">Complete payment to unlock all tests</p>
             <button
               onClick={() => navigate("/student/dashboard")}
-              className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold active:scale-[0.98] transition-transform"
+              className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold shadow-lg active:scale-[0.98] transition-all"
             >
               Back to Dashboard
             </button>
@@ -169,259 +164,208 @@ const StudentExams = () => {
     );
   }
 
-  // Test List Content - Used in both Mobile and Desktop
-  const TestListContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <>
-      {/* Filter Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card-premium p-1.5 flex mb-4"
-      >
-        {[
-          { key: "all", label: "All", icon: BookOpen },
-          { key: "full_mock", label: "Full Mock", icon: Award },
-          { key: "topic_wise", label: "Topic", icon: Target }
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => {
-              setFilterType(tab.key as typeof filterType);
-              setSelectedExam("all");
-            }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all ${filterType === tab.key
-              ? "bg-indigo-600 text-white"
-              : "text-slate-500"
-              }`}
-          >
-            <tab.icon className="w-3.5 h-3.5" />
-            {tab.label}
-          </button>
-        ))}
-      </motion.div>
-
-      {/* Exam Category Chips */}
-      {exams.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15 }}
-          className={`mb-4 ${isMobile ? '-mx-4 px-4' : ''}`}
-        >
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            <button
-              onClick={() => setSelectedExam("all")}
-              className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedExam === "all"
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-slate-600 border border-slate-200"
-                }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              All
-            </button>
-            {exams.map((exam) => (
-              <button
-                key={exam.id}
-                onClick={() => setSelectedExam(exam.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap ${selectedExam === exam.id
-                  ? "bg-indigo-600 text-white"
-                  : "bg-white text-slate-600 border border-slate-200"
-                  }`}
-              >
-                {exam.name}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-      )}
-
-      {/* Results Header */}
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-bold text-slate-900">
-          {filterType === "all" ? "All Tests" : filterType === "full_mock" ? "Full Mock Tests" : "Topic-wise Tests"}
-        </h3>
-        <span className="bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-lg text-xs font-bold">
-          {filteredTests.length} tests
-        </span>
-      </div>
-
-      {/* Test Cards */}
-      <div className="space-y-3 pb-6">
-        <AnimatePresence mode="popLayout">
-          {filteredTests.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-12 card-premium"
-            >
-              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-6 h-6 text-slate-400" />
-              </div>
-              <p className="text-slate-900 font-bold text-base mb-1">No tests found</p>
-              <p className="text-slate-500 text-sm">Try selecting a different category</p>
-            </motion.div>
-          ) : (
-            filteredTests.map((test, index) => {
-              const attempt = testAttempts[test.id];
-              const isPassed = attempt?.passed;
-              const hasAttempted = !!attempt;
-              const examName = exams.find(e => e.id === test.exam_id)?.name;
-
-              return (
-                <motion.button
-                  key={test.id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(`/student/take-test/${test.id}`)}
-                  className="w-full card-premium p-4 text-left"
-                >
-                  {/* Top Row - Type Badge & Score */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wide ${test.test_type === "full_mock"
-                        ? "bg-indigo-100 text-indigo-700"
-                        : "bg-amber-100 text-amber-700"
-                        }`}>
-                        {test.test_type === "full_mock" ? "Full Mock" : "Topic"}
-                      </span>
-                      {isPassed && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg bg-emerald-100 text-emerald-700">
-                          <CheckCircle className="w-3 h-3" />
-                          Passed
-                        </span>
-                      )}
-                    </div>
-                    {attempt && (
-                      <div className={`px-2.5 py-1 rounded-lg ${isPassed ? "bg-emerald-50" : "bg-amber-50"}`}>
-                        <p className={`text-sm font-bold ${isPassed ? "text-emerald-600" : "text-amber-600"}`}>
-                          {attempt.best_percentage}%
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Title */}
-                  <h4 className="font-bold text-slate-900 text-[15px] leading-snug mb-2 line-clamp-2">
-                    {test.title}
-                  </h4>
-
-                  {/* Meta Info Row */}
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="flex items-center gap-1 text-xs text-slate-500">
-                      <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      {test.duration_minutes} min
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-slate-500">
-                      <Target className="w-3.5 h-3.5 text-slate-400" />
-                      {test.total_marks} marks
-                    </span>
-                    {examName && (
-                      <span className="flex items-center gap-1 text-xs text-slate-400 truncate">
-                        {examName}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Action Button - More subtle */}
-                  <div className={`w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 ${hasAttempted
-                    ? "bg-slate-100 text-slate-700"
-                    : "bg-indigo-600 text-white"
-                    }`}>
-                    {hasAttempted ? (
-                      <>
-                        <RotateCcw className="w-4 h-4" />
-                        Retry Test
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-4 h-4" />
-                        Start Test
-                      </>
-                    )}
-                  </div>
-                </motion.button>
-              );
-            })
-          )}
-        </AnimatePresence>
-      </div>
-    </>
-  );
-
   return (
     <StudentLayout title="Mock Tests" subtitle="Practice & improve">
-      <div className="w-full md:max-w-4xl md:mx-auto pb-8 overflow-x-hidden">
+      <div className="w-full max-w-3xl mx-auto space-y-6 pb-32 pt-2 px-4 overflow-x-hidden">
 
         {/* ═══════════════════════════════════════════════════════════════
-            MOBILE STATS - Clean card-premium style matching Profile page
+            PREMIUM HERO SECTION
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="grid grid-cols-2 gap-3 mb-4 md:hidden"
+          className="relative overflow-hidden rounded-[32px] p-6 md:p-10 bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-900 shadow-2xl shadow-indigo-200"
         >
-          {[
-            { value: totalPublishedTests, label: "Total Tests", color: "text-indigo-600", bgColor: "bg-indigo-100", icon: "📝" },
-            { value: completedTests, label: "Completed", color: "text-emerald-600", bgColor: "bg-emerald-100", icon: "✅" },
-            { value: passedTests, label: "Passed", color: "text-amber-600", bgColor: "bg-amber-100", icon: "🏆" },
-            { value: `${avgScore}%`, label: "Avg Score", color: "text-blue-600", bgColor: "bg-blue-100", icon: "📊" }
-          ].map((stat) => (
-            <div key={stat.label} className="card-premium p-3 text-center">
-              <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-[10px] text-slate-500 font-medium">{stat.label}</p>
-            </div>
-          ))}
-        </motion.div>
+          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[size:20px_20px]" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl -mr-32 -mt-32" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/10 rounded-full blur-2xl -ml-24 -mb-24" />
 
-        {/* ═══════════════════════════════════════════════════════════════
-            DESKTOP STATS HERO - Premium gradient card
-            ═══════════════════════════════════════════════════════════════ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="hidden md:block relative overflow-hidden rounded-[32px] mb-6"
-          style={{
-            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%)',
-            boxShadow: '0 20px 40px rgba(99, 102, 241, 0.25)'
-          }}
-        >
-          <div className="absolute inset-0 opacity-50">
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl -mr-24 -mt-24" />
-            <div className="absolute bottom-0 left-0 w-40 h-40 bg-violet-400/30 rounded-full blur-2xl -ml-20 -mb-20" />
-          </div>
-          <div className="relative z-10 p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                <Sparkles className="w-4 h-4 text-white" />
+          <div className="relative z-10 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/20 backdrop-blur-md flex items-center justify-center border border-white/10">
+                <Trophy className="w-5 h-5 text-indigo-400" />
               </div>
-              <span className="text-xs font-bold uppercase tracking-[0.15em] text-white/80">Your Progress</span>
+              <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-300">Test Repository</span>
             </div>
-            <div className="grid grid-cols-4 gap-4">
-              <div className="space-y-1">
-                <p className="text-3xl font-black tracking-tight text-white font-mono">{totalPublishedTests}</p>
-                <p className="text-[10px] font-semibold text-white/60 uppercase tracking-widest">Total Tests</p>
+            <h1 className="text-3xl md:text-5xl font-black text-white leading-tight">
+              Master Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Exams</span>
+            </h1>
+            <p className="text-slate-400 max-w-lg text-sm md:text-base leading-relaxed">
+              Choose from over {totalPublishedTests} full-length mock tests and topic-wise practices designed by experts.
+            </p>
+
+            <div className="flex flex-wrap gap-4 pt-4">
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-white">{completedTests}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Completed</span>
               </div>
-              <div className="space-y-1 border-l border-white/20 pl-4">
-                <p className="text-3xl font-black tracking-tight text-emerald-300 font-mono">{completedTests}</p>
-                <p className="text-[10px] font-semibold text-white/60 uppercase tracking-widest">Completed</p>
+              <div className="w-px h-10 bg-white/10" />
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-emerald-400">{avgScore}%</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Avg Score</span>
               </div>
-              <div className="space-y-1 border-l border-white/20 pl-4">
-                <p className="text-3xl font-black tracking-tight text-amber-300 font-mono">{passedTests}</p>
-                <p className="text-[10px] font-semibold text-white/60 uppercase tracking-widest">Passed</p>
-              </div>
-              <div className="space-y-1 border-l border-white/20 pl-4">
-                <p className="text-3xl font-black tracking-tight text-white/90 font-mono">{avgScore}%</p>
-                <p className="text-[10px] font-semibold text-white/60 uppercase tracking-widest">Avg Score</p>
+              <div className="w-px h-10 bg-white/10" />
+              <div className="flex flex-col">
+                <span className="text-2xl font-black text-indigo-400">{passedTests}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Passed</span>
               </div>
             </div>
           </div>
         </motion.div>
 
-        {/* Test List Content - Same for both mobile and desktop */}
-        <TestListContent isMobile={false} />
+        {/* ═══════════════════════════════════════════════════════════════
+            FILTER & TAB NAVIGATION
+            ═══════════════════════════════════════════════════════════════ */}
+        <div className="space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              {[
+                { key: "all", label: "All Tests", icon: BookOpen },
+                { key: "full_mock", label: "Full Mocks", icon: Award },
+                { key: "topic_wise", label: "Topic Tests", icon: Target }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => {
+                    setFilterType(tab.key as any);
+                    setSelectedExam("all");
+                  }}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 ${filterType === tab.key
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                    : "bg-white text-slate-600 border border-slate-100 hover:border-indigo-200"
+                    }`}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {exams.length > 0 && (
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+                <button
+                  onClick={() => setSelectedExam("all")}
+                  className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all ${selectedExam === "all" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
+                >
+                  All Exams
+                </button>
+                {exams.map(e => (
+                  <button
+                    key={e.id}
+                    onClick={() => setSelectedExam(e.id)}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all whitespace-nowrap ${selectedExam === e.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                  >
+                    {e.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              TEST GRID
+              ═══════════════════════════════════════════════════════════════ */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <AnimatePresence mode="popLayout">
+              {filteredTests.map((test, idx) => {
+                const attempt = testAttempts[test.id];
+
+                return (
+                  <motion.div
+                    layout
+                    key={test.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2, delay: idx * 0.03 }}
+                  >
+                    <div className="card-premium h-full flex flex-col group relative overflow-hidden">
+                      {/* Top Accent line */}
+                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${test.test_type === 'full_mock' ? 'from-indigo-500 to-violet-500' : 'from-emerald-500 to-teal-500'
+                        }`} />
+
+                      <div className="p-6 flex-1">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${test.test_type === 'full_mock' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
+                            }`}>
+                            {test.test_type === 'full_mock' ? 'Full Mock' : 'Topic Test'}
+                          </span>
+                          {attempt?.passed && (
+                            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                              <CheckCircle className="w-3 h-3" />
+                              <span className="text-[9px] font-bold">Passed</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <h3 className="text-base font-bold text-slate-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors">
+                          {test.title}
+                        </h3>
+
+                        <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mt-4 py-3 border-y border-slate-50">
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-xs font-semibold text-slate-600">{test.duration_minutes}m</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Target className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-xs font-semibold text-slate-600">{test.total_marks} Marks</span>
+                          </div>
+                        </div>
+
+                        {attempt && (
+                          <div className="mt-4 flex items-center justify-between">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Best Score</span>
+                              <span className="text-sm font-black text-slate-800">{attempt.best_percentage}%</span>
+                            </div>
+                            <div className="w-8 h-8 rounded-full border-2 border-slate-100 flex items-center justify-center">
+                              <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="p-4 bg-slate-50/50 border-t border-slate-100">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => navigate(`/student/take-test/${test.id}`)}
+                          className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${attempt ? 'bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
+                            }`}
+                        >
+                          {attempt ? (
+                            <>
+                              <RotateCcw className="w-4 h-4" />
+                              Retake Test
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 fill-current" />
+                              Start Now
+                            </>
+                          )}
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+
+            {filteredTests.length === 0 && (
+              <div className="col-span-full py-20 text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <BookOpen className="w-10 h-10 text-slate-300" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">No tests found</h3>
+                <p className="text-slate-500 text-sm">Try changing your filters or choosing another category</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </StudentLayout>
   );

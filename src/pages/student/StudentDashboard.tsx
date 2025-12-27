@@ -102,7 +102,12 @@ const StudentDashboard = () => {
   }, [navigate]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    localStorage.clear();
     navigate("/");
   };
 
@@ -169,201 +174,296 @@ const StudentDashboard = () => {
 
   return (
     <StudentLayout title="Dashboard" subtitle="Your learning hub">
-      <div className="w-full md:max-w-4xl md:mx-auto space-y-5 pb-8 overflow-x-hidden">
+      <div className="max-w-2xl mx-auto space-y-3 pb-20">
 
         {/* ═══════════════════════════════════════════════════════════════
-            GREETING HEADER - Clean Native Style
+            PREMIUM HERO GREETING (REDESIGNED)
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between pt-2"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative overflow-hidden rounded-[28px] p-4 md:p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 shadow-xl shadow-indigo-200/50"
         >
-          <div>
-            <p className="text-slate-500 text-sm">{greeting.text} {greeting.emoji}</p>
-            <h1 className="text-2xl font-bold text-slate-900 mt-0.5">{firstName}</h1>
-          </div>
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => navigate("/student/profile")}
-            className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center"
-          >
-            <User className="w-6 h-6 text-indigo-600" />
-          </motion.button>
-        </motion.div>
+          {/* Decorative Animated Orbs */}
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{ duration: 8, repeat: Infinity }}
+            className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-[80px] -mr-32 -mt-32"
+          />
+          <motion.div
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.2, 0.4, 0.2],
+            }}
+            transition={{ duration: 10, repeat: Infinity, delay: 1 }}
+            className="absolute bottom-0 left-0 w-48 h-48 bg-violet-400/30 rounded-full blur-[60px] -ml-24 -mb-24"
+          />
 
-        {/* ═══════════════════════════════════════════════════════════════
-            MAIN CTA CARD - Gradient Banner
-            ═══════════════════════════════════════════════════════════════ */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-indigo-600 via-indigo-500 to-violet-600 rounded-3xl p-5 relative overflow-hidden"
-        >
-          {/* Decorative circles */}
-          <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full" />
-          <div className="absolute -bottom-4 -left-4 w-24 h-24 bg-white/5 rounded-full" />
-
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-4">
-              {currentStreak > 0 && (
-                <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-full">
-                  <Flame className="w-4 h-4 text-orange-300" />
-                  <span className="text-sm font-bold text-white">{currentStreak} Day Streak</span>
+          <div className="relative z-10 flex flex-col gap-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <motion.div
+                  whileHover={{ scale: 1.05, rotate: 5 }}
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/25 shadow-lg shrink-0"
+                >
+                  <div className="text-lg md:text-2xl font-black text-white">
+                    {firstName[0]}
+                  </div>
+                </motion.div>
+                <div>
+                  <h1 className="text-lg md:text-2xl font-black text-white tracking-tight leading-tight">
+                    {greeting.text}, {firstName}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest leading-none">
+                      Student Active
+                    </p>
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* Goal Progress Ring (SVG) */}
+              <div className="relative w-14 h-14 md:w-20 md:h-20 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90">
+                  <circle
+                    cx="50%"
+                    cy="50%"
+                    r="40%"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.1)"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                  />
+                  <motion.circle
+                    initial={{ strokeDasharray: "100 100", strokeDashoffset: 100 }}
+                    animate={{ strokeDashoffset: 100 - (100 * Math.min(statistics.totalTestsTaken, 5) / 5) }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                    cx="50%"
+                    cy="50%"
+                    r="40%"
+                    fill="none"
+                    stroke="white"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    style={{ strokeDasharray: "100" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-[10px] md:text-xs font-black text-white leading-none">{Math.min(statistics.totalTestsTaken, 5)}/5</span>
+                  <span className="text-[6px] md:text-[7px] font-bold text-indigo-100 uppercase mt-0.5">Tests</span>
+                </div>
+              </div>
             </div>
 
-            <h2 className="text-white text-xl font-bold mb-2">
-              {isApproved ? "Ready to Practice?" : "Waiting for Approval"}
-            </h2>
-            <p className="text-white/70 text-sm mb-5">
-              {isApproved
-                ? "Take mock tests and improve your scores"
-                : "Your account is pending approval"}
-            </p>
-
-            {isApproved ? (
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate("/student/exams")}
-                className="w-full bg-white text-indigo-600 py-4 rounded-2xl font-bold flex items-center justify-center gap-2"
-              >
-                <Play className="w-5 h-5" />
-                Start Test
-                <ArrowRight className="w-5 h-5" />
-              </motion.button>
-            ) : (
-              <div className="bg-amber-500/20 text-amber-200 py-4 rounded-2xl text-center font-semibold flex items-center justify-center gap-2">
-                <Clock className="w-5 h-5" />
-                Approval Pending
+            <div className="flex items-center justify-between border-t border-white/10 pt-3 mt-1">
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-1.5">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="w-5 h-5 rounded-full border-2 border-indigo-700 bg-indigo-500 overflow-hidden">
+                      <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="user" className="w-full h-full object-cover opacity-80" />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[9px] font-bold text-indigo-100 leading-tight">
+                  <span className="text-white">1.2k+</span> practicing
+                </p>
               </div>
-            )}
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => navigate("/student/profile")}
+                className="bg-white px-3 py-2 rounded-xl text-indigo-600 font-black text-[10px] shadow-lg"
+              >
+                Profile
+              </motion.button>
+            </div>
           </div>
         </motion.div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            STATS GRID - 2x2 Clean Cards
+            PREMIUM STATS (COMPACT GRID)
             ═══════════════════════════════════════════════════════════════ */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
           {[
-            { icon: Trophy, label: "Tests Passed", value: statistics.testsPassed, color: "bg-amber-500", bgColor: "bg-amber-50" },
-            { icon: BarChart2, label: "Avg Score", value: `${statistics.averageScore}%`, color: "bg-indigo-500", bgColor: "bg-indigo-50" },
-            { icon: CheckCircle, label: "Tests Taken", value: statistics.totalTestsTaken, color: "bg-emerald-500", bgColor: "bg-emerald-50" },
-            { icon: BookOpen, label: "Exams", value: statistics.availableExams, color: "bg-blue-500", bgColor: "bg-blue-50" }
-          ].map((stat, i) => (
+            { label: "Tests", value: statistics.totalTestsTaken, icon: FileText, color: "indigo", gradient: "from-indigo-600 to-indigo-500", glow: "shadow-indigo-200" },
+            { label: "Score", value: `${statistics.averageScore}%`, icon: Target, color: "violet", gradient: "from-violet-600 to-violet-500", glow: "shadow-violet-200" },
+            { label: "Passed", value: statistics.testsPassed, icon: Award, color: "emerald", gradient: "from-emerald-600 to-emerald-500", glow: "shadow-emerald-200" },
+            { label: "Exams", value: statistics.availableExams, icon: Sparkles, color: "amber", gradient: "from-amber-600 to-amber-500", glow: "shadow-amber-200" }
+          ].map((stat, idx) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + i * 0.05 }}
-              className="bg-white rounded-2xl p-4 border border-slate-100"
+              transition={{ delay: 0.1 + idx * 0.05 }}
+              className="relative group p-3 md:p-4 rounded-xl md:rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden"
             >
-              <div className={`w-10 h-10 ${stat.bgColor} rounded-xl flex items-center justify-center mb-3`}>
-                <stat.icon className={`w-5 h-5 ${stat.color.replace('bg-', 'text-')}`} />
+              <div className={`absolute top-0 right-0 w-16 h-16 bg-gradient-to-br ${stat.gradient} opacity-[0.03] group-hover:opacity-[0.07] transition-opacity`} />
+
+              <div className="relative z-10 flex items-center gap-2 md:flex-col md:items-start md:gap-3">
+                <div className={`w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center text-white shadow-md ${stat.glow}`}>
+                  <stat.icon className="w-4 h-4 md:w-5 md:h-5" />
+                </div>
+                <div>
+                  <p className="text-[10px] md:text-xs font-bold text-slate-400 leading-none">{stat.label}</p>
+                  <p className="text-lg md:text-xl font-black text-slate-900 tracking-tight">{stat.value}</p>
+                </div>
               </div>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{stat.label}</p>
             </motion.div>
           ))}
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            QUICK ACTIONS - Horizontal Scroll
+            PREMIUM QUICK ACTION TILES
             ═══════════════════════════════════════════════════════════════ */}
-        {isApproved && (
-          <div>
-            <h3 className="text-base font-bold text-slate-900 mb-3">Quick Actions</h3>
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-              {[
-                { icon: Play, label: "Full Mock", path: "/student/exams?type=full_mock", color: "bg-indigo-600" },
-                { icon: BookOpen, label: "Topic Test", path: "/student/exams?type=topic_wise", color: "bg-emerald-600" },
-                { icon: FileText, label: "PDFs", path: "/student/pdfs", color: "bg-orange-500" },
-                { icon: TrendingUp, label: "Results", path: "/student/results", color: "bg-violet-600" }
-              ].map((item, i) => (
-                <motion.button
-                  key={item.label}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.25 + i * 0.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => navigate(item.path)}
-                  className="flex-shrink-0 flex flex-col items-center gap-2 min-w-[80px]"
-                >
-                  <div className={`w-14 h-14 ${item.color} rounded-2xl flex items-center justify-center shadow-lg`}>
-                    <item.icon className="w-6 h-6 text-white" />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base md:text-xl font-black text-slate-900 flex items-center gap-2">
+              <Zap className="w-5 h-5 md:w-6 md:h-6 text-amber-500 fill-amber-500" />
+              Practice Now
+            </h3>
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-3">
+            <motion.button
+              whileHover={{ x: 4 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("/student/exams?type=full_mock")}
+              className="relative overflow-hidden p-4 md:p-6 rounded-2xl md:rounded-[32px] bg-indigo-600 text-left group shadow-lg shadow-indigo-100 flex-1"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl -mr-12 -mt-12" />
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20">
+                    <GraduationCap className="w-5 h-5 md:w-8 md:h-8 text-white" />
                   </div>
-                  <span className="text-xs font-medium text-slate-600">{item.label}</span>
-                </motion.button>
-              ))}
+                  <div>
+                    <h4 className="text-sm md:text-xl font-bold text-white">Full Mock Tests</h4>
+                    <p className="text-[10px] md:text-xs text-indigo-100 font-medium">Complete simulation</p>
+                  </div>
+                </div>
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/10 flex items-center justify-center">
+                  <ArrowRight className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                </div>
+              </div>
+            </motion.button>
+
+            <div className="grid grid-cols-2 gap-2 md:gap-3">
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate("/student/results")}
+                className="p-3 md:p-5 rounded-xl md:rounded-[32px] bg-white border border-slate-100 shadow-sm text-left group"
+              >
+                <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-[20px] bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 md:mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                  <TrendingUp className="w-4 h-4 md:w-6 md:h-6" />
+                </div>
+                <h4 className="font-bold text-slate-900 text-xs md:text-sm">Analytics</h4>
+                <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-tight mt-0.5">Progress</p>
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate("/student/pdfs")}
+                className="p-3 md:p-5 rounded-xl md:rounded-[32px] bg-white border border-slate-100 shadow-sm text-left group"
+              >
+                <div className="w-9 h-9 md:w-12 md:h-12 rounded-lg md:rounded-[20px] bg-orange-50 text-orange-600 flex items-center justify-center mb-2 md:mb-4 group-hover:bg-orange-600 group-hover:text-white transition-all duration-300">
+                  <BookOpen className="w-4 h-4 md:w-6 md:h-6" />
+                </div>
+                <h4 className="font-bold text-slate-900 text-xs md:text-sm">Materials</h4>
+                <p className="text-[9px] md:text-[10px] text-slate-500 font-bold uppercase tracking-tight mt-0.5">Study Hub</p>
+              </motion.button>
             </div>
           </div>
-        )}
+        </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            EXAM CATEGORIES - List Style
+            DAILY MOTIVATION (NEW)
+            ═══════════════════════════════════════════════════════════════ */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative p-6 rounded-[32px] bg-slate-900 overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl" />
+          <div className="relative z-10 flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/10">
+              <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+            </div>
+            <div>
+              <h4 className="text-white font-bold mb-1">Today's Motivation</h4>
+              <p className="text-slate-400 text-xs leading-relaxed italic">
+                Small efforts every day lead to big results. You are {statistics.totalTestsTaken > 0 ? 'doing great' : 'ready to start'}!
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            EXAM CATEGORIES (REFINED SCROLL)
             ═══════════════════════════════════════════════════════════════ */}
         {isApproved && exams.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-bold text-slate-900">Exam Categories</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-xl font-black text-slate-900">Explore Subjects</h3>
               <button
                 onClick={() => navigate("/student/exams")}
-                className="text-indigo-600 text-xs font-semibold flex items-center gap-0.5"
+                className="text-indigo-600 text-xs font-black uppercase tracking-widest px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
               >
-                See All <ChevronRight className="w-3.5 h-3.5" />
+                All Exams
               </button>
             </div>
-            <div className="space-y-2">
-              {exams.slice(0, 4).map((exam, i) => (
+
+            <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide no-scrollbar snap-x">
+              {exams.map((exam, idx) => (
                 <motion.button
                   key={exam.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.05 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate("/student/exams")}
-                  className="w-full bg-white rounded-2xl p-3 border border-slate-100 flex items-center gap-3 text-left"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate(`/student/exams?exam=${exam.id}`)}
+                  className="shrink-0 w-48 p-6 rounded-[32px] bg-white border border-slate-100 shadow-sm text-center group snap-center"
                 >
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center shrink-0">
-                    <GraduationCap className="w-5 h-5 text-slate-600" />
+                  <div className="w-16 h-16 rounded-[24px] bg-slate-50 flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-inner">
+                    <GraduationCap className="w-8 h-8" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-900 text-[13px] truncate">{exam.name}</p>
-                    <p className="text-[10px] text-slate-500">Tap to view tests</p>
+                  <h4 className="font-black text-slate-900 text-sm mb-1">{exam.name}</h4>
+                  <div className="flex items-center justify-center gap-1.5 mt-2">
+                    <span className="text-[8px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-full">Explore</span>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
                 </motion.button>
               ))}
             </div>
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            HELP CARD - Bottom Fixed Style
-            ═══════════════════════════════════════════════════════════════ */}
+        {/* Support Chat Fast Action */}
         {isApproved && (
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowChat(true)}
-            className="w-full bg-slate-900 rounded-2xl p-3 flex items-center gap-3 text-left"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="pt-4"
           >
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
-              <MessageSquare className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-white text-[13px]">Need Help?</p>
-              <p className="text-[10px] text-slate-400">Chat with support</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-          </motion.button>
+            <button
+              onClick={() => setShowChat(true)}
+              className="w-full h-16 rounded-[24px] bg-white border-2 border-slate-100 p-2 pr-5 flex items-center gap-4 group active:bg-slate-50 transition-colors"
+            >
+              <div className="w-12 h-12 rounded-[18px] bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-100">
+                <MessageSquare className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-bold text-slate-900 text-sm">Student Support</p>
+                <p className="text-[10px] text-slate-500 font-medium">Online & ready to help</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-300 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </motion.div>
         )}
       </div>
-
       {isApproved && profile?.id && (
         <StudentChat
           studentId={profile.id}

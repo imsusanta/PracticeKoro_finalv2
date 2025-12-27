@@ -10,8 +10,8 @@ const Footer = () => {
 
             {/* Main Footer */}
             <div className="bg-gradient-to-br from-primary/5 via-white to-blue-50/50 border-t border-primary/10">
-                <div className="container mx-auto px-4 py-12 md:py-16">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-8">
+                <div className="container mx-auto px-4 py-10 md:py-16">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
 
                         {/* Brand Column */}
                         <div className="space-y-5">
@@ -20,11 +20,11 @@ const Footer = () => {
                                     <CheckCircle className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">Practice Koro</h3>
+                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">Practice Koro</h3>
                                     <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Exam Prep Simplified</p>
                                 </div>
                             </div>
-                            <p className="text-sm text-gray-600 leading-relaxed">
+                            <p className="text-sm text-gray-600 leading-relaxed max-w-sm">
                                 Your ultimate platform for exam preparation. Smart mock tests, detailed analytics, and study materials to help you succeed.
                             </p>
                             <div className="flex items-center gap-2 text-sm">
@@ -142,9 +142,9 @@ const Footer = () => {
 
             {/* Copyright Bar */}
             <div className="bg-gradient-to-r from-primary to-blue-600 text-white">
-                <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-3 text-xs">
-                    <p className="font-medium">© 2025 Practice Koro. All rights reserved.</p>
-                    <div className="flex gap-6">
+                <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] sm:text-xs">
+                    <p className="font-medium text-center">© 2025 Practice Koro. All rights reserved.</p>
+                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
                         <a href="#" className="hover:underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity">Privacy Policy</a>
                         <a href="#" className="hover:underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity">Terms of Service</a>
                         <a href="#" className="hover:underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity">Cookie Policy</a>

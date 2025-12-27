@@ -56,7 +56,7 @@ const HowItWorks = () => {
     const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
 
     return (
-        <section ref={containerRef} className="py-24 sm:py-32 relative overflow-hidden bg-slate-50/50">
+        <section ref={containerRef} className="py-12 sm:py-24 md:py-32 relative overflow-hidden bg-slate-50/50">
             {/* Background Decor */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl opacity-30">
@@ -84,7 +84,7 @@ const HowItWorks = () => {
                         <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 transition-colors border-primary/20 uppercase tracking-wider font-medium px-4 py-1.5">
                             Simple Process
                         </Badge>
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
+                        <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4 sm:mb-6 tracking-tight">
                             Start Your Journey in <span className="text-primary relative inline-block">
                                 3 Steps
                                 <svg className="absolute w-full h-3 -bottom-1 left-0 text-primary/20" viewBox="0 0 100 10" preserveAspectRatio="none">
@@ -92,7 +92,7 @@ const HowItWorks = () => {
                                 </svg>
                             </span>
                         </h2>
-                        <p className="text-lg text-slate-600 leading-relaxed">
+                        <p className="text-sm sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
                             We've streamlined everything so you can focus on what matters most—your preparation and success.
                         </p>
                     </motion.div>
@@ -132,11 +132,11 @@ const StepCard = ({ step, index }: { step: typeof steps[0], index: number }) => 
                     animate={isInView ? { opacity: 1, x: 0 } : {}}
                     transition={{ duration: 0.6, delay: 0.2 }}
                 >
-                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 font-bold text-slate-900 mb-6 md:hidden ring-4 ring-white shadow-lg`}>
+                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 font-bold text-slate-900 mb-4 md:hidden ring-4 ring-white shadow-lg`}>
                         {step.id}
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-900 mb-4">{step.title}</h3>
-                    <p className="text-lg text-slate-600 leading-relaxed">{step.description}</p>
+                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2 sm:mb-4">{step.title}</h3>
+                    <p className="text-base sm:text-lg text-slate-600 leading-relaxed">{step.description}</p>
                 </motion.div>
             </div>
 
@@ -151,8 +151,8 @@ const StepCard = ({ step, index }: { step: typeof steps[0], index: number }) => 
                     {/* Glowing Background Effect */}
                     <div className={`absolute -inset-4 bg-gradient-to-br ${step.color} opacity-20 blur-xl rounded-full group-hover:opacity-30 transition-opacity duration-500`} />
 
-                    <div className={`w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br ${step.color} shadow-2xl ${step.shadow} flex items-center justify-center transform transition-transform duration-300 md:group-hover:scale-110 md:group-hover:rotate-3 border-4 border-white`}>
-                        <step.icon className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                    <div className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br ${step.color} shadow-2xl ${step.shadow} flex items-center justify-center transform transition-transform duration-300 md:group-hover:scale-110 md:group-hover:rotate-3 border-4 border-white`}>
+                        <step.icon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
                     </div>
 
                     {/* Floating Elements decoration */}

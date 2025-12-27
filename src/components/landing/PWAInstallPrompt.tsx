@@ -127,9 +127,9 @@ const PWAInstallPrompt = () => {
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: "100%", opacity: 0 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="fixed bottom-0 left-0 right-0 z-[101] p-4 pb-safe"
+                        className="fixed bottom-0 left-0 right-0 z-[101] p-4 pb-safe-area-bottom"
                     >
-                        <div className="bg-white rounded-t-[28px] overflow-hidden shadow-2xl max-w-lg mx-auto">
+                        <div className="bg-white rounded-2xl sm:rounded-t-[28px] overflow-hidden shadow-2xl max-w-md mx-auto">
                             {/* Drag Handle */}
                             <div className="flex justify-center py-3">
                                 <div className="w-10 h-1 bg-gray-300 rounded-full" />
@@ -204,9 +204,9 @@ const PWAInstallPrompt = () => {
                                             initial={{ scale: 0 }}
                                             animate={{ scale: 1 }}
                                             transition={{ type: "spring", delay: 0.1 }}
-                                            className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30"
+                                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30"
                                         >
-                                            <Zap className="w-8 h-8 text-white" />
+                                            <Zap className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                                         </motion.div>
                                         <div className="flex-1">
                                             <h3 className="text-xl font-bold text-gray-900">Practice Koro</h3>
@@ -241,10 +241,10 @@ const PWAInstallPrompt = () => {
                                     <div className="space-y-3">
                                         <Button
                                             onClick={isIOS ? handleIOSInstall : handleInstall}
-                                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl py-5 text-base shadow-xl shadow-emerald-500/25 active:scale-[0.98] transition-all"
+                                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl py-4 sm:py-5 text-base shadow-xl shadow-emerald-500/25 active:scale-[0.98] transition-all"
                                         >
                                             <Download className="w-5 h-5 mr-2" />
-                                            {isIOS ? "Show How to Install" : "Install App"}
+                                            {isIOS ? "How to Install" : "Install App"}
                                         </Button>
 
                                         <button

@@ -133,7 +133,12 @@ const Landing = () => {
     }
   };
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    localStorage.clear();
     setIsLoggedIn(false);
     setUserProfile(null);
     setUserRole(null);
@@ -159,13 +164,12 @@ const Landing = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="min-h-screen bg-[#FAFAFA]"
+            className="min-h-screen bg-[#FAFAFA] relative"
           >
             {/* Desktop Header - Premium Floating Style (Non-Sticky) */}
             <header className="hidden md:block absolute top-0 left-0 right-0 z-50">
               <div className="container mx-auto px-4 py-4">
                 <div className="flex justify-between items-center bg-white/80 backdrop-blur-xl rounded-2xl px-6 py-3 border border-gray-200/50 shadow-lg shadow-gray-200/30">
-                  {/* Logo */}
                   <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/")}>
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-105 transition-transform">
                       <Zap className="w-5 h-5 text-white" />
@@ -295,7 +299,7 @@ const Landing = () => {
                       transition={{ duration: 0.4, delay: 0.2 }}
                     >
                       <span className="text-xl font-bold text-gray-900 tracking-tight block leading-tight">Practice Koro</span>
-                      <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                      <span className="text-xs text-emerald-700 font-semibold flex items-center gap-1">
                         <Sparkles className="w-3 h-3" /> #1 Mock Test Platform
                       </span>
                     </motion.div>
@@ -307,19 +311,19 @@ const Landing = () => {
                       transition={{ duration: 0.3, delay: 0.3 }}
                       whileTap={{ scale: 0.92 }}
                       onClick={() => navigate("/login")}
-                      className="flex flex-col items-center gap-1 p-2 rounded-xl bg-gray-50 border border-gray-100"
+                      className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-emerald-50 border border-emerald-100 shadow-sm min-w-[56px] min-h-[56px]"
                     >
                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
                       </div>
-                      <span className="text-[9px] font-medium text-gray-500">Sign In</span>
+                      <span className="text-[10px] font-bold text-emerald-700">Sign In</span>
                     </motion.button>
                   ) : (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.3 }}
-                      className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-base cursor-pointer shadow-lg shadow-emerald-500/30 ring-2 ring-white"
+                      className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer shadow-lg shadow-emerald-500/30 ring-2 ring-white"
                       onClick={() => navigate(userRole === "admin" ? "/admin/dashboard" : "/student/dashboard")}
                     >
                       {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
@@ -399,7 +403,7 @@ const Landing = () => {
                 >
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-base font-bold text-gray-900">Quick Actions</h3>
-                    <span className="text-xs text-gray-400">Tap to explore</span>
+                    <span className="text-xs text-gray-500 font-medium">Tap to explore</span>
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     {[
@@ -437,21 +441,21 @@ const Landing = () => {
                       <Award className="w-5 h-5 text-white" />
                     </div>
                     <p className="text-xl font-bold text-gray-900">{featuredTests.length}+</p>
-                    <p className="text-[10px] text-gray-500 font-medium uppercase">Tests</p>
+                    <p className="text-[10px] text-gray-600 font-bold uppercase">Tests</p>
                   </div>
                   <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100/50">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-2 shadow-md">
                       <Target className="w-5 h-5 text-white" />
                     </div>
                     <p className="text-xl font-bold text-gray-900">{exams.length}+</p>
-                    <p className="text-[10px] text-gray-500 font-medium uppercase">Exams</p>
+                    <p className="text-[10px] text-gray-600 font-bold uppercase">Exams</p>
                   </div>
                   <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 border border-emerald-100/50">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-2 shadow-md">
                       <FileText className="w-5 h-5 text-white" />
                     </div>
                     <p className="text-xl font-bold text-gray-900">50+</p>
-                    <p className="text-[10px] text-gray-500 font-medium uppercase">PDFs</p>
+                    <p className="text-[10px] text-gray-600 font-bold uppercase">PDFs</p>
                   </div>
                 </motion.div>
 
@@ -464,7 +468,7 @@ const Landing = () => {
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-base font-bold text-gray-900">Featured Tests</h3>
-                    <button onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")} className="text-xs font-semibold text-emerald-600 flex items-center gap-1 hover:text-emerald-700">
+                    <button onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")} className="text-xs font-bold text-emerald-700 flex items-center gap-1 hover:text-emerald-800">
                       View All <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -579,7 +583,7 @@ const Landing = () => {
                   <h3 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-2">
                     Available <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Exams</span>
                   </h3>
-                  <p className="text-gray-500 text-sm md:text-base max-w-xl mx-auto">
+                  <p className="text-gray-600 text-sm md:text-base font-medium max-w-xl mx-auto">
                     Choose from our exam categories
                   </p>
                 </div>
@@ -591,8 +595,8 @@ const Landing = () => {
                 ) : (
                   <>
                     {/* Mobile: Horizontal Scroll Cards */}
-                    <div className="md:hidden overflow-x-auto pb-4 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                      <div className="flex gap-3" style={{ width: 'max-content' }}>
+                    <div className="md:hidden overflow-x-auto pb-6 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      <div className="flex gap-4" style={{ width: 'max-content' }}>
                         {exams.map((exam, index) => (
                           <motion.div
                             key={exam.id}
@@ -602,17 +606,17 @@ const Landing = () => {
                             viewport={{ once: true }}
                             whileTap={{ scale: 0.97 }}
                             onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
-                            className="w-[160px] shrink-0 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-2xl p-4 cursor-pointer shadow-sm active:shadow-md transition-all"
+                            className="w-[200px] shrink-0 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-3xl p-5 cursor-pointer shadow-sm active:shadow-md transition-all"
                           >
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-3 shadow-lg shadow-emerald-500/20">
-                              <BookOpen className="w-6 h-6 text-white" />
+                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20">
+                              <BookOpen className="w-7 h-7 text-white" />
                             </div>
-                            <h4 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2 leading-tight">
+                            <h4 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
                               {exam.name}
                             </h4>
-                            <div className="flex items-center text-emerald-600 text-xs font-medium">
-                              <span>View</span>
-                              <ChevronRight className="w-3 h-3 ml-0.5" />
+                            <div className="flex items-center text-emerald-600 text-sm font-semibold">
+                              <span>Explore Now</span>
+                              <ChevronRight className="w-4 h-4 ml-1" />
                             </div>
                           </motion.div>
                         ))}
@@ -640,7 +644,7 @@ const Landing = () => {
                               {exam.name}
                             </h4>
                             {exam.description && (
-                              <p className="text-sm text-gray-500 line-clamp-2 mb-4">
+                              <p className="text-sm text-gray-600 font-medium line-clamp-2 mb-4">
                                 {exam.description}
                               </p>
                             )}
@@ -763,7 +767,7 @@ const Landing = () => {
                               {test.title}
                             </h4>
                             {test.description && (
-                              <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-3">
+                              <p className="text-gray-600 text-xs sm:text-sm font-medium line-clamp-2 mb-3">
                                 {test.description}
                               </p>
                             )}
@@ -782,7 +786,7 @@ const Landing = () => {
 
                             {/* Exam Badge */}
                             {test.exams?.name && (
-                              <div className="flex items-center gap-1.5 text-gray-500 text-xs mb-3">
+                              <div className="flex items-center gap-1.5 text-gray-600 text-xs font-semibold mb-3">
                                 <FileText className="w-3 h-3" />
                                 <span>{test.exams.name}</span>
                               </div>
@@ -791,11 +795,11 @@ const Landing = () => {
                             {/* CTA Button */}
                             <Button
                               onClick={() => handleStartTest(test.id)}
-                              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl py-3 sm:py-4 text-sm shadow-lg shadow-emerald-500/20 transition-all duration-300"
+                              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl py-6 text-base shadow-lg shadow-emerald-500/20 transition-all duration-300"
                             >
-                              <PlayCircle className="w-4 h-4 mr-1.5" />
+                              <PlayCircle className="w-5 h-5 mr-2" />
                               Start Test
-                              <ChevronRight className="w-4 h-4 ml-1" />
+                              <ChevronRight className="w-5 h-5 ml-1" />
                             </Button>
                           </div>
                         </div>

@@ -1,12 +1,13 @@
 {
     "name": "Practice Koro",
     "short_name": "PracticeKoro",
-    "description": "Group C and D Mock Test - #1 Mock Test Platform",
-    "start_url": "/",
+    "description": "Group C and D Mock Test - #1 Premium Mock Test Platform for Government Job Preparation",
+    "start_url": "/student/dashboard",
     "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#10b981",
+    "background_color": "#f8fafc",
+    "theme_color": "#4f46e5",
     "orientation": "portrait-primary",
+    "scope": "/",
     "icons": [
         {
             "src": "/favicon.ico",

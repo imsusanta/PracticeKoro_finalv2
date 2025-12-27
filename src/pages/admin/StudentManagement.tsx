@@ -435,9 +435,9 @@ const StudentManagement = () => {
 
   return (
     <AdminLayout title="Student Management" subtitle={`${students.length} students`} headerActions={AddButton}>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Filter Tabs - Colored Card Style */}
-        <div className="flex overflow-x-auto gap-3 pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-5 md:gap-3">
+        <div className="flex overflow-x-auto gap-3 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-5 md:gap-4 no-scrollbar">
           {[
             { key: "all", label: "All", count: statusCounts.all, bgColor: "bg-emerald-50", textColor: "text-emerald-600", borderColor: "border-emerald-400", ringColor: "ring-emerald-400" },
             { key: "pending", label: "Pending", count: statusCounts.pending, bgColor: "bg-amber-50", textColor: "text-amber-600", borderColor: "border-amber-300", ringColor: "ring-amber-300" },
@@ -460,13 +460,13 @@ const StudentManagement = () => {
         </div>
 
         {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="relative mt-2">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
             placeholder="Search by name or phone..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 rounded-xl bg-white border-gray-200"
+            className="pl-11 h-12 rounded-xl bg-white border-gray-200 shadow-sm focus:ring-emerald-500 focus:border-emerald-500"
           />
         </div>
 

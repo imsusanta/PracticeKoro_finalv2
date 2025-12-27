@@ -434,91 +434,79 @@ const TakeTest = () => {
   const timeCritical = timeRemaining < 60;
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 via-indigo-50/20 to-violet-50/30 flex flex-col">
-      {/* Ultra Compact Header - Fixed Height */}
+    <div className="min-h-[100dvh] bg-slate-50 flex flex-col">
+      {/* Sleek Header */}
       <header className={`shrink-0 transition-all duration-300 ${timeCritical
         ? 'bg-gradient-to-r from-rose-500 to-rose-600'
         : timeWarning
           ? 'bg-gradient-to-r from-amber-500 to-orange-500'
-          : 'bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-600'
-        } shadow-lg`}>
-        <div className="px-3 py-2 safe-area-top">
-          <div className="flex items-center justify-between">
-            {/* Back Button - Compact */}
+          : 'bg-gradient-to-r from-indigo-600 to-violet-600'
+        }`}>
+        <div className="px-3 py-3 safe-area-top">
+          <div className="flex items-center justify-between gap-2">
+            {/* Back Button */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => navigate("/student/exams")}
-              className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center"
+              className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center backdrop-blur-sm shrink-0"
             >
-              <ArrowLeft className="w-4 h-4 text-white" />
+              <ArrowLeft className="w-5 h-5 text-white" />
             </motion.button>
 
             {/* Question Counter */}
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1.5 rounded-xl bg-white/20 text-white text-sm font-bold">
-                Q {currentQuestionIndex + 1}/{questions.length}
+            <div className="flex-1 text-center">
+              <span className="inline-block px-3 py-1.5 rounded-full bg-white/20 text-white text-[13px] font-bold backdrop-blur-sm whitespace-nowrap">
+                {currentQuestionIndex + 1} / {questions.length}
               </span>
             </div>
 
-            {/* Timer - Compact */}
+            {/* Timer */}
             <motion.div
               animate={timeCritical ? { scale: [1, 1.05, 1] } : {}}
               transition={{ duration: 0.5, repeat: timeCritical ? Infinity : 0 }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${timeCritical
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl shrink-0 ${timeCritical
                 ? 'bg-white text-rose-600'
-                : 'bg-white/20 text-white'
+                : 'bg-white/15 text-white backdrop-blur-sm'
                 }`}
             >
               <Timer className="w-4 h-4" />
-              <span className="text-sm font-bold font-mono">{formatTime(timeRemaining)}</span>
+              <span className="text-[13px] font-bold font-mono">{formatTime(timeRemaining)}</span>
             </motion.div>
-
-            {/* Submit Button */}
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowSubmitDialog(true)}
-              className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-lg"
-            >
-              <Send className="w-4 h-4 text-indigo-600" />
-            </motion.button>
           </div>
 
-          {/* Compact Progress Bar */}
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(answeredCount / questions.length) * 100}%` }}
-                className="h-full bg-white rounded-full"
-              />
-            </div>
-            <span className="text-white text-[10px] font-bold">{answeredCount}/{questions.length}</span>
+          {/* Progress Bar */}
+          <div className="mt-3 h-1 bg-white/20 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${(answeredCount / questions.length) * 100}%` }}
+              className="h-full bg-white rounded-full"
+            />
           </div>
         </div>
       </header>
 
-      {/* Main Content - Scrollable with bottom padding for nav */}
-      <main className="flex-1 overflow-y-auto px-3 py-2 pb-20">
+      {/* Main Content - Full Screen Question Display */}
+      <main className="flex-1 flex flex-col overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentQuestionIndex}
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="flex-1 flex flex-col min-h-0"
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.25 }}
+            className="flex-1 flex flex-col overflow-hidden"
           >
-            {/* Question Card - Compact but readable */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-100 flex flex-col flex-1 min-h-0">
-              {/* Question Header - Ultra Compact */}
-              <div className="shrink-0 px-3 py-2 bg-slate-50/80 border-b border-slate-100 rounded-t-2xl">
+            {/* Question Section - Takes Full Available Space */}
+            <div className="flex-1 flex flex-col overflow-y-auto">
+              {/* Question Header with Badges */}
+              <div className="px-4 pt-4 pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-indigo-100 text-indigo-700 border-0 text-[10px] font-bold px-2 py-0.5">
+                    <Badge className="bg-indigo-100 text-indigo-700 border-0 text-xs font-bold px-3 py-1">
                       {currentQuestion.marks} mark{currentQuestion.marks > 1 ? 's' : ''}
                     </Badge>
                     {currentQuestion.questions.difficulty && (
-                      <Badge className={`border-0 text-[10px] font-bold px-2 py-0.5 ${currentQuestion.questions.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-700' :
+                      <Badge className={`border-0 text-xs font-bold px-3 py-1 ${currentQuestion.questions.difficulty === 'Easy' ? 'bg-emerald-100 text-emerald-700' :
                         currentQuestion.questions.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700' :
                           'bg-rose-100 text-rose-700'
                         }`}>
@@ -529,29 +517,31 @@ const TakeTest = () => {
                   <motion.button
                     whileTap={{ scale: 0.9 }}
                     onClick={() => toggleMarkForReview(currentQuestion.question_id)}
-                    className={`p-1.5 rounded-lg transition-all ${markedForReview.has(currentQuestion.question_id)
+                    className={`p-2 rounded-xl transition-all ${markedForReview.has(currentQuestion.question_id)
                       ? 'bg-amber-100 text-amber-600'
-                      : 'text-slate-400'
+                      : 'bg-slate-100 text-slate-400'
                       }`}
                   >
-                    <Bookmark className={`w-4 h-4 ${markedForReview.has(currentQuestion.question_id) ? 'fill-current' : ''}`} />
+                    <Bookmark className={`w-5 h-5 ${markedForReview.has(currentQuestion.question_id) ? 'fill-current' : ''}`} />
                   </motion.button>
                 </div>
               </div>
 
-              {/* Question Text - Compact, scrollable if very long */}
-              <div className="shrink-0 px-3 py-2 border-b border-slate-100 max-h-[18vh] overflow-y-auto">
-                <p className="text-slate-900 text-[14px] leading-snug font-medium">
-                  {currentQuestion.questions.question_text}
-                </p>
+              {/* Question Text - Large and Prominent */}
+              <div className="px-4 py-3">
+                <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm">
+                  <p className="text-slate-900 text-base sm:text-lg lg:text-xl leading-relaxed font-semibold">
+                    {currentQuestion.questions.question_text}
+                  </p>
+                </div>
               </div>
 
-              {/* Options - Ultra Compact for Small Screens */}
-              <div className="flex-1 p-2 overflow-y-auto">
+              {/* Options - Large Touch Targets */}
+              <div className="px-4 pb-6 space-y-3">
                 <RadioGroup
                   value={answers[currentQuestion.question_id] || ""}
                   onValueChange={value => setAnswers({ ...answers, [currentQuestion.question_id]: value })}
-                  className="space-y-1.5"
+                  className="space-y-3"
                 >
                   {['A', 'B', 'C', 'D'].map((option, idx) => {
                     const isSelected = answers[currentQuestion.question_id] === option;
@@ -559,30 +549,30 @@ const TakeTest = () => {
                     return (
                       <motion.div
                         key={option}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: idx * 0.02 }}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.05 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => setAnswers({ ...answers, [currentQuestion.question_id]: option })}
-                        className={`flex items-center py-2 px-2.5 rounded-lg border cursor-pointer transition-all ${isSelected
-                          ? 'bg-indigo-50 border-indigo-500'
+                        className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${isSelected
+                          ? 'bg-indigo-50 border-indigo-500 shadow-md shadow-indigo-500/10'
                           : 'bg-white border-slate-200 active:border-indigo-300'
                           }`}
                       >
                         <RadioGroupItem value={option} id={`option-${option}`} className="sr-only" />
-                        <Label htmlFor={`option-${option}`} className="flex items-center gap-2 cursor-pointer flex-1">
-                          <span className={`w-6 h-6 rounded-md font-bold text-[11px] flex items-center justify-center shrink-0 ${isSelected
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-600'
-                            }`}>
-                            {option}
-                          </span>
-                          <span className={`text-[12px] leading-tight ${isSelected ? 'text-indigo-900 font-semibold' : 'text-slate-700'}`}>
+                        <span className={`w-10 h-10 rounded-xl font-bold text-sm flex items-center justify-center shrink-0 ${isSelected
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-slate-100 text-slate-600'
+                          }`}>
+                          {option}
+                        </span>
+                        <Label htmlFor={`option-${option}`} className="flex-1 cursor-pointer pt-1 min-h-[44px]">
+                          <span className={`text-[14px] sm:text-base leading-snug block mt-1 ${isSelected ? 'text-indigo-900 font-bold' : 'text-slate-700 font-medium'}`}>
                             {optionText}
                           </span>
                         </Label>
                         {isSelected && (
-                          <CheckCircle className="w-4 h-4 text-indigo-600 ml-auto shrink-0" />
+                          <CheckCircle className="w-5 h-5 text-indigo-600 shrink-0 mt-2" />
                         )}
                       </motion.div>
                     );
@@ -594,59 +584,55 @@ const TakeTest = () => {
         </AnimatePresence>
       </main>
 
-      {/* Compact Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-200/50 shadow-lg z-20 safe-area-bottom">
-        <div className="px-2 py-1.5">
-          <div className="flex items-center justify-between gap-1.5">
+      {/* Bottom Navigation - Clean and Modern */}
+      <nav className="shrink-0 bg-white border-t border-slate-200 shadow-lg safe-area-bottom">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
             {/* Previous */}
-            <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
-                disabled={currentQuestionIndex === 0}
-                className="w-full h-10 rounded-lg border border-slate-200 font-semibold text-slate-600 text-sm disabled:opacity-40"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Prev
-              </Button>
-            </motion.div>
-
-            {/* Navigator Toggle */}
             <motion.button
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowNavigator(!showNavigator)}
-              className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center relative border border-slate-200"
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+              disabled={currentQuestionIndex === 0}
+              className="flex-1 h-12 rounded-xl border-2 border-slate-200 font-bold text-slate-600 text-sm flex items-center justify-center gap-1 disabled:opacity-40"
             >
-              <ListChecks className="w-4 h-4 text-slate-600" />
-              {markedForReview.size > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
-                  {markedForReview.size}
-                </span>
-              )}
+              <ChevronLeft className="w-5 h-5" />
+              Previous
             </motion.button>
 
-            {/* Next or Submit */}
-            {currentQuestionIndex === questions.length - 1 ? (
-              <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
-                <Button
-                  onClick={() => setShowSubmitDialog(true)}
-                  className="w-full h-10 rounded-lg bg-indigo-600 font-semibold text-sm"
-                >
-                  <Send className="w-4 h-4 mr-1" />
-                  Submit
-                </Button>
-              </motion.div>
-            ) : (
-              <motion.div whileTap={{ scale: 0.95 }} className="flex-1">
-                <Button
-                  onClick={() => setCurrentQuestionIndex(Math.min(questions.length - 1, currentQuestionIndex + 1))}
-                  className="w-full h-10 rounded-lg bg-indigo-600 font-semibold text-sm"
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </motion.div>
-            )}
+            {/* Navigator & Submit */}
+            <div className="flex gap-2">
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowNavigator(!showNavigator)}
+                className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center relative border border-slate-200"
+              >
+                <ListChecks className="w-5 h-5 text-slate-600" />
+                {markedForReview.size > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                    {markedForReview.size}
+                  </span>
+                )}
+              </motion.button>
+
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowSubmitDialog(true)}
+                className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30"
+              >
+                <Send className="w-5 h-5 text-white" />
+              </motion.button>
+            </div>
+
+            {/* Next */}
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCurrentQuestionIndex(Math.min(questions.length - 1, currentQuestionIndex + 1))}
+              disabled={currentQuestionIndex === questions.length - 1}
+              className="flex-1 h-12 rounded-xl bg-indigo-600 font-bold text-white text-sm flex items-center justify-center gap-1 disabled:opacity-40 shadow-lg shadow-indigo-500/30"
+            >
+              Next
+              <ChevronRight className="w-5 h-5" />
+            </motion.button>
           </div>
         </div>
       </nav>
@@ -685,7 +671,7 @@ const TakeTest = () => {
                 </div>
               </div>
               <div className="p-4 overflow-auto max-h-[45vh]">
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-5 sm:grid-cols-6 gap-3">
                   {questions.map((q, index) => {
                     const isAnswered = !!answers[q.question_id];
                     const isMarked = markedForReview.has(q.question_id);
@@ -698,16 +684,18 @@ const TakeTest = () => {
                           setCurrentQuestionIndex(index);
                           setShowNavigator(false);
                         }}
-                        className={`relative h-10 rounded-lg font-bold text-sm ${isCurrent
+                        className={`relative h-11 rounded-xl font-black text-[13px] flex items-center justify-center ${isCurrent
                           ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg'
                           : isAnswered
-                            ? 'bg-indigo-100 text-indigo-700'
-                            : 'bg-slate-100 text-slate-500'
+                            ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                            : 'bg-slate-100 text-slate-500 border border-slate-200'
                           }`}
                       >
                         {index + 1}
                         {isMarked && (
-                          <Bookmark className="absolute -top-0.5 -right-0.5 w-3 h-3 fill-amber-500 text-amber-500" />
+                          <div className="absolute -top-1 -right-1">
+                            <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                          </div>
                         )}
                       </motion.button>
                     );

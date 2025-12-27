@@ -87,7 +87,13 @@ const StudentProfile = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    // Always clear storage and navigate, even if signOut fails
+    localStorage.clear();
     navigate("/");
   };
 
@@ -186,21 +192,21 @@ const StudentProfile = () => {
             </div>
 
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-slate-900 text-lg md:text-xl truncate font-display">{profile?.full_name || "Student"}</h2>
-              <p className="text-sm text-slate-500 truncate">{profile?.email}</p>
-              <div className="flex items-center gap-2 mt-2">
+              <h2 className="font-bold text-slate-900 text-base md:text-xl truncate font-display">{profile?.full_name || "Student"}</h2>
+              <p className="text-xs sm:text-sm text-slate-500 truncate">{profile?.email}</p>
+              <div className="flex items-center gap-2 mt-1.5 sm:mt-2">
                 {approvalStatus === "approved" ? (
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
-                    <CheckCircle className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                    <CheckCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     Verified
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
-                    <Clock className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+                    <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     Pending
                   </span>
                 )}
-                <span className="text-xs text-slate-400">{accountDays}d member</span>
+                <span className="text-[10px] sm:text-xs text-slate-400">{accountDays === 0 ? 'Joined today' : `${accountDays}d member`}</span>
               </div>
             </div>
           </div>

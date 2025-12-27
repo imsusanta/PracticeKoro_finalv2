@@ -41,7 +41,12 @@ const AdminIndex = () => {
                 navigate("/admin/dashboard", { replace: true });
             } else {
                 // User is logged in but not admin - go to login
-                await supabase.auth.signOut();
+                try {
+                    await supabase.auth.signOut();
+                } catch (err) {
+                    console.error('Sign out error:', err);
+                }
+                localStorage.clear();
                 navigate("/admin/login", { replace: true });
             }
         } catch (error) {

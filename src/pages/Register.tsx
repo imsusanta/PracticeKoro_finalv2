@@ -175,26 +175,26 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4 md:p-8">
       {/* Back button */}
       <Button
         variant="outline"
-        className="absolute top-4 left-4 z-20"
+        className="absolute top-4 left-4 z-20 rounded-xl"
         onClick={() => navigate("/")}
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to Home
       </Button>
 
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md md:max-w-lg lg:max-w-xl shadow-xl border-gray-100">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
               <Sparkles className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-3xl text-foreground">Create Account</CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardTitle className="text-xl sm:text-2xl lg:text-3xl text-foreground">Create Account</CardTitle>
+          <CardDescription className="text-xs sm:text-sm text-muted-foreground">
             Register to access mock tests and study materials
           </CardDescription>
         </CardHeader>
@@ -219,6 +219,7 @@ const Register = () => {
                     id="fullName"
                     type="text"
                     required
+                    autoComplete="name"
                     className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
                     placeholder="John Doe"
                     value={emailFormData.fullName}
@@ -231,6 +232,7 @@ const Register = () => {
                     id="email"
                     type="email"
                     required
+                    autoComplete="email"
                     className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
                     placeholder="your.email@example.com"
                     value={emailFormData.email}
@@ -243,6 +245,7 @@ const Register = () => {
                     id="password"
                     type="password"
                     required
+                    autoComplete="new-password"
                     className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
                     placeholder="At least 6 characters"
                     value={emailFormData.password}
@@ -255,6 +258,7 @@ const Register = () => {
                     id="confirmPassword"
                     type="password"
                     required
+                    autoComplete="new-password"
                     className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
                     placeholder="Re-enter your password"
                     value={emailFormData.confirmPassword}
@@ -275,6 +279,7 @@ const Register = () => {
                     id="whatsappFullName"
                     type="text"
                     required
+                    autoComplete="name"
                     className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
                     placeholder="John Doe"
                     value={whatsappFormData.fullName}
@@ -304,6 +309,7 @@ const Register = () => {
                     id="whatsappPassword"
                     type="password"
                     required
+                    autoComplete="new-password"
                     className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
                     placeholder="At least 6 characters"
                     value={whatsappFormData.password}
@@ -316,6 +322,7 @@ const Register = () => {
                     id="whatsappConfirmPassword"
                     type="password"
                     required
+                    autoComplete="new-password"
                     className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
                     placeholder="Re-enter your password"
                     value={whatsappFormData.confirmPassword}

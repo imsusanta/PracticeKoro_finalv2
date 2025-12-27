@@ -47,9 +47,9 @@ const SidebarToggleButton = () => {
 };
 
 // Page transition config
-const pageTransition = {
+const pageTransition: any = {
     duration: 0.25,
-    ease: [0.4, 0, 0.2, 1],
+    ease: "easeInOut",
 };
 
 // Icon color schemes for nav items
@@ -71,7 +71,7 @@ const StudentLayout = ({ title, subtitle, children, headerActions }: StudentLayo
     };
 
     return (
-        <div className="h-screen md:h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 relative md:overflow-hidden flex flex-col">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 relative flex flex-col overflow-x-hidden">
             {/* Animated Background Elements */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
                 <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-indigo-200/40 to-violet-200/40 rounded-full blur-3xl animate-float" />
@@ -187,79 +187,67 @@ const StudentLayout = ({ title, subtitle, children, headerActions }: StudentLayo
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={pageTransition}
-                            className="flex-1 px-4 py-4 md:p-6 pb-28 md:pb-6 relative z-10 w-full max-w-full overflow-x-hidden"
+                            className="flex-1 px-3 py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full max-w-7xl mx-auto"
                         >
-                            <div className="w-full max-w-full overflow-x-hidden">
+                            <div className="w-full">
                                 {children}
                             </div>
                         </motion.main>
                     </AnimatePresence>
-
-                    {/* ═══════════════════════════════════════════════════════════════
-                        PREMIUM MOBILE BOTTOM NAVIGATION - Native App Style
-                        ═══════════════════════════════════════════════════════════════ */}
-                    <nav className="md:hidden bottom-nav">
-                        <div className="bottom-nav-container">
-                            <div className="flex items-center justify-around px-2 py-1.5">
-                                {studentNav.map((item, index) => {
-                                    const Icon = item.icon;
-                                    const isActive = location.pathname === item.path;
-                                    const colorSet = iconColors[index % iconColors.length];
-
-                                    return (
-                                        <Link
-                                            key={item.path}
-                                            to={item.path}
-                                            className="relative flex flex-col items-center"
-                                        >
-                                            <motion.div
-                                                whileTap={{ scale: 0.85 }}
-                                                className={`bottom-nav-item ${isActive ? 'active' : ''}`}
-                                            >
-                                                {/* Active Background Pill */}
-                                                {isActive && (
-                                                    <motion.div
-                                                        layoutId="navActiveBackground"
-                                                        className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${colorSet.activeBg}`}
-                                                        style={{
-                                                            boxShadow: `0 4px 12px ${colorSet.glow.replace('shadow-', '').replace('/30', '')}`
-                                                        }}
-                                                        transition={{
-                                                            type: "spring",
-                                                            stiffness: 400,
-                                                            damping: 30
-                                                        }}
-                                                    />
-                                                )}
-
-                                                {/* Icon */}
-                                                <div className="relative z-10">
-                                                    <Icon
-                                                        className={`w-5 h-5 transition-all duration-200 ${isActive
-                                                            ? "text-white"
-                                                            : "text-slate-400"
-                                                            }`}
-                                                    />
-                                                </div>
-
-                                                {/* Label */}
-                                                <span
-                                                    className={`relative z-10 text-[10px] font-semibold mt-1 transition-all duration-200 ${isActive
-                                                        ? "text-white"
-                                                        : "text-slate-400"
-                                                        }`}
-                                                >
-                                                    {item.name}
-                                                </span>
-                                            </motion.div>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </nav>
                 </SidebarInset>
             </SidebarProvider>
+
+            {/* ═══════════════════════════════════════════════════════════════
+                        PREMIUM MOBILE BOTTOM NAVIGATION - Native App Style
+                        ═══════════════════════════════════════════════════════════════ */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] px-3 pb-4 pointer-events-none w-full max-w-full overflow-x-hidden">
+                <div className="bottom-nav-container pointer-events-auto w-full max-w-md mx-auto bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-[20px]">
+                    <div className="flex items-center justify-around py-1.5 px-1">
+                        {studentNav.map((item, index) => {
+                            const Icon = item.icon;
+                            const isActive = location.pathname === item.path;
+                            const colorSet = iconColors[index % iconColors.length];
+
+                            return (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    className="relative flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-0.5"
+                                >
+                                    <motion.div
+                                        whileTap={{ scale: 0.9 }}
+                                        className="relative flex flex-col items-center justify-center w-full h-full"
+                                    >
+                                        {isActive && (
+                                            <motion.div
+                                                layoutId="navActiveBackground"
+                                                className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${colorSet.activeBg} opacity-100`}
+                                                style={{
+                                                    boxShadow: `0 8px 16px ${colorSet.glow.replace('shadow-', '').replace('/30', '').replace('indigo-500', 'rgba(99, 102, 241, 0.3)')}`
+                                                }}
+                                                transition={{
+                                                    type: "spring",
+                                                    stiffness: 400,
+                                                    damping: 30
+                                                }}
+                                            />
+                                        )}
+
+                                        <Icon
+                                            className={`w-4 h-4 relative z-10 transition-all duration-200 ${isActive ? "text-white" : "text-slate-400"}`}
+                                        />
+                                        <span
+                                            className={`relative z-10 text-[9px] font-bold mt-1 transition-all duration-200 ${isActive ? "text-white" : "text-slate-400"}`}
+                                        >
+                                            {item.name}
+                                        </span>
+                                    </motion.div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </div>
+            </nav>
         </div>
     );
 };
