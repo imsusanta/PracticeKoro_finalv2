@@ -182,7 +182,7 @@ const StudentDashboard = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="relative overflow-hidden rounded-[28px] p-4 md:p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 shadow-xl shadow-indigo-200/50"
+          className="relative overflow-hidden rounded-2xl sm:rounded-[28px] p-3 sm:p-4 md:p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 shadow-xl shadow-indigo-200/50"
         >
           {/* Decorative Animated Orbs */}
           <motion.div
@@ -191,7 +191,7 @@ const StudentDashboard = () => {
               opacity: [0.3, 0.5, 0.3],
             }}
             transition={{ duration: 8, repeat: Infinity }}
-            className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-[80px] -mr-32 -mt-32"
+            className="absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 bg-white/20 rounded-full blur-[60px] -mr-20 -mt-20 sm:-mr-32 sm:-mt-32"
           />
           <motion.div
             animate={{

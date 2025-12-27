@@ -187,7 +187,7 @@ const StudentLayout = ({ title, subtitle, children, headerActions }: StudentLayo
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -8 }}
                             transition={pageTransition}
-                            className="flex-1 px-3 py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full max-w-7xl mx-auto"
+                            className="flex-1 px-2 py-2 sm:px-3 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full max-w-7xl mx-auto overflow-x-hidden"
                         >
                             <div className="w-full">
                                 {children}
