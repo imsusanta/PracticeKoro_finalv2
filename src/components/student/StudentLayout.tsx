@@ -24,10 +24,31 @@ const SidebarToggleButton = () => {
         </button>;
 };
 
-// Page transition config
-const pageTransition: any = {
-  duration: 0.25,
-  ease: "easeInOut"
+// Enhanced page transition config
+const pageVariants = {
+  initial: {
+    opacity: 0,
+    y: 20,
+    scale: 0.98,
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    scale: 0.99,
+    transition: {
+      duration: 0.2,
+      ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
+    },
+  },
 };
 
 // Icon color schemes for nav items
@@ -152,16 +173,14 @@ const StudentLayout = ({
 
                 <SidebarInset className="bg-transparent flex-1 md:h-screen md:overflow-y-auto">
                     <AnimatePresence mode="wait">
-                        <motion.main key={location.pathname} initial={{
-            opacity: 0,
-            y: 8
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} exit={{
-            opacity: 0,
-            y: -8
-          }} transition={pageTransition} className="flex min-h-screen items-center justify-center bg-background px-4 py-2 sm:px-4 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full overflow-x-hidden">
+                        <motion.main 
+                            key={location.pathname} 
+                            variants={pageVariants}
+                            initial="initial"
+                            animate="animate"
+                            exit="exit"
+                            className="flex min-h-screen items-center justify-center bg-background px-4 py-2 sm:px-4 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full overflow-x-hidden"
+                        >
                             <div className="w-full max-w-7xl mx-auto">
                                 {children}
                             </div>
