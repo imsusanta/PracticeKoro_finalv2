@@ -641,6 +641,65 @@
 @layer utilities {
 
   /* ═══════════════════════════════════════════════════════════════
+     MOBILE-FIRST INTERACTION UTILITIES
+     ═══════════════════════════════════════════════════════════════ */
+
+  /* Native-feeling tap highlight */
+  .tap-highlight {
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.1s ease-out, opacity 0.1s ease-out;
+  }
+
+  .tap-highlight:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+  }
+
+  /* Smooth touch scrolling */
+  .scroll-smooth-touch {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+  }
+
+  /* Safe area padding utilities */
+  .safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 16px);
+  }
+
+  .safe-top {
+    padding-top: max(env(safe-area-inset-top), 16px);
+  }
+
+  /* Hide scrollbar but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Horizontal scroll container */
+  .horizontal-scroll {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .horizontal-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .horizontal-scroll > * {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
      PREMIUM ANIMATIONS
      ═══════════════════════════════════════════════════════════════ */
 
