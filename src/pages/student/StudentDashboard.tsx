@@ -184,143 +184,148 @@ const StudentDashboard = () => {
       <div className="w-full max-w-2xl mx-auto space-y-4 pb-24 overflow-x-hidden" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
-            MOBILE-FIRST GREETING CARD
+            COMPACT MOBILE HERO - Clean & Fast
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm"
+          className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 shadow-lg"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md">
-              <span className="text-lg font-bold text-white">{firstName[0]}</span>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
+
+          <div className="relative z-10 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30 shrink-0">
+                <span className="text-base font-bold text-white">{firstName[0]}</span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base font-bold text-white truncate">
+                  {greeting.text}, {firstName} {greeting.emoji}
+                </h1>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <p className="text-indigo-200 text-[10px] font-semibold">Active Student</p>
+                </div>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-slate-900">
-                {greeting.text} {greeting.emoji}
-              </h1>
-              <p className="text-sm text-slate-500">{firstName}</p>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[11px] font-semibold text-emerald-700">Active</span>
+
+            {/* Compact Progress Ring */}
+            <div className="relative w-12 h-12 shrink-0">
+              <svg className="w-full h-full -rotate-90">
+                <circle cx="50%" cy="50%" r="40%" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
+                <motion.circle
+                  initial={{ strokeDashoffset: 100 }}
+                  animate={{ strokeDashoffset: 100 - (100 * Math.min(statistics.totalTestsTaken, 5) / 5) }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                  cx="50%" cy="50%" r="40%" fill="none" stroke="white" strokeWidth="4" strokeLinecap="round"
+                  style={{ strokeDasharray: "100" }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-white">{Math.min(statistics.totalTestsTaken, 5)}/5</span>
+              </div>
             </div>
           </div>
         </motion.div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            STATS ROW - Horizontal Scroll
+            COMPACT STATS GRID - 4 Columns on Mobile
             ═══════════════════════════════════════════════════════════════ */}
-        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+        <div className="grid grid-cols-4 gap-2">
           {[
-            { label: "Tests Taken", value: statistics.totalTestsTaken, icon: FileText, color: "bg-indigo-500" },
-            { label: "Avg Score", value: `${statistics.averageScore}%`, icon: Target, color: "bg-violet-500" },
-            { label: "Passed", value: statistics.testsPassed, icon: Award, color: "bg-emerald-500" },
-            { label: "Exams", value: statistics.availableExams, icon: Sparkles, color: "bg-amber-500" }
+            { label: "Tests", value: statistics.totalTestsTaken, color: "from-indigo-500 to-indigo-600" },
+            { label: "Avg", value: `${statistics.averageScore}%`, color: "from-violet-500 to-violet-600" },
+            { label: "Pass", value: statistics.testsPassed, color: "from-emerald-500 to-emerald-600" },
+            { label: "Exams", value: statistics.availableExams, color: "from-amber-500 to-amber-600" }
           ].map((stat, idx) => (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05 }}
-              className="shrink-0 bg-white rounded-xl p-3 border border-slate-100 shadow-sm min-w-[100px]"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 + idx * 0.03 }}
+              className="bg-white rounded-xl p-2.5 border border-slate-100 shadow-sm text-center"
             >
-              <div className={`w-8 h-8 ${stat.color} rounded-lg flex items-center justify-center mb-2`}>
-                <stat.icon className="w-4 h-4 text-white" />
-              </div>
-              <p className="text-xl font-bold text-slate-900">{stat.value}</p>
-              <p className="text-[10px] font-medium text-slate-400">{stat.label}</p>
+              <p className="text-lg font-bold text-slate-900">{stat.value}</p>
+              <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wide">{stat.label}</p>
             </motion.div>
           ))}
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            QUICK ACTIONS - Clean Card Style
+            QUICK ACTIONS - Full Width Buttons for Mobile
             ═══════════════════════════════════════════════════════════════ */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-bold text-slate-900 px-1">Quick Actions</h3>
-          
-          {/* Primary Action - Full Mock */}
+        <div className="space-y-2">
           <motion.button
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate("/student/exams?type=full_mock")}
-            className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-4 flex items-center gap-4 shadow-lg shadow-indigo-100 tap-highlight"
+            className="w-full p-3.5 rounded-xl bg-indigo-600 text-left flex items-center gap-3 shadow-md tap-highlight"
           >
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+              <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <div className="flex-1 text-left">
-              <h4 className="text-base font-bold text-white">Start Mock Test</h4>
-              <p className="text-xs text-indigo-100 mt-0.5">Full exam simulation</p>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-bold text-white">Full Mock Tests</h4>
+              <p className="text-[10px] text-indigo-200">Complete exam simulation</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
-              <ArrowRight className="w-5 h-5 text-white" />
-            </div>
+            <ArrowRight className="w-5 h-5 text-white/70 shrink-0" />
           </motion.button>
 
-          {/* Secondary Actions */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <motion.button
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 }}
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/student/results")}
-              className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm tap-highlight"
+              className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm text-left tap-highlight"
             >
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mb-3">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
+              <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                <TrendingUp className="w-4.5 h-4.5" />
               </div>
-              <h4 className="font-bold text-slate-900 text-sm text-left">Analytics</h4>
-              <p className="text-[11px] text-slate-400 text-left mt-0.5">Track progress</p>
+              <h4 className="font-bold text-slate-900 text-xs">Analytics</h4>
+              <p className="text-[9px] text-slate-500 font-medium mt-0.5">View progress</p>
             </motion.button>
 
             <motion.button
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.08 }}
-              whileTap={{ scale: 0.97 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => navigate("/student/pdfs")}
-              className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm tap-highlight"
+              className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm text-left tap-highlight"
             >
-              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center mb-3">
-                <BookOpen className="w-5 h-5 text-orange-600" />
+              <div className="w-9 h-9 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center mb-2">
+                <BookOpen className="w-4.5 h-4.5" />
               </div>
-              <h4 className="font-bold text-slate-900 text-sm text-left">Materials</h4>
-              <p className="text-[11px] text-slate-400 text-left mt-0.5">Study PDFs</p>
+              <h4 className="font-bold text-slate-900 text-xs">Materials</h4>
+              <p className="text-[9px] text-slate-500 font-medium mt-0.5">Study PDFs</p>
             </motion.button>
           </div>
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            MOTIVATION BANNER - Minimal & Clean
+            COMPACT MOTIVATION CARD
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl p-4 flex items-center gap-4"
+          className="relative p-4 rounded-xl bg-slate-900 overflow-hidden"
         >
-          <div className="w-11 h-11 rounded-xl bg-amber-400/20 flex items-center justify-center shrink-0">
-            <Flame className="w-5 h-5 text-amber-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white font-semibold text-sm">
-              {statistics.totalTestsTaken > 0 ? "You're on fire! 🔥" : "Ready to begin?"}
-            </p>
-            <p className="text-slate-400 text-xs mt-0.5">
-              {statistics.totalTestsTaken > 0 
-                ? `${statistics.testsPassed} tests passed so far` 
-                : "Take your first test today"}
-            </p>
-          </div>
-          {statistics.totalTestsTaken > 0 && (
-            <div className="text-2xl font-bold text-amber-400">
-              {currentStreak}🔥
+          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/20 rounded-full blur-2xl" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+              <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
             </div>
-          )}
+            <div className="flex-1 min-w-0">
+              <h4 className="text-white font-bold text-sm">Daily Motivation</h4>
+              <p className="text-slate-400 text-[11px] leading-relaxed truncate">
+                {statistics.totalTestsTaken > 0 ? 'You\'re doing great! Keep practicing.' : 'Ready to start your journey!'}
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* ═══════════════════════════════════════════════════════════════
