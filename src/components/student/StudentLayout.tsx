@@ -69,7 +69,7 @@ const StudentLayout = ({
   const goToHome = () => {
     navigate("/");
   };
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 relative flex flex-col overflow-x-hidden">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 relative flex flex-col overflow-x-hidden" style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
             {/* Animated Background Elements */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden">
                 <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-indigo-200/40 to-violet-200/40 rounded-full blur-3xl animate-float" />
@@ -173,7 +173,7 @@ const StudentLayout = ({
             {/* ═══════════════════════════════════════════════════════════════
                         PREMIUM MOBILE BOTTOM NAVIGATION - Native App Style
                         ═══════════════════════════════════════════════════════════════ */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] px-3 pb-4 pointer-events-none w-full max-w-full overflow-x-hidden">
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pointer-events-none w-full max-w-full overflow-x-hidden" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)', paddingLeft: 'max(env(safe-area-inset-left), 12px)', paddingRight: 'max(env(safe-area-inset-right), 12px)' }}>
                 <div className="bottom-nav-container pointer-events-auto w-full max-w-md mx-auto bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-[20px]">
                     <div className="flex items-center justify-around py-1.5 px-1">
                         {studentNav.map((item, index) => {
