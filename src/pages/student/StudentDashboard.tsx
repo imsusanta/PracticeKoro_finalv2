@@ -3,28 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import StudentChat from "@/components/StudentChat";
 import {
   BookOpen,
-  FileText,
   Lock,
   MessageSquare,
-  ChevronRight,
-  Trophy,
-  Play,
-  Award,
-  BarChart2,
-  CheckCircle,
   ArrowRight,
   GraduationCap,
-  Flame,
-  Target,
-  Sparkles,
   TrendingUp,
   Zap,
-  Clock,
-  Star,
-  User
+  Star
 } from "lucide-react";
 import StudentLayout from "@/components/student/StudentLayout";
 import { motion } from "framer-motion";
@@ -64,7 +51,7 @@ const StudentDashboard = () => {
     testsPassed: 0,
     availableExams: 0
   });
-  const [showChat, setShowChat] = useState(false);
+  
 
   const loadDashboardData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -364,49 +351,7 @@ const StudentDashboard = () => {
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════
-            FLOATING CHAT BUTTON - Bottom Right
-            ═══════════════════════════════════════════════════════════════ */}
-        {isApproved && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowChat(true)}
-            className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200 z-50 tap-highlight md:hidden"
-            style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
-          >
-            <MessageSquare className="w-6 h-6 text-white" />
-          </motion.button>
-        )}
-
-        {/* Desktop Support Link */}
-        {isApproved && (
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            onClick={() => setShowChat(true)}
-            className="hidden md:flex w-full p-4 rounded-xl bg-white border border-slate-100 shadow-sm items-center gap-3 tap-highlight"
-          >
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex-1 text-left">
-              <p className="font-bold text-slate-900 text-sm">Student Support</p>
-              <p className="text-[10px] text-slate-500">Chat with us</p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-slate-300" />
-          </motion.button>
-        )}
       </div>
-      {isApproved && profile?.id && (
-        <StudentChat
-          studentId={profile.id}
-          studentName={profile.full_name || "Student"}
-          isOpen={showChat}
-          onOpenChange={setShowChat}
-        />
-      )}
     </StudentLayout>
   );
 };
