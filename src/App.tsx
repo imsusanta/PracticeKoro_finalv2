@@ -43,8 +43,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <OfflineIndicator />
-      <PWAInstallPrompt />
       <BrowserRouter>
+        <PWAInstallPrompt />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/install" element={<Install />} />
