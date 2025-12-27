@@ -31,6 +31,7 @@ import AddQuestion from "./pages/admin/AddQuestion";
 import AdminProfile from "./pages/admin/AdminProfile";
 import CourseManagement from "./pages/admin/CourseManagement";
 import AdminChatInbox from "./pages/admin/AdminChatInbox";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 
@@ -46,6 +47,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/install" element={<Install />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
