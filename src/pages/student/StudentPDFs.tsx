@@ -103,7 +103,7 @@ const StudentPDFs = () => {
 
   return (
     <StudentLayout title="Study Center" subtitle="Learning materials">
-      <div className="w-full max-w-3xl mx-auto space-y-6 pb-32 pt-2 px-4 overflow-x-hidden">
+      <div className="w-full max-w-3xl mx-auto space-y-6 pb-32 pt-2 overflow-x-hidden">
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM STUDY HERO
