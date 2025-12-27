@@ -161,7 +161,7 @@ const StudentLayout = ({
           }} exit={{
             opacity: 0,
             y: -8
-          }} transition={pageTransition} className="flex-1 py-2 sm:px-3 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full max-w-7xl overflow-x-hidden px-0 mx-0">
+          }} transition={pageTransition} className="flex-1 px-4 py-2 sm:px-4 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full max-w-7xl overflow-x-hidden mx-auto">
                             <div className="w-full">
                                 {children}
                             </div>
