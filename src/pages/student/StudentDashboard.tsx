@@ -174,7 +174,7 @@ const StudentDashboard = () => {
 
   return (
     <StudentLayout title="Dashboard" subtitle="Your learning hub">
-      <div className="max-w-2xl mx-auto space-y-3 pb-20">
+      <div className="w-full max-w-2xl mx-auto space-y-3 pb-20 overflow-x-hidden">
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM HERO GREETING (REDESIGNED)
@@ -202,19 +202,19 @@ const StudentDashboard = () => {
             className="absolute bottom-0 left-0 w-48 h-48 bg-violet-400/30 rounded-full blur-[60px] -ml-24 -mb-24"
           />
 
-          <div className="relative z-10 flex flex-col gap-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
+          <div className="relative z-10 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <motion.div
                   whileHover={{ scale: 1.05, rotate: 5 }}
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/25 shadow-lg shrink-0"
+                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white/15 backdrop-blur-xl flex items-center justify-center border border-white/25 shadow-lg shrink-0"
                 >
                   <div className="text-lg md:text-2xl font-black text-white">
                     {firstName[0]}
                   </div>
                 </motion.div>
-                <div>
-                  <h1 className="text-lg md:text-2xl font-black text-white tracking-tight leading-tight">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-base sm:text-lg md:text-2xl font-black text-white tracking-tight leading-tight truncate">
                     {greeting.text}, {firstName}
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
@@ -227,7 +227,7 @@ const StudentDashboard = () => {
               </div>
 
               {/* Goal Progress Ring (SVG) */}
-              <div className="relative w-14 h-14 md:w-20 md:h-20 flex items-center justify-center">
+              <div className="relative w-11 h-11 sm:w-14 sm:h-14 md:w-20 md:h-20 flex items-center justify-center shrink-0">
                 <svg className="w-full h-full -rotate-90">
                   <circle
                     cx="50%"
@@ -277,7 +277,7 @@ const StudentDashboard = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/student/profile")}
-                className="bg-white px-3 py-2 rounded-xl text-indigo-600 font-black text-[10px] shadow-lg"
+                className="bg-white px-2.5 py-1.5 rounded-lg text-indigo-600 font-bold text-[9px] shadow-md whitespace-nowrap"
               >
                 Profile
               </motion.button>
