@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import StudentChat from "@/components/StudentChat";
 import {
   BookOpen,
   Lock,
@@ -51,7 +52,8 @@ const StudentDashboard = () => {
     testsPassed: 0,
     availableExams: 0
   });
-  
+  const [showChat, setShowChat] = useState(false);
+
 
   const loadDashboardData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -351,7 +353,30 @@ const StudentDashboard = () => {
           </div>
         )}
 
+        {/* Floating Chat Button */}
+        {isApproved && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowChat(true)}
+            className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200 z-50 tap-highlight md:hidden"
+            style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+          >
+            <MessageSquare className="w-6 h-6 text-white" />
+          </motion.button>
+        )}
       </div>
+
+      {/* Chat Component */}
+      {isApproved && profile?.id && (
+        <StudentChat
+          studentId={profile.id}
+          studentName={profile.full_name || "Student"}
+          isOpen={showChat}
+          onOpenChange={setShowChat}
+        />
+      )}
     </StudentLayout>
   );
 };
