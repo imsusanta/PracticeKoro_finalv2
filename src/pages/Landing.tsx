@@ -595,8 +595,8 @@ const Landing = () => {
                 ) : (
                   <>
                     {/* Mobile: Horizontal Scroll Cards */}
-                    <div className="md:hidden overflow-x-auto pb-6 px-4 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                      <div className="flex gap-4" style={{ width: 'max-content' }}>
+                    <div className="md:hidden horizontal-scroll pb-4 px-4" style={{ touchAction: 'pan-x' }}>
+                      <div className="flex gap-3">
                         {exams.map((exam, index) => (
                           <motion.div
                             key={exam.id}

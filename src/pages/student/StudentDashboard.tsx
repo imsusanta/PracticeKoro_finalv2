@@ -417,7 +417,7 @@ const StudentDashboard = () => {
               </button>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide no-scrollbar snap-x">
+            <div className="horizontal-scroll gap-3 pb-4 -mx-3 px-3" style={{ touchAction: 'pan-x' }}>
               {exams.map((exam, idx) => (
                 <motion.button
                   key={exam.id}
@@ -426,10 +426,10 @@ const StudentDashboard = () => {
                   transition={{ delay: idx * 0.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate(`/student/exams?exam=${exam.id}`)}
-                  className="shrink-0 w-48 p-6 rounded-[32px] bg-white border border-slate-100 shadow-sm text-center group snap-center"
+                  className="shrink-0 w-36 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm text-center group"
                 >
-                  <div className="w-16 h-16 rounded-[24px] bg-slate-50 flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-inner">
-                    <GraduationCap className="w-8 h-8" />
+                  <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                    <GraduationCap className="w-6 h-6" />
                   </div>
                   <h4 className="font-black text-slate-900 text-sm mb-1">{exam.name}</h4>
                   <div className="flex items-center justify-center gap-1.5 mt-2">
