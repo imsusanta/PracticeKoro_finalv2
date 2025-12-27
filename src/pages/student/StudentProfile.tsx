@@ -173,7 +173,7 @@ const StudentProfile = () => {
 
   return (
     <StudentLayout title="Profile" subtitle="Your account">
-      <div className="max-w-2xl mx-auto space-y-4 pb-24">
+      <div className="w-full max-w-2xl mx-auto space-y-4 pb-24 overflow-x-hidden">
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM PROFILE HEADER
