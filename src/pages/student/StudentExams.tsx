@@ -172,59 +172,47 @@ const StudentExams = () => {
   return (
     <StudentLayout title="Mock Tests" subtitle="Practice & improve">
       <PullIndicator />
-      <div className="w-full max-w-3xl mx-auto space-y-4 pb-32 pt-2 overflow-x-hidden" {...containerProps}>
+      <div className="w-full max-w-3xl mx-auto space-y-4 pb-24 overflow-x-hidden" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
-            PREMIUM HERO SECTION - Mobile Optimized
+            COMPACT HERO - Mobile Optimized
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl sm:rounded-[28px] p-4 sm:p-6 md:p-8 bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-900 shadow-xl shadow-indigo-200/50"
+          className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-900 shadow-lg"
         >
-          <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[size:20px_20px]" />
-          <div className="absolute top-0 right-0 w-40 h-40 sm:w-64 sm:h-64 bg-indigo-500/20 rounded-full blur-3xl -mr-20 -mt-20 sm:-mr-32 sm:-mt-32" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 sm:w-48 sm:h-48 bg-emerald-500/10 rounded-full blur-2xl -ml-16 -mb-16 sm:-ml-24 sm:-mb-24" />
-
-          <div className="relative z-10 space-y-3 sm:space-y-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-indigo-500/20 backdrop-blur-md flex items-center justify-center border border-white/10">
-                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl -mr-16 -mt-16" />
+          
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <Trophy className="w-4 h-4 text-indigo-400" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Test Repository</span>
               </div>
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider sm:tracking-[0.2em] text-indigo-300">Test Repository</span>
+              <h1 className="text-lg font-bold text-white">
+                Master Your <span className="text-indigo-400">Exams</span>
+              </h1>
             </div>
-            <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-white leading-tight">
-              Master Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Exams</span>
-            </h1>
-            <p className="text-slate-400 max-w-lg text-xs sm:text-sm leading-relaxed line-clamp-2 sm:line-clamp-none">
-              Choose from {totalPublishedTests}+ mock tests designed by experts.
-            </p>
-
-            <div className="flex gap-4 sm:gap-6 pt-2 sm:pt-4">
-              <div className="flex flex-col">
-                <span className="text-lg sm:text-2xl font-black text-white">{completedTests}</span>
-                <span className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">Done</span>
+            
+            <div className="flex gap-4">
+              <div className="text-center">
+                <p className="text-lg font-bold text-white">{completedTests}</p>
+                <p className="text-[8px] font-semibold text-slate-400 uppercase">Done</p>
               </div>
-              <div className="w-px h-8 sm:h-10 bg-white/10" />
-              <div className="flex flex-col">
-                <span className="text-lg sm:text-2xl font-black text-emerald-400">{avgScore}%</span>
-                <span className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">Avg</span>
-              </div>
-              <div className="w-px h-8 sm:h-10 bg-white/10" />
-              <div className="flex flex-col">
-                <span className="text-lg sm:text-2xl font-black text-indigo-400">{passedTests}</span>
-                <span className="text-[8px] sm:text-[10px] font-bold text-slate-500 uppercase tracking-wider">Passed</span>
+              <div className="text-center">
+                <p className="text-lg font-bold text-emerald-400">{avgScore}%</p>
+                <p className="text-[8px] font-semibold text-slate-400 uppercase">Avg</p>
               </div>
             </div>
           </div>
         </motion.div>
 
         {/* ═══════════════════════════════════════════════════════════════
-            FILTER & TAB NAVIGATION
+            FILTER TABS - Pill Style
             ═══════════════════════════════════════════════════════════════ */}
-        <div className="space-y-4">
-          {/* Filter Tabs - Horizontal Scroll on Mobile */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+        <div className="space-y-3">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
             {[
               { key: "all", label: "All", icon: BookOpen },
               { key: "full_mock", label: "Full Mock", icon: Award },
@@ -236,24 +224,22 @@ const StudentExams = () => {
                   setFilterType(tab.key as any);
                   setSelectedExam("all");
                 }}
-                className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-bold transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 ${filterType === tab.key
-                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                  : "bg-white text-slate-600 border border-slate-100 hover:border-indigo-200"
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 tap-highlight ${filterType === tab.key
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "bg-white text-slate-600 border border-slate-100"
                   }`}
               >
-                <tab.icon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
               </button>
             ))}
           </div>
 
-          {/* Exam Filter Pills - Horizontal Scroll */}
           {exams.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
               <button
                 onClick={() => setSelectedExam("all")}
-                className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition-all ${selectedExam === "all" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                  }`}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all tap-highlight ${selectedExam === "all" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
               >
                 All
               </button>
@@ -261,8 +247,7 @@ const StudentExams = () => {
                 <button
                   key={e.id}
                   onClick={() => setSelectedExam(e.id)}
-                  className={`shrink-0 px-2.5 sm:px-3 py-1.5 rounded-lg sm:rounded-xl text-[10px] sm:text-[11px] font-bold transition-all whitespace-nowrap ${selectedExam === e.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                    }`}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap tap-highlight ${selectedExam === e.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
                 >
                   {e.name}
                 </button>
@@ -271,91 +256,80 @@ const StudentExams = () => {
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
-              TEST GRID - Mobile Optimized
+              TEST LIST - Compact Mobile Cards
               ═══════════════════════════════════════════════════════════════ */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="space-y-2">
             <AnimatePresence mode="popLayout">
               {filteredTests.map((test, idx) => {
                 const attempt = testAttempts[test.id];
-
                 return (
                   <motion.div
                     layout
                     key={test.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.2, delay: idx * 0.03 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15, delay: idx * 0.02 }}
+                    className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden tap-highlight"
                   >
-                    <div className="card-premium h-full flex flex-col group relative overflow-hidden">
-                      {/* Top Accent line */}
-                      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${test.test_type === 'full_mock' ? 'from-indigo-500 to-violet-500' : 'from-emerald-500 to-teal-500'
-                        }`} />
-
-                      <div className="p-4 sm:p-5 flex-1">
-                        <div className="flex justify-between items-start mb-3">
-                          <span className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] font-bold uppercase tracking-wide ${test.test_type === 'full_mock' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
-                            }`}>
-                            {test.test_type === 'full_mock' ? 'Full Mock' : 'Topic'}
+                    <div className="p-3 flex items-center gap-3">
+                      {/* Type Badge & Score */}
+                      <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${
+                        attempt?.passed ? 'bg-emerald-50' : test.test_type === 'full_mock' ? 'bg-indigo-50' : 'bg-slate-50'
+                      }`}>
+                        {attempt ? (
+                          <>
+                            <span className={`text-sm font-bold ${attempt.passed ? 'text-emerald-600' : 'text-slate-600'}`}>
+                              {attempt.best_percentage}%
+                            </span>
+                            {attempt.passed && <CheckCircle className="w-3 h-3 text-emerald-500" />}
+                          </>
+                        ) : (
+                          <span className={`text-[9px] font-bold uppercase ${
+                            test.test_type === 'full_mock' ? 'text-indigo-600' : 'text-slate-500'
+                          }`}>
+                            {test.test_type === 'full_mock' ? 'Full' : 'Topic'}
                           </span>
-                          {attempt?.passed && (
-                            <div className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded-md">
-                              <CheckCircle className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                              <span className="text-[8px] sm:text-[9px] font-bold">Passed</span>
-                            </div>
-                          )}
-                        </div>
-
-                        <h3 className="text-sm sm:text-base font-bold text-slate-900 mb-2 line-clamp-2 group-hover:text-indigo-600 transition-colors">
-                          {test.title}
-                        </h3>
-
-                        <div className="flex items-center gap-3 sm:gap-4 mt-3 py-2 sm:py-3 border-y border-slate-100/80">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
-                            <span className="text-[10px] sm:text-xs font-semibold text-slate-600">{test.duration_minutes}m</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Target className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
-                            <span className="text-[10px] sm:text-xs font-semibold text-slate-600">{test.total_marks} Marks</span>
-                          </div>
-                        </div>
-
-                        {attempt && (
-                          <div className="mt-3 flex items-center justify-between">
-                            <div className="flex flex-col">
-                              <span className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-wider">Best</span>
-                              <span className="text-xs sm:text-sm font-black text-slate-800">{attempt.best_percentage}%</span>
-                            </div>
-                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border-2 border-slate-100 flex items-center justify-center">
-                              <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400" />
-                            </div>
-                          </div>
                         )}
                       </div>
-
-                      <div className="p-3 sm:p-4 bg-slate-50/50 border-t border-slate-100">
-                        <motion.button
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => navigate(`/student/take-test/${test.id}`)}
-                          className={`w-full py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${attempt ? 'bg-white border-2 border-indigo-600 text-indigo-600' : 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
-                            }`}
-                        >
-                          {attempt ? (
-                            <>
-                              <RotateCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                              Retake
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-                              Start
-                            </>
-                          )}
-                        </motion.button>
+                      
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-sm font-bold text-slate-900 truncate">{test.title}</h3>
+                        <div className="flex items-center gap-2 mt-1 text-slate-400">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span className="text-[10px] font-medium">{test.duration_minutes}m</span>
+                          </div>
+                          <span className="text-[10px]">•</span>
+                          <span className="text-[10px] font-medium">{test.total_marks} marks</span>
+                        </div>
                       </div>
+
+                      {/* Action Button */}
+                      <motion.button
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => navigate(`/student/take-test/${test.id}`)}
+                        className={`px-3 py-2 rounded-lg font-bold text-xs shrink-0 tap-highlight ${
+                          attempt 
+                            ? 'bg-slate-100 text-slate-700' 
+                            : 'bg-indigo-600 text-white shadow-sm'
+                        }`}
+                      >
+                        {attempt ? (
+                          <div className="flex items-center gap-1">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Retry</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Play className="w-3.5 h-3.5 fill-current" />
+                            <span>Start</span>
+                          </div>
+                        )}
+                      </motion.button>
                     </div>
-                  </motion.div>
+                </motion.div>
                 );
               })}
             </AnimatePresence>

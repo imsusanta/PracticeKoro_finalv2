@@ -24,29 +24,24 @@ const SidebarToggleButton = () => {
         </button>;
 };
 
-// Enhanced page transition config
+// Mobile-optimized page transition config (simpler = faster)
 const pageVariants = {
   initial: {
     opacity: 0,
-    y: 20,
-    scale: 0.98,
+    y: 8,
   },
   animate: {
     opacity: 1,
     y: 0,
-    scale: 1,
     transition: {
-      duration: 0.3,
+      duration: 0.2,
       ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
     },
   },
   exit: {
     opacity: 0,
-    y: -10,
-    scale: 0.99,
     transition: {
-      duration: 0.2,
-      ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
+      duration: 0.15,
     },
   },
 };
@@ -179,7 +174,7 @@ const StudentLayout = ({
                             initial="initial"
                             animate="animate"
                             exit="exit"
-                            className="flex min-h-screen items-center justify-center bg-background px-4 py-2 sm:px-4 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full overflow-x-hidden"
+                            className="flex min-h-screen flex-col bg-background px-3 pt-2 pb-24 sm:px-4 sm:pt-3 md:items-center md:justify-center md:p-6 md:pb-6 relative z-10 w-full overflow-x-hidden"
                         >
                             <div className="w-full max-w-7xl mx-auto">
                                 {children}
@@ -190,34 +185,48 @@ const StudentLayout = ({
             </SidebarProvider>
 
             {/* ═══════════════════════════════════════════════════════════════
-                        PREMIUM MOBILE BOTTOM NAVIGATION - Native App Style
+                        MOBILE BOTTOM NAVIGATION - Enhanced Native App Style
                         ═══════════════════════════════════════════════════════════════ */}
-            <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pointer-events-none w-full max-w-full overflow-x-hidden" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)', paddingLeft: 'max(env(safe-area-inset-left), 12px)', paddingRight: 'max(env(safe-area-inset-right), 12px)' }}>
-                <div className="bottom-nav-container pointer-events-auto w-full max-w-md mx-auto bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] rounded-[20px]">
-                    <div className="flex items-center justify-around py-1.5 px-1">
+            <nav 
+                className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pointer-events-none w-full" 
+                style={{ 
+                    paddingBottom: 'max(env(safe-area-inset-bottom), 8px)', 
+                    paddingLeft: 'max(env(safe-area-inset-left), 8px)', 
+                    paddingRight: 'max(env(safe-area-inset-right), 8px)' 
+                }}
+            >
+                <div className="bottom-nav-container pointer-events-auto w-full max-w-lg mx-auto bg-white/98 backdrop-blur-xl border border-slate-200/60 shadow-[0_-4px_24px_rgba(0,0,0,0.1)] rounded-2xl">
+                    <div className="flex items-stretch justify-around py-1 px-1">
                         {studentNav.map((item, index) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            const colorSet = iconColors[index % iconColors.length];
-            return <Link key={item.path} to={item.path} className="relative flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-0.5">
-                                    <motion.div whileTap={{
-                scale: 0.9
-              }} className="relative flex flex-col items-center justify-center w-full h-full px-[8px]">
-                                        {isActive && <motion.div layoutId="navActiveBackground" className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${colorSet.activeBg} opacity-100`} style={{
-                  boxShadow: `0 8px 16px ${colorSet.glow.replace('shadow-', '').replace('/30', '').replace('indigo-500', 'rgba(99, 102, 241, 0.3)')}`
-                }} transition={{
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 30
-                }} />}
-
-                                        <Icon className={`w-4 h-4 relative z-10 transition-all duration-200 ${isActive ? "text-white" : "text-slate-400"}`} />
-                                        <span className={`relative z-10 text-[9px] font-bold mt-1 transition-all duration-200 ${isActive ? "text-white" : "text-slate-400"}`}>
+                            const Icon = item.icon;
+                            const isActive = location.pathname === item.path;
+                            const colorSet = iconColors[index % iconColors.length];
+                            return (
+                                <Link 
+                                    key={item.path} 
+                                    to={item.path} 
+                                    className="relative flex flex-col items-center justify-center flex-1 min-h-[52px] tap-highlight rounded-xl"
+                                >
+                                    <motion.div 
+                                        whileTap={{ scale: 0.92 }} 
+                                        className="relative flex flex-col items-center justify-center w-full h-full py-1.5"
+                                    >
+                                        {isActive && (
+                                            <motion.div 
+                                                layoutId="navActiveBackground" 
+                                                className={`absolute inset-1 rounded-xl bg-gradient-to-br ${colorSet.activeBg}`}
+                                                style={{ boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)' }}
+                                                transition={{ type: "spring", stiffness: 500, damping: 35 }} 
+                                            />
+                                        )}
+                                        <Icon className={`w-5 h-5 relative z-10 transition-colors duration-150 ${isActive ? "text-white" : "text-slate-400"}`} />
+                                        <span className={`relative z-10 text-[10px] font-semibold mt-0.5 transition-colors duration-150 ${isActive ? "text-white" : "text-slate-500"}`}>
                                             {item.name}
                                         </span>
                                     </motion.div>
-                                </Link>;
-          })}
+                                </Link>
+                            );
+                        })}
                     </div>
                 </div>
             </nav>
