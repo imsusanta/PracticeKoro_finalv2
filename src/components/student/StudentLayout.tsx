@@ -161,8 +161,8 @@ const StudentLayout = ({
           }} exit={{
             opacity: 0,
             y: -8
-          }} transition={pageTransition} className="flex-1 px-4 py-2 sm:px-4 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full max-w-7xl overflow-x-hidden mx-auto">
-                            <div className="w-full">
+          }} transition={pageTransition} className="flex min-h-screen items-center justify-center bg-background px-4 py-2 sm:px-4 sm:py-3 md:p-6 pb-24 md:pb-6 relative z-10 w-full overflow-x-hidden">
+                            <div className="w-full max-w-7xl mx-auto">
                                 {children}
                             </div>
                         </motion.main>
