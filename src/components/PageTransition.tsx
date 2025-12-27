@@ -27,7 +27,7 @@ const pageVariants = {
 };
 
 const pageTransition = {
-    type: "spring",
+    type: "spring" as const,
     damping: 30,
     stiffness: 400,
 };
@@ -49,7 +49,7 @@ export const staggerItem = {
         opacity: 1,
         y: 0,
         transition: {
-            type: "spring",
+            type: "spring" as const,
             damping: 25,
             stiffness: 300,
         },

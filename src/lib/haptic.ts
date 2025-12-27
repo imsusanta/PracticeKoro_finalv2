@@ -3,7 +3,7 @@
 
 type HapticType = "light" | "medium" | "heavy" | "success" | "warning" | "error" | "selection";
 
-interface NavigatorWithVibrate extends Navigator {
+interface NavigatorWithVibrate extends Omit<Navigator, 'vibrate'> {
     vibrate: (pattern: number | number[]) => boolean;
 }
 
