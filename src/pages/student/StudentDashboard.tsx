@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import StudentChat from "@/components/StudentChat";
 import {
   BookOpen,
@@ -65,41 +66,46 @@ const StudentDashboard = () => {
   });
   const [showChat, setShowChat] = useState(false);
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/login"); return; }
+  const loadDashboardData = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate("/login"); return; }
 
-      const [roleResult, profileResult, approvalResult, examsResult, attemptsResult] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "student").maybeSingle(),
-        supabase.from("profiles").select("*").eq("id", session.user.id).single(),
-        supabase.from("approval_status").select("status").eq("user_id", session.user.id).single(),
-        supabase.from("exams").select("id, name").eq("is_active", true).order("name"),
-        supabase.from("test_attempts").select("percentage, passed").eq("user_id", session.user.id)
-      ]);
+    const [roleResult, profileResult, approvalResult, examsResult, attemptsResult] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "student").maybeSingle(),
+      supabase.from("profiles").select("*").eq("id", session.user.id).single(),
+      supabase.from("approval_status").select("status").eq("user_id", session.user.id).single(),
+      supabase.from("exams").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("test_attempts").select("percentage, passed").eq("user_id", session.user.id)
+    ]);
 
-      if (!roleResult.data) {
-        await supabase.auth.signOut();
-        navigate("/login");
-        return;
-      }
+    if (!roleResult.data) {
+      await supabase.auth.signOut();
+      navigate("/login");
+      return;
+    }
 
-      setProfile(profileResult.data);
-      setApprovalStatus(approvalResult.data?.status || "pending");
-      setExams(examsResult.data || []);
+    setProfile(profileResult.data);
+    setApprovalStatus(approvalResult.data?.status || "pending");
+    setExams(examsResult.data || []);
 
-      const attempts = attemptsResult.data || [];
-      setStatistics({
-        totalTestsTaken: attempts.length,
-        averageScore: attempts.length > 0 ? Math.round(attempts.reduce((s, a) => s + a.percentage, 0) / attempts.length) : 0,
-        testsPassed: attempts.filter(a => a.passed).length,
-        availableExams: examsResult.data?.length || 0
-      });
+    const attempts = attemptsResult.data || [];
+    setStatistics({
+      totalTestsTaken: attempts.length,
+      averageScore: attempts.length > 0 ? Math.round(attempts.reduce((s, a) => s + a.percentage, 0) / attempts.length) : 0,
+      testsPassed: attempts.filter(a => a.passed).length,
+      availableExams: examsResult.data?.length || 0
+    });
 
-      setAuthChecked(true);
-    };
-    init();
+    setAuthChecked(true);
   }, [navigate]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  const { containerProps, PullIndicator } = usePullToRefresh({
+    onRefresh: loadDashboardData
+  });
 
   const handleLogout = async () => {
     try {
@@ -174,7 +180,8 @@ const StudentDashboard = () => {
 
   return (
     <StudentLayout title="Dashboard" subtitle="Your learning hub">
-      <div className="w-full max-w-2xl mx-auto space-y-3 pb-20 overflow-x-hidden">
+      <PullIndicator />
+      <div className="w-full max-w-2xl mx-auto space-y-3 pb-20 overflow-x-hidden" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM HERO GREETING (REDESIGNED)

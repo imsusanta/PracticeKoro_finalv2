@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   Trophy,
   ChevronRight,
@@ -30,11 +31,7 @@ const StudentResults = () => {
   const [attempts, setAttempts] = useState<TestAttempt[]>([]);
   const [stats, setStats] = useState({ passed: 0, avg: 0 });
 
-  useEffect(() => {
-    loadResults();
-  }, []);
-
-  const loadResults = async () => {
+  const loadResults = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/login"); return; }
 
@@ -74,7 +71,15 @@ const StudentResults = () => {
       }
     }
     setLoading(false);
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    loadResults();
+  }, [loadResults]);
+
+  const { containerProps, PullIndicator } = usePullToRefresh({
+    onRefresh: loadResults
+  });
 
   const formatDate = (dateStr: string) => {
     try {
@@ -101,7 +106,8 @@ const StudentResults = () => {
 
   return (
     <StudentLayout title="Results" subtitle="Your performance">
-      <div className="w-full max-w-3xl mx-auto space-y-4 pb-32 pt-2 overflow-x-hidden">
+      <PullIndicator />
+      <div className="w-full max-w-3xl mx-auto space-y-4 pb-32 pt-2 overflow-x-hidden" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM ACHIEVEMENT HERO - Mobile Optimized
