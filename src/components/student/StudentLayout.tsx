@@ -183,7 +183,7 @@ const StudentLayout = ({
             return <Link key={item.path} to={item.path} className="relative flex flex-col items-center justify-center min-w-[56px] min-h-[48px] px-0.5">
                                     <motion.div whileTap={{
                 scale: 0.9
-              }} className="relative flex flex-col items-center justify-center w-full h-full">
+              }} className="relative flex flex-col items-center justify-center w-full h-full px-[8px]">
                                         {isActive && <motion.div layoutId="navActiveBackground" className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${colorSet.activeBg} opacity-100`} style={{
                   boxShadow: `0 8px 16px ${colorSet.glow.replace('shadow-', '').replace('/30', '').replace('indigo-500', 'rgba(99, 102, 241, 0.3)')}`
                 }} transition={{
