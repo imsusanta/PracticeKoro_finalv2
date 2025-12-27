@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   Trophy,
   ChevronRight,
@@ -56,11 +57,7 @@ const StudentExams = () => {
     urlType === "full_mock" || urlType === "topic_wise" ? urlType : "all"
   );
 
-  useEffect(() => {
-    checkAuthAndLoadData();
-  }, []);
-
-  const checkAuthAndLoadData = async () => {
+  const checkAuthAndLoadData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/login"); return; }
 
@@ -68,7 +65,15 @@ const StudentExams = () => {
     setApprovalStatus(approvalResult.data?.status || "pending");
     await Promise.all([loadExamsAndTests(), loadTestAttempts(session.user.id)]);
     setLoading(false);
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    checkAuthAndLoadData();
+  }, [checkAuthAndLoadData]);
+
+  const { containerProps, PullIndicator } = usePullToRefresh({
+    onRefresh: checkAuthAndLoadData
+  });
 
   const loadExamsAndTests = async () => {
     const { data: examsData } = await supabase.from("exams").select("id, name").eq("is_active", true).order("name");
@@ -166,7 +171,8 @@ const StudentExams = () => {
 
   return (
     <StudentLayout title="Mock Tests" subtitle="Practice & improve">
-      <div className="w-full max-w-3xl mx-auto space-y-4 pb-32 pt-2 overflow-x-hidden">
+      <PullIndicator />
+      <div className="w-full max-w-3xl mx-auto space-y-4 pb-32 pt-2 overflow-x-hidden" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM HERO SECTION - Mobile Optimized

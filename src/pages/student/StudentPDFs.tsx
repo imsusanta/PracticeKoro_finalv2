@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   FileText,
   Search,
@@ -36,11 +37,7 @@ const StudentPDFs = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedExam, setSelectedExam] = useState<string>("all");
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/login"); return; }
 
@@ -52,7 +49,15 @@ const StudentPDFs = () => {
     if (pdfsRes.data) setPdfs(pdfsRes.data);
     if (examsRes.data) setExams(examsRes.data);
     setLoading(false);
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const { containerProps, PullIndicator } = usePullToRefresh({
+    onRefresh: loadData
+  });
 
   const handleDownload = async (pdf: PDF) => {
     const { data, error } = await supabase.storage
@@ -103,7 +108,8 @@ const StudentPDFs = () => {
 
   return (
     <StudentLayout title="Study Center" subtitle="Learning materials">
-      <div className="w-full max-w-3xl mx-auto space-y-4 pb-32 pt-2 overflow-x-hidden">
+      <PullIndicator />
+      <div className="w-full max-w-3xl mx-auto space-y-4 pb-32 pt-2 overflow-x-hidden" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM STUDY HERO - Mobile Optimized
