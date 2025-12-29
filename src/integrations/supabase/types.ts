@@ -427,7 +427,7 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string
-          exam_id: string
+          exam_id: string | null
           file_path: string | null
           file_size: number | null
           id: string
@@ -439,7 +439,7 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
-          exam_id: string
+          exam_id?: string | null
           file_path?: string | null
           file_size?: number | null
           id?: string
@@ -451,7 +451,7 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
-          exam_id?: string
+          exam_id?: string | null
           file_path?: string | null
           file_size?: number | null
           id?: string
@@ -581,7 +581,7 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
-          exam_id: string
+          exam_id: string | null
           id: string
           name: string
           updated_at: string
@@ -590,7 +590,7 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
-          exam_id: string
+          exam_id?: string | null
           id?: string
           name: string
           updated_at?: string
@@ -599,7 +599,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
-          exam_id?: string
+          exam_id?: string | null
           id?: string
           name?: string
           updated_at?: string
@@ -871,6 +871,7 @@ export type Database = {
       }
       topics: {
         Row: {
+          content: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -880,6 +881,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          content?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -889,6 +891,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          content?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
