@@ -425,27 +425,30 @@ export type Database = {
       }
       pdfs: {
         Row: {
+          content: string | null
           created_at: string
           exam_id: string
-          file_path: string
+          file_path: string | null
           file_size: number | null
           id: string
           title: string
           uploaded_by: string
         }
         Insert: {
+          content?: string | null
           created_at?: string
           exam_id: string
-          file_path: string
+          file_path?: string | null
           file_size?: number | null
           id?: string
           title: string
           uploaded_by: string
         }
         Update: {
+          content?: string | null
           created_at?: string
           exam_id?: string
-          file_path?: string
+          file_path?: string | null
           file_size?: number | null
           id?: string
           title?: string
