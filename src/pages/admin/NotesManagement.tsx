@@ -18,6 +18,7 @@ interface Note {
   id: string;
   title: string;
   content: string | null;
+  exam_id: string;
   topic_id: string | null;
   subject_id: string | null;
   created_at: string;
@@ -26,6 +27,7 @@ interface Note {
 interface Subject {
   id: string;
   name: string;
+  exam_id: string;
 }
 
 interface Topic {
@@ -87,7 +89,7 @@ const NotesManagement = () => {
   };
 
   const loadSubjects = async () => {
-    const { data } = await supabase.from("subjects").select("id, name").order("name");
+    const { data } = await supabase.from("subjects").select("id, name, exam_id").order("name");
     if (data) setSubjects(data);
   };
 
@@ -99,14 +101,14 @@ const NotesManagement = () => {
   const loadNotes = async () => {
     const { data, error } = await supabase
       .from("pdfs")
-      .select("id, title, content, topic_id, subject_id, created_at")
+      .select("id, title, content, exam_id, topic_id, subject_id, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
       toast({ title: "Error", description: "Failed to load notes", variant: "destructive" });
       return;
     }
-    setNotes(data || []);
+    setNotes((data || []) as Note[]);
   };
 
   const applyFilters = () => {
@@ -152,17 +154,31 @@ const NotesManagement = () => {
       return;
     }
 
+    const selectedSubjectRow = subjects.find((s) => s.id === formData.subject_id);
+    if (!selectedSubjectRow?.exam_id) {
+      toast({ title: "Error", description: "Selected subject must be linked to an exam", variant: "destructive" });
+      return;
+    }
+
     setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setSaving(false); return; }
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) {
+      setSaving(false);
+      return;
+    }
+
+    const payload = {
+      title: formData.title,
+      content: formData.content || null,
+      subject_id: formData.subject_id,
+      topic_id: formData.topic_id,
+      exam_id: selectedSubjectRow.exam_id,
+    };
 
     if (editingNote) {
-      const { error } = await supabase.from("pdfs").update({
-        title: formData.title,
-        content: formData.content || null,
-        subject_id: formData.subject_id,
-        topic_id: formData.topic_id,
-      }).eq("id", editingNote.id);
+      const { error } = await supabase.from("pdfs").update(payload).eq("id", editingNote.id);
 
       if (error) {
         toast({ title: "Error", description: "Failed to update", variant: "destructive" });
@@ -171,13 +187,14 @@ const NotesManagement = () => {
       }
       toast({ title: "Success", description: "Note updated" });
     } else {
-      const { error } = await supabase.from("pdfs").insert({
-        title: formData.title,
-        content: formData.content || null,
-        subject_id: formData.subject_id,
-        topic_id: formData.topic_id,
-        created_by: session.user.id,
-      });
+      const { error } = await supabase.from("pdfs").insert([
+        {
+          ...payload,
+          uploaded_by: session.user.id,
+          file_path: null,
+          file_size: null,
+        },
+      ]);
 
       if (error) {
         toast({ title: "Error", description: "Failed to create", variant: "destructive" });

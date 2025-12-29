@@ -11,16 +11,19 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdminLayout from "@/components/admin/AdminLayout";
+
+interface Exam {
+    id: string;
+    name: string;
+}
 
 interface Subject {
     id: string;
+    exam_id: string;
     name: string;
     description: string | null;
-    icon: string;
-    color: string;
-    is_active: boolean;
-    created_at: string;
 }
 
 interface Topic {
@@ -28,15 +31,13 @@ interface Topic {
     subject_id: string;
     name: string;
     description: string | null;
-    order_index: number;
-    is_active: boolean;
-    created_at: string;
 }
 
 const SubjectManagement = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
+    const [exams, setExams] = useState<Exam[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
     const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
@@ -48,7 +49,7 @@ const SubjectManagement = () => {
     const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
 
     // Form data
-    const [subjectForm, setSubjectForm] = useState({ name: "", description: "" });
+    const [subjectForm, setSubjectForm] = useState({ exam_id: "", name: "", description: "" });
     const [topicForm, setTopicForm] = useState({ name: "", description: "" });
 
     useEffect(() => {
@@ -73,14 +74,28 @@ const SubjectManagement = () => {
             return;
         }
 
-        await loadSubjects();
+        await Promise.all([loadExams(), loadSubjects()]);
         setLoading(false);
+    };
+
+    const loadExams = async () => {
+        const { data, error } = await supabase
+            .from("exams")
+            .select("id, name")
+            .eq("is_active", true)
+            .order("name");
+
+        if (error) {
+            toast({ title: "Error", description: "Failed to load exams", variant: "destructive" });
+            return;
+        }
+        setExams(data || []);
     };
 
     const loadSubjects = async () => {
         const { data, error } = await supabase
             .from("subjects")
-            .select("*")
+            .select("id, exam_id, name, description")
             .order("name");
 
         if (error) {
@@ -93,9 +108,9 @@ const SubjectManagement = () => {
     const loadTopics = async (subjectId: string) => {
         const { data, error } = await supabase
             .from("topics")
-            .select("*")
+            .select("id, subject_id, name, description")
             .eq("subject_id", subjectId)
-            .order("order_index");
+            .order("name");
 
         if (error) {
             toast({ title: "Error", description: "Failed to load topics", variant: "destructive" });
@@ -112,13 +127,13 @@ const SubjectManagement = () => {
     // Subject CRUD
     const openCreateSubject = () => {
         setEditingSubject(null);
-        setSubjectForm({ name: "", description: "" });
+        setSubjectForm({ exam_id: "", name: "", description: "" });
         setSubjectDialogOpen(true);
     };
 
     const openEditSubject = (subject: Subject) => {
         setEditingSubject(subject);
-        setSubjectForm({ name: subject.name, description: subject.description || "" });
+        setSubjectForm({ exam_id: subject.exam_id, name: subject.name, description: subject.description || "" });
         setSubjectDialogOpen(true);
     };
 
@@ -126,10 +141,19 @@ const SubjectManagement = () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
 
+        if (!subjectForm.name.trim() || !subjectForm.exam_id) {
+            toast({ title: "Error", description: "Exam and subject name are required", variant: "destructive" });
+            return;
+        }
+
         if (editingSubject) {
             const { error } = await supabase
                 .from("subjects")
-                .update({ name: subjectForm.name, description: subjectForm.description || null })
+                .update({
+                    exam_id: subjectForm.exam_id,
+                    name: subjectForm.name,
+                    description: subjectForm.description || null,
+                })
                 .eq("id", editingSubject.id);
 
             if (error) {
@@ -140,7 +164,14 @@ const SubjectManagement = () => {
         } else {
             const { error } = await supabase
                 .from("subjects")
-                .insert({ name: subjectForm.name, description: subjectForm.description || null, created_by: session.user.id });
+                .insert([
+                    {
+                        exam_id: subjectForm.exam_id,
+                        name: subjectForm.name,
+                        description: subjectForm.description || null,
+                        created_by: session.user.id,
+                    },
+                ]);
 
             if (error) {
                 toast({ title: "Error", description: "Failed to create subject", variant: "destructive" });
@@ -203,13 +234,14 @@ const SubjectManagement = () => {
         } else {
             const { error } = await supabase
                 .from("topics")
-                .insert({
-                    subject_id: selectedSubject.id,
-                    name: topicForm.name,
-                    description: topicForm.description || null,
-                    created_by: session.user.id,
-                    order_index: topics.length
-                });
+                .insert([
+                    {
+                        subject_id: selectedSubject.id,
+                        name: topicForm.name,
+                        description: topicForm.description || null,
+                        created_by: session.user.id,
+                    },
+                ]);
 
             if (error) {
                 toast({ title: "Error", description: "Failed to create topic", variant: "destructive" });
@@ -393,6 +425,21 @@ const SubjectManagement = () => {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
+                            <Label>Exam *</Label>
+                            <Select value={subjectForm.exam_id} onValueChange={(v) => setSubjectForm({ ...subjectForm, exam_id: v })}>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue placeholder="Select exam" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {exams.map((e) => (
+                                        <SelectItem key={e.id} value={e.id}>
+                                            {e.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
                             <Label>Subject Name *</Label>
                             <Input
                                 value={subjectForm.name}
@@ -414,7 +461,7 @@ const SubjectManagement = () => {
                     </div>
                     <DialogFooter className="gap-2">
                         <Button variant="outline" onClick={() => setSubjectDialogOpen(false)} className="rounded-xl">Cancel</Button>
-                        <Button onClick={handleSaveSubject} disabled={!subjectForm.name.trim()} className="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600">
+                        <Button onClick={handleSaveSubject} disabled={!subjectForm.name.trim() || !subjectForm.exam_id} className="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600">
                             {editingSubject ? "Update" : "Create"}
                         </Button>
                     </DialogFooter>

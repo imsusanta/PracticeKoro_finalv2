@@ -431,7 +431,9 @@ export type Database = {
           file_path: string | null
           file_size: number | null
           id: string
+          subject_id: string | null
           title: string
+          topic_id: string | null
           uploaded_by: string
         }
         Insert: {
@@ -441,7 +443,9 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          subject_id?: string | null
           title: string
+          topic_id?: string | null
           uploaded_by: string
         }
         Update: {
@@ -451,7 +455,9 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          subject_id?: string | null
           title?: string
+          topic_id?: string | null
           uploaded_by?: string
         }
         Relationships: [
@@ -460,6 +466,20 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdfs_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pdfs_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
             referencedColumns: ["id"]
           },
         ]
