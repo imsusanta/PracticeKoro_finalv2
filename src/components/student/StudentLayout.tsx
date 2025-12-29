@@ -10,6 +10,7 @@ interface StudentLayoutProps {
   subtitle?: string;
   children: ReactNode;
   headerActions?: ReactNode;
+  hideNavbar?: boolean;
 }
 
 // Sidebar Toggle Button Component - Same position as Admin Panel
@@ -19,9 +20,9 @@ const SidebarToggleButton = () => {
     toggleSidebar
   } = useSidebar();
   const isCollapsed = state === "collapsed";
-  return <button onClick={toggleSidebar} className={`hidden md:flex fixed z-[100] rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30 items-center justify-center hover:from-indigo-600 hover:to-violet-700 hover:shadow-xl hover:scale-110 transition-all duration-300 border-2 border-white w-8 h-8 ${isCollapsed ? "left-[2.5rem] top-5" : "left-[15.5rem] top-5"}`} title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
-            {isCollapsed ? <ChevronRight className="w-4 h-4 text-white" /> : <ChevronLeft className="w-4 h-4 text-white" />}
-        </button>;
+  return <button onClick={toggleSidebar} className={`hidden md:flex fixed z-[100] rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30 items-center justify-center hover:from-indigo-600 hover:to-violet-700 hover:shadow-xl hover:scale-110 transition-all duration-300 border-2 border-white w-8 h-8 ${isCollapsed ? "left-[4rem] top-5" : "left-[15.5rem] top-5"}`} title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}>
+    {isCollapsed ? <ChevronRight className="w-4 h-4 text-white" /> : <ChevronLeft className="w-4 h-4 text-white" />}
+  </button>;
 };
 
 // Mobile-optimized page transition config (simpler = faster)
@@ -77,7 +78,8 @@ const StudentLayout = ({
   title,
   subtitle,
   children,
-  headerActions
+  headerActions,
+  hideNavbar = false
 }: StudentLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -86,29 +88,29 @@ const StudentLayout = ({
     navigate("/");
   };
   return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 relative flex flex-col overflow-x-hidden" style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
-            {/* Animated Background Elements */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-indigo-200/40 to-violet-200/40 rounded-full blur-3xl animate-float" />
-                <div className="absolute top-1/3 -left-40 w-[400px] h-[400px] bg-gradient-to-br from-blue-200/30 to-cyan-200/30 rounded-full blur-3xl" style={{
+    {/* Animated Background Elements */}
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-indigo-200/40 to-violet-200/40 rounded-full blur-3xl animate-float" />
+      <div className="absolute top-1/3 -left-40 w-[400px] h-[400px] bg-gradient-to-br from-blue-200/30 to-cyan-200/30 rounded-full blur-3xl" style={{
         animationDelay: '1s'
       }} />
-                <div className="absolute -bottom-40 right-1/4 w-[450px] h-[450px] bg-gradient-to-br from-purple-200/25 to-pink-200/25 rounded-full blur-3xl" style={{
+      <div className="absolute -bottom-40 right-1/4 w-[450px] h-[450px] bg-gradient-to-br from-purple-200/25 to-pink-200/25 rounded-full blur-3xl" style={{
         animationDelay: '2s'
       }} />
-                {/* Subtle dot pattern */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.025)_1px,transparent_0)] bg-[size:24px_24px]" />
-            </div>
+      {/* Subtle dot pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.025)_1px,transparent_0)] bg-[size:24px_24px]" />
+    </div>
 
-            <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                <SidebarToggleButton />
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+      <SidebarToggleButton />
 
-                {/* Desktop Sidebar - Fixed */}
-                <Sidebar side="left" variant="sidebar" collapsible="icon" className="hidden md:flex bg-white/80 backdrop-blur-2xl border-r border-slate-100/80 transition-all duration-500 h-screen sticky top-0" style={{
+      {/* Desktop Sidebar - Fixed */}
+      <Sidebar side="left" variant="sidebar" collapsible="icon" className="hidden md:flex bg-white/80 backdrop-blur-2xl border-r border-slate-100/80 transition-all duration-500 h-screen sticky top-0" style={{
         boxShadow: '4px 0 24px rgba(0, 0, 0, 0.04)'
       }}>
-                    <SidebarHeader className="border-b border-slate-100/60 bg-gradient-to-r from-white/90 to-indigo-50/30">
-                        <div className="flex items-center gap-3 px-3 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center">
-                            <motion.div whileHover={{
+        <SidebarHeader className="border-b border-slate-100/60 bg-gradient-to-r from-white/90 to-indigo-50/30">
+          <div className="flex items-center gap-3 px-3 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:justify-center">
+            <motion.div whileHover={{
               scale: 1.05,
               rotate: 3
             }} whileTap={{
@@ -116,120 +118,128 @@ const StudentLayout = ({
             }} className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shrink-0" style={{
               boxShadow: '0 4px 12px rgba(99, 102, 241, 0.35)'
             }}>
-                                <Zap className="w-5 h-5 text-white" />
-                            </motion.div>
-                            <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
-                                <h1 className="text-base font-bold text-slate-900 whitespace-nowrap tracking-tight">Student Panel</h1>
-                                <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider">Practice Koro</p>
-                            </div>
-                        </div>
-                    </SidebarHeader>
+              <Zap className="w-5 h-5 text-white" />
+            </motion.div>
+            <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
+              <h1 className="text-base font-bold text-slate-900 whitespace-nowrap tracking-tight">Student Panel</h1>
+              <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider">Practice Koro</p>
+            </div>
+          </div>
+        </SidebarHeader>
 
-                    <SidebarContent className="py-4 px-2 flex flex-col h-full group-data-[collapsible=icon]:px-2">
-                        <div className="flex-1">
-                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-3 group-data-[collapsible=icon]:hidden">Menu</p>
-                            <SidebarMenu className="space-y-1">
-                                {studentNav.map((item, index) => {
+        <SidebarContent className="py-4 px-2 flex flex-col h-full group-data-[collapsible=icon]:px-1.5">
+          <div className="flex-1">
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider px-3 mb-3 group-data-[collapsible=icon]:hidden">Menu</p>
+            <SidebarMenu className="space-y-1.5 group-data-[collapsible=icon]:space-y-2">
+              {studentNav.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 const colorSet = iconColors[index % iconColors.length];
                 return <SidebarMenuItem key={item.path}>
-                                            <SidebarMenuButton asChild isActive={isActive} className={`rounded-xl transition-all duration-200 group/item h-auto ${isActive ? `bg-gradient-to-r ${colorSet.activeBg} text-white shadow-lg ${colorSet.glow}` : "text-slate-600 hover:bg-slate-50"} group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2`}>
-                                                <Link to={item.path} title={item.name} className="flex items-center gap-3 px-3 py-2.5 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-                                                    <motion.div whileHover={{
-                        scale: 1.1
-                      }} whileTap={{
-                        scale: 0.95
-                      }} className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-200 shrink-0 ${isActive ? "bg-white/25" : `bg-gradient-to-br ${colorSet.bg}`}`}>
-                                                        <Icon className={`w-4 h-4 ${isActive ? "text-white" : colorSet.icon}`} />
-                                                    </motion.div>
-                                                    <span className="font-medium text-sm group-data-[collapsible=icon]:hidden whitespace-nowrap">{item.name}</span>
-                                                </Link>
-                                            </SidebarMenuButton>
-                                        </SidebarMenuItem>;
+                  <SidebarMenuButton asChild isActive={isActive} className={`rounded-2xl transition-all duration-300 group/item h-auto py-2.5 px-3 ${isActive ? `bg-gradient-to-r ${colorSet.activeBg} text-white shadow-lg ${colorSet.glow}` : "text-slate-600 hover:bg-slate-50"} group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:justify-center ${isActive ? 'group-data-[collapsible=icon]:bg-gradient-to-br group-data-[collapsible=icon]:shadow-md' : 'group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:hover:bg-slate-100'}`}>
+                    <Link to={item.path} title={item.name} className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
+                      {/* Round icon container */}
+                      <motion.div
+                        whileTap={{ scale: 0.9, backgroundColor: isActive ? 'rgba(255,255,255,0.4)' : 'rgba(99, 102, 241, 0.15)' }}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 ${isActive ? 'bg-white/25' : `bg-gradient-to-br ${colorSet.bg}`}`}
+                      >
+                        <Icon className={`w-5 h-5 ${isActive ? "text-white" : colorSet.icon}`} />
+                      </motion.div>
+                      <span className="font-semibold text-sm group-data-[collapsible=icon]:hidden whitespace-nowrap">{item.name}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>;
               })}
-                            </SidebarMenu>
-                        </div>
+            </SidebarMenu>
+          </div>
 
-                        <div className="mt-auto pt-4 border-t border-slate-100/60 space-y-1">
-                            <SidebarMenuButton asChild className="w-full rounded-xl text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 group/btn group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 h-auto">
-                                <button onClick={goToHome} title="Home" className="flex items-center gap-3 px-3 py-2.5 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
-                                    <motion.div whileHover={{
-                  scale: 1.1
-                }} className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center shrink-0">
-                                        <Home className="w-4 h-4 text-blue-500" />
-                                    </motion.div>
-                                    <span className="font-medium text-sm group-data-[collapsible=icon]:hidden">Home</span>
-                                </button>
-                            </SidebarMenuButton>
-                        </div>
-                    </SidebarContent>
-                </Sidebar>
+          <div className="mt-auto pt-4 border-t border-slate-100/60 space-y-1.5 group-data-[collapsible=icon]:border-t-0 group-data-[collapsible=icon]:pt-2">
+            <SidebarMenuButton asChild className="w-full rounded-2xl text-slate-600 hover:bg-blue-50 transition-all duration-300 group/btn h-auto py-2.5 px-3 group-data-[collapsible=icon]:p-1.5 group-data-[collapsible=icon]:rounded-xl group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:hover:bg-blue-50">
+              <button onClick={goToHome} title="Home" className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
+                <motion.div
+                  whileTap={{ scale: 0.9, backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center shrink-0"
+                >
+                  <Home className="w-5 h-5 text-blue-500" />
+                </motion.div>
+                <span className="font-semibold text-sm group-data-[collapsible=icon]:hidden">Home</span>
+              </button>
+            </SidebarMenuButton>
+          </div>
+        </SidebarContent>
+      </Sidebar>
 
-                <SidebarInset className="bg-transparent flex-1 md:h-screen md:overflow-y-auto">
-                    <AnimatePresence mode="wait">
-                        <motion.main 
-                            key={location.pathname} 
-                            variants={pageVariants}
-                            initial="initial"
-                            animate="animate"
-                            exit="exit"
-                            className="flex min-h-screen flex-col bg-background px-3 pt-2 pb-24 sm:px-4 sm:pt-3 md:items-center md:justify-center md:p-6 md:pb-6 relative z-10 w-full overflow-x-hidden"
-                        >
-                            <div className="w-full max-w-7xl mx-auto">
-                                {children}
-                            </div>
-                        </motion.main>
-                    </AnimatePresence>
-                </SidebarInset>
-            </SidebarProvider>
+      <SidebarInset className="bg-transparent flex-1 md:h-screen md:overflow-y-auto">
+        <AnimatePresence mode="wait">
+          <motion.main
+            key={location.pathname}
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            className="flex min-h-screen flex-col px-3 pt-2 pb-24 sm:px-4 sm:pt-3 md:items-center md:p-6 md:pb-6 relative z-10 w-full overflow-x-hidden"
+          >
+            <div className="w-full max-w-7xl mx-auto">
+              {children}
+            </div>
+          </motion.main>
+        </AnimatePresence>
+      </SidebarInset>
+    </SidebarProvider>
 
-            {/* ═══════════════════════════════════════════════════════════════
-                        MOBILE BOTTOM NAVIGATION - Enhanced Native App Style
+    {/* ═══════════════════════════════════════════════════════════════
+                        MOBILE BOTTOM NAVIGATION - Premium Round Icons
                         ═══════════════════════════════════════════════════════════════ */}
-            <nav 
-                className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pointer-events-none w-full" 
-                style={{ 
-                    paddingBottom: 'max(env(safe-area-inset-bottom), 8px)', 
-                    paddingLeft: 'max(env(safe-area-inset-left), 8px)', 
-                    paddingRight: 'max(env(safe-area-inset-right), 8px)' 
-                }}
-            >
-                <div className="bottom-nav-container pointer-events-auto w-full max-w-lg mx-auto bg-white/98 backdrop-blur-xl border border-slate-200/60 shadow-[0_-4px_24px_rgba(0,0,0,0.1)] rounded-2xl">
-                    <div className="flex items-stretch justify-around py-1 px-1">
-                        {studentNav.map((item, index) => {
-                            const Icon = item.icon;
-                            const isActive = location.pathname === item.path;
-                            const colorSet = iconColors[index % iconColors.length];
-                            return (
-                                <Link 
-                                    key={item.path} 
-                                    to={item.path} 
-                                    className="relative flex flex-col items-center justify-center flex-1 min-h-[52px] tap-highlight rounded-xl"
-                                >
-                                    <motion.div 
-                                        whileTap={{ scale: 0.92 }} 
-                                        className="relative flex flex-col items-center justify-center w-full h-full py-1.5"
-                                    >
-                                        {isActive && (
-                                            <motion.div 
-                                                layoutId="navActiveBackground" 
-                                                className={`absolute inset-1 rounded-xl bg-gradient-to-br ${colorSet.activeBg}`}
-                                                style={{ boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)' }}
-                                                transition={{ type: "spring", stiffness: 500, damping: 35 }} 
-                                            />
-                                        )}
-                                        <Icon className={`w-5 h-5 relative z-10 transition-colors duration-150 ${isActive ? "text-white" : "text-slate-400"}`} />
-                                        <span className={`relative z-10 text-[10px] font-semibold mt-0.5 transition-colors duration-150 ${isActive ? "text-white" : "text-slate-500"}`}>
-                                            {item.name}
-                                        </span>
-                                    </motion.div>
-                                </Link>
-                            );
-                        })}
+    {!hideNavbar && (
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-[100] pointer-events-none w-full"
+        style={{
+          paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+          paddingLeft: 'max(env(safe-area-inset-left), 8px)',
+          paddingRight: 'max(env(safe-area-inset-right), 8px)'
+        }}
+      >
+        <div className="bottom-nav-container pointer-events-auto w-full max-w-lg mx-auto bg-white/95 backdrop-blur-xl border border-white/60 shadow-[0_-2px_20px_rgba(0,0,0,0.06),0_-8px_40px_rgba(0,0,0,0.04)] rounded-[20px] overflow-visible">
+          <div className="flex items-center justify-around py-3 px-1">
+            {studentNav.map((item, index) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              const colorSet = iconColors[index % iconColors.length];
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className="relative flex flex-col items-center justify-center flex-1 py-1 tap-highlight overflow-visible"
+                >
+                  <motion.div
+                    whileTap={{ scale: 0.85 }}
+                    className="flex flex-col items-center justify-center overflow-visible"
+                  >
+                    {/* Round colored icon container */}
+                    <div
+                      className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-300 ${isActive
+                        ? `bg-gradient-to-br ${colorSet.activeBg}`
+                        : 'bg-slate-100'
+                        }`}
+                      style={isActive ? {
+                        boxShadow: '0 6px 20px rgba(99, 102, 241, 0.35)',
+                        transform: 'translateY(-2px)'
+                      } : {}}
+                    >
+                      <Icon className={`w-5 h-5 transition-colors duration-200 ${isActive ? "text-white" : "text-slate-500"}`} />
                     </div>
-                </div>
-            </nav>
-        </div>;
+                    {/* Label */}
+                    <span className={`text-[10px] font-semibold mt-1.5 transition-colors duration-200 ${isActive ? colorSet.icon : "text-slate-400"}`}>
+                      {item.name}
+                    </span>
+                  </motion.div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+    )}
+  </div>;
 };
 export default StudentLayout;

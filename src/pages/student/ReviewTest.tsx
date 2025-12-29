@@ -12,7 +12,6 @@ import {
   Target,
   BookOpen,
   Trophy,
-  Home,
   Zap,
   ChevronDown,
   ChevronUp,
@@ -156,7 +155,7 @@ const ReviewTest = () => {
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 pb-8">
       {/* ═══════════════════════════════════════════════════════════════
-          PREMIUM HERO HEADER - Pass/Fail Gradient
+          COMPACT HERO HEADER - Pass/Fail Gradient
           ═══════════════════════════════════════════════════════════════ */}
       <header className="relative overflow-hidden"
         style={{
@@ -166,51 +165,44 @@ const ReviewTest = () => {
         }}
       >
         {/* Decorative Elements */}
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/40 rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/30 rounded-full translate-y-1/2 -translate-x-1/3 blur-2xl" />
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl" />
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/30 rounded-full translate-y-1/2 -translate-x-1/3 blur-xl" />
         </div>
 
-        <div className="relative px-5 pt-4 pb-10 md:pt-6 md:pb-12">
+        <div className="relative px-5 pt-4 pb-8 md:pt-5 md:pb-10">
           {/* Navigation */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center mb-5">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/student/results")}
-              className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"
+              className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"
             >
               <ArrowLeft className="w-5 h-5 text-white" />
             </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => navigate("/")}
-              className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"
-            >
-              <Home className="w-5 h-5 text-white" />
-            </motion.button>
           </div>
 
-          {/* Result Display */}
+          {/* Result Display - Compact */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-4 border-4 border-white/30"
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 border-4 border-white/30"
               style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)' }}
             >
               {attempt.passed ? (
-                <Trophy className="w-12 h-12 md:w-14 md:h-14 text-yellow-300" />
+                <Trophy className="w-10 h-10 md:w-12 md:h-12 text-yellow-300" />
               ) : (
-                <XCircle className="w-12 h-12 md:w-14 md:h-14 text-white" />
+                <XCircle className="w-10 h-10 md:w-12 md:h-12 text-white" />
               )}
             </div>
-            <h1 className="text-4xl md:text-5xl font-black text-white mb-2 font-mono">{attempt.percentage}%</h1>
-            <p className="text-white/80 text-[13px] md:text-base mb-3">{attempt.score} / {attempt.total_marks} marks</p>
-            <Badge className={`${attempt.passed ? 'bg-white/20 text-white' : 'bg-white/20 text-white'} text-[11px] sm:text-sm px-4 py-1.5 border border-white/30`}>
-              {attempt.passed ? '🎉 Congratulations! You Passed!' : '📚 Keep Practicing!'}
+            <h1 className="text-3xl md:text-4xl font-black text-white mb-1 font-mono">{attempt.percentage}%</h1>
+            <p className="text-white/80 text-xs md:text-sm mb-2">{attempt.score} / {attempt.total_marks} marks</p>
+            <Badge className={`${attempt.passed ? 'bg-white/20 text-white' : 'bg-white/20 text-white'} text-[10px] sm:text-xs px-3 py-1 border border-white/30`}>
+              {attempt.passed ? '🎉 Passed!' : '📚 Keep Practicing!'}
             </Badge>
-            <p className="text-white/70 text-[11px] md:text-sm mt-4 font-medium px-4">{attempt.mock_tests.title}</p>
+            <p className="text-white/70 text-[10px] md:text-xs mt-3 font-medium px-4 truncate">{attempt.mock_tests.title}</p>
           </motion.div>
         </div>
       </header>
@@ -410,18 +402,30 @@ const ReviewTest = () => {
                           );
                         })}
 
-                        {/* Explanation */}
+                        {/* Explanation - Premium Glassmorphism Style */}
                         {answer.questions.explanation && (
-                          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                            <div className="flex items-start gap-3">
-                              <div className="w-9 h-9 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                                <Lightbulb className="w-4 h-4 text-blue-600" />
-                              </div>
-                              <div>
-                                <h4 className="font-semibold text-blue-800 text-sm mb-1">Explanation</h4>
-                                <p className="text-blue-900 text-sm whitespace-pre-line leading-relaxed">
-                                  {answer.questions.explanation}
-                                </p>
+                          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/50"
+                            style={{
+                              background: 'linear-gradient(135deg, rgba(238, 242, 255, 0.9) 0%, rgba(224, 231, 255, 0.7) 100%)',
+                              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.1)'
+                            }}
+                          >
+                            <div className="absolute inset-0 opacity-30">
+                              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-400/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                            </div>
+                            <div className="relative p-4">
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0"
+                                  style={{ boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}
+                                >
+                                  <Lightbulb className="w-5 h-5 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-bold text-indigo-900 text-sm mb-1.5">Explanation</h4>
+                                  <p className="text-indigo-800/90 text-sm whitespace-pre-line leading-relaxed">
+                                    {answer.questions.explanation}
+                                  </p>
+                                </div>
                               </div>
                             </div>
                           </div>

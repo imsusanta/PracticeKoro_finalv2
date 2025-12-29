@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,8 @@ import {
   Pencil,
   CheckCircle,
   Shield,
-  Clock
+  Clock,
+  Camera
 } from "lucide-react";
 import StudentLayout from "@/components/student/StudentLayout";
 import { differenceInDays } from "date-fns";
@@ -30,14 +31,62 @@ interface ProfileStatistics {
 const StudentProfile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [profile, setProfile] = useState<any>(null);
   const [approvalStatus, setApprovalStatus] = useState<string>("pending");
   const [statistics, setStatistics] = useState<ProfileStatistics>({ totalTests: 0, passRate: 0 });
   const [formData, setFormData] = useState({ full_name: "", whatsapp_number: "" });
   const [isEditing, setIsEditing] = useState(false);
   const [accountDays, setAccountDays] = useState(0);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.id) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be less than 2MB", variant: "destructive" });
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${profile.id}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+      // Update profile with avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id);
+
+      if (updateError) throw updateError;
+
+      setProfile({ ...profile, avatar_url: publicUrl });
+      toast({ title: "Success", description: "Profile photo updated!" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to upload", variant: "destructive" });
+    }
+    setUploadingImage(false);
+  };
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -167,50 +216,78 @@ const StudentProfile = () => {
     <StudentLayout title="Profile" subtitle="Your account">
       <div className="w-full space-y-3 pb-24">
 
-        {/* Compact Profile Header */}
+        {/* Premium Profile Header - Matches Dashboard Height */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700"
+          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 shadow-xl"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-black/10 rounded-full blur-3xl -ml-20 -mb-20" />
+          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/5 rounded-full blur-2xl" />
 
           <div className="relative z-10">
-            <div className="flex items-center gap-3">
-              {/* Avatar */}
-              <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-                <span className="text-lg font-bold text-white">{initials}</span>
-              </div>
+            {/* Header - Matches Dashboard style */}
+            <div className="flex items-center gap-4 mb-6">
+              {/* Avatar with Upload */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0 overflow-hidden group"
+              >
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xl sm:text-2xl font-bold text-white">{initials}</span>
+                )}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  {uploadingImage ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5 text-white" />
+                  )}
+                </div>
+              </button>
 
               <div className="flex-1 min-w-0">
-                <h2 className="font-bold text-white text-base truncate">{profile?.full_name || "Student"}</h2>
-                <p className="text-xs text-indigo-200 truncate">{profile?.email}</p>
-                <div className="flex items-center gap-2 mt-1">
+                <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">👤 Profile</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-white truncate">{profile?.full_name || "Student"}</h2>
+                <div className="flex items-center gap-2 mt-1.5">
                   {approvalStatus === "approved" ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-100 bg-emerald-500/30 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-100 bg-emerald-500/30 px-2 py-0.5 rounded-full">
                       <CheckCircle className="w-3 h-3" />
                       Verified
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-amber-100 bg-amber-500/30 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-100 bg-amber-500/30 px-2 py-0.5 rounded-full">
                       <Clock className="w-3 h-3" />
                       Pending
                     </span>
                   )}
-                  <span className="text-[10px] text-indigo-200">{accountDays === 0 ? 'Today' : `${accountDays}d`}</span>
                 </div>
               </div>
             </div>
 
-            {/* Stats Row */}
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <div className="bg-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
-                <span className="text-xl font-bold text-white block">{statistics.totalTests}</span>
-                <span className="text-[9px] font-medium text-indigo-100 uppercase">Tests</span>
+            {/* Stats Row - 3 columns like Dashboard */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-white">{statistics.totalTests}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Tests</p>
               </div>
-              <div className="bg-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
-                <span className="text-xl font-bold text-white block">{statistics.passRate}%</span>
-                <span className="text-[9px] font-medium text-indigo-100 uppercase">Pass Rate</span>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-emerald-300">{statistics.passRate}%</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Pass Rate</p>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-white">{accountDays === 0 ? '0' : accountDays}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Days</p>
               </div>
             </div>
           </div>

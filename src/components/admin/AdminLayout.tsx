@@ -40,9 +40,9 @@ const SidebarToggleButton = () => {
     return (
         <button
             onClick={toggleSidebar}
-            className={`hidden md:flex fixed z-[100] rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/30 items-center justify-center hover:from-emerald-600 hover:to-teal-700 hover:shadow-xl hover:scale-110 transition-all duration-300 border-2 border-white w-8 h-8 ${isCollapsed
-                ? "left-[1.1rem] top-5"
-                : "left-[14.5rem] top-5"
+            className={`hidden md:flex fixed z-[100] rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30 items-center justify-center hover:from-indigo-600 hover:to-violet-700 hover:shadow-xl hover:scale-110 transition-all duration-300 border-2 border-white w-8 h-8 ${isCollapsed
+                ? "left-[4rem] top-5"
+                : "left-[15.5rem] top-5"
                 }`}
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
         >
@@ -266,14 +266,6 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                 {/* Header Actions */}
                                 <div className="flex items-center gap-2">
                                     {headerActions}
-                                    <Button
-                                        size="sm"
-                                        onClick={handleLogout}
-                                        className="h-9 md:h-10 px-3 md:px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:shadow-xl hover:scale-105 font-medium"
-                                    >
-                                        <LogOut className="h-4 w-4 sm:mr-2" />
-                                        <span className="hidden sm:inline">Logout</span>
-                                    </Button>
                                 </div>
                             </div>
                         </div>

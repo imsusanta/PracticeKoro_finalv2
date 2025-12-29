@@ -107,37 +107,42 @@ const StudentResults = () => {
       <PullIndicator />
       <div className="w-full space-y-3 pb-24" {...containerProps}>
 
-        {/* Compact Hero Section */}
+        {/* Premium Hero Section - Matches Dashboard Height */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700"
+          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 shadow-xl"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-black/10 rounded-full blur-3xl -ml-20 -mb-20" />
+          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/5 rounded-full blur-2xl" />
 
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                <Trophy className="w-4 h-4 text-white" />
+            {/* Header - Matches Dashboard style */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0">
+                <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100">Performance</span>
+              <div>
+                <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">🏆 Performance</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">Your Results</h1>
+              </div>
             </div>
-            
-            <h1 className="text-lg font-bold text-white mb-3">Your Results</h1>
 
             {/* Stats Row */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
-                <span className="text-xl font-bold text-white block">{attempts.length}</span>
-                <span className="text-[9px] font-medium text-emerald-100 uppercase">Tests</span>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-white">{attempts.length}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Tests</p>
               </div>
-              <div className="bg-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
-                <span className="text-xl font-bold text-emerald-200 block">{stats.passed}</span>
-                <span className="text-[9px] font-medium text-emerald-100 uppercase">Passed</span>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-emerald-200">{stats.passed}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Passed</p>
               </div>
-              <div className="bg-white/10 rounded-xl p-2.5 text-center backdrop-blur-sm">
-                <span className="text-xl font-bold text-white block">{stats.avg}%</span>
-                <span className="text-[9px] font-medium text-emerald-100 uppercase">Average</span>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-white">{stats.avg}%</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Average</p>
               </div>
             </div>
           </div>
@@ -176,14 +181,13 @@ const StudentResults = () => {
                   >
                     <div className="flex items-center gap-3">
                       {/* Score Badge */}
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                        attempt.passed 
-                          ? 'bg-emerald-50 text-emerald-600' 
-                          : 'bg-red-50 text-red-600'
-                      }`}>
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${attempt.passed
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : 'bg-red-50 text-red-600'
+                        }`}>
                         <span className="text-base font-bold">{attempt.percentage}%</span>
                       </div>
-                      
+
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-slate-900 text-sm truncate">
@@ -191,11 +195,10 @@ const StudentResults = () => {
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-[10px] text-slate-400">{formatDate(attempt.completed_at)}</span>
-                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${
-                            attempt.passed 
-                              ? 'bg-emerald-100 text-emerald-700' 
-                              : 'bg-red-100 text-red-700'
-                          }`}>
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase ${attempt.passed
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-red-100 text-red-700'
+                            }`}>
                             {attempt.passed ? 'Pass' : 'Fail'}
                           </span>
                         </div>

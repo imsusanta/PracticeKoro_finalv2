@@ -24,6 +24,7 @@ interface Topic {
   id: string;
   subject_id: string;
   name: string;
+  content: string | null;
 }
 
 // Category color palette
@@ -55,12 +56,9 @@ const StudentNotes = () => {
     if (!session) { navigate("/login"); return; }
 
     const [notesRes, subjectsRes, topicsRes] = await Promise.all([
-      supabase
-        .from("pdfs")
-        .select("id, title, content, subject_id, topic_id, created_at")
-        .order("created_at", { ascending: false }),
-      supabase.from("subjects").select("id, name").order("name"),
-      supabase.from("topics").select("id, subject_id, name").order("name"),
+      supabase.from("pdfs").select("id, title, content, subject_id, topic_id, created_at").order("created_at", { ascending: false }),
+      supabase.from("subjects").select("id, name").eq("is_active", true).order("name"),
+      supabase.from("topics").select("id, subject_id, name, content").eq("is_active", true).order("name")
     ]);
 
     if (notesRes.data) setNotes(notesRes.data as Note[]);
@@ -86,7 +84,20 @@ const StudentNotes = () => {
 
   const filteredTopics = selectedSubject === "all" ? topics : topics.filter(t => t.subject_id === selectedSubject);
 
-  const filteredNotes = notes.filter(note => {
+  const topicNotes: Note[] = topics
+    .filter(t => t.content && t.content.trim().length > 0)
+    .map(t => ({
+      id: `topic-${t.id}`,
+      title: t.name,
+      content: t.content || "",
+      subject_id: t.subject_id,
+      topic_id: t.id,
+      created_at: new Date().toISOString() // Placeholder
+    }));
+
+  const allNotes = [...notes, ...topicNotes];
+
+  const filteredNotes = allNotes.filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesSubject = selectedSubject === "all" || note.subject_id === selectedSubject;
@@ -108,27 +119,44 @@ const StudentNotes = () => {
 
   return (
     <StudentLayout title="Notes" subtitle="Study materials">
-      <div className="w-full max-w-3xl md:max-w-6xl mx-auto space-y-5 pb-4 pt-2 px-4">
+      <div className="w-full max-w-3xl md:max-w-6xl mx-auto space-y-5 pb-28">
 
-        {/* Hero Section */}
+        {/* Premium Hero Section - Matches Dashboard Height */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-2xl p-5 text-white shadow-xl"
+          className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 rounded-3xl p-5 sm:p-6 text-white shadow-xl"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15)_0%,transparent_50%)]" />
+          {/* Decorative Elements */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-black/10 rounded-full blur-3xl -ml-20 -mb-20" />
+          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/5 rounded-full blur-2xl" />
+
           <div className="relative z-10">
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center mb-3">
-              <NotebookPen className="w-6 h-6 text-white" />
-            </div>
-            <h2 className="text-xl font-bold">Study Notes</h2>
-            <p className="text-sm text-white/80 mt-1">Browse notes by subject & topic</p>
-            <div className="flex gap-3 mt-3">
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 text-sm">
-                <span className="font-bold">{notes.length}</span> Notes
+            {/* Header - Matches Dashboard style */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0">
+                <NotebookPen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1.5 text-sm">
-                <span className="font-bold">{subjects.length}</span> Subjects
+              <div>
+                <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">📚 Library</p>
+                <h2 className="text-xl sm:text-2xl font-bold">Study Notes</h2>
+              </div>
+            </div>
+
+            {/* Stats Row - 3 columns like Dashboard */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-white">{allNotes.length}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Total Notes</p>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-white">{subjects.length}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Subjects</p>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-fuchsia-200">∞</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Learning</p>
               </div>
             </div>
           </div>

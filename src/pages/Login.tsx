@@ -100,13 +100,13 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-muted/30">
-      {/* Left Side - Illustration (Hidden on mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 items-center justify-center p-8 xl:p-12">
+      {/* Left Side - Illustration (Hidden on mobile, Fixed position) */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] fixed left-0 top-0 h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 items-center justify-center p-8 xl:p-12">
         <div className="relative w-full max-w-lg xl:max-w-xl">
           {/* Decorative elements */}
           <div className="absolute -top-8 -left-8 w-24 h-24 bg-emerald-200/40 rounded-full blur-2xl" />
           <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-teal-200/40 rounded-full blur-2xl" />
-          
+
           {/* Main illustration container */}
           <div className="relative bg-white/60 backdrop-blur-sm rounded-[2.5rem] p-6 xl:p-8 shadow-xl shadow-emerald-100/50 border border-white/80">
             <img
@@ -119,7 +119,7 @@ const Login = () => {
       </div>
 
       {/* Right Side - Login Form */}
-      <div className="flex-1 flex flex-col min-h-screen lg:min-h-0">
+      <div className="flex-1 flex flex-col min-h-screen lg:min-h-0 lg:ml-[50%] xl:ml-[55%]">
         {/* Header with Sign Up button */}
         <div className="flex justify-end p-4 sm:p-6 lg:p-8">
           <Button
@@ -158,15 +158,15 @@ const Login = () => {
             {/* Login Method Tabs */}
             <Tabs value={loginMethod} onValueChange={(v) => setLoginMethod(v as "email" | "whatsapp")} className="w-full">
               <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/60 rounded-xl p-1 mb-6">
-                <TabsTrigger 
-                  value="email" 
+                <TabsTrigger
+                  value="email"
                   className="flex items-center gap-2 h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
                 >
                   <Mail className="w-4 h-4" />
                   Email
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="whatsapp" 
+                <TabsTrigger
+                  value="whatsapp"
                   className="flex items-center gap-2 h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
                 >
                   <Phone className="w-4 h-4" />

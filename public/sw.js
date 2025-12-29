@@ -1,5 +1,6 @@
-// Practice Koro Service Worker v1.0
-const CACHE_NAME = 'practice-koro-v1';
+// Practice Koro Service Worker v2.0 - Auto Update Support
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `practice-koro-${CACHE_VERSION}`;
 const OFFLINE_URL = '/';
 
 // Files to cache for offline use
@@ -11,29 +12,51 @@ const STATIC_ASSETS = [
 
 // Install event - cache static assets
 self.addEventListener('install', (event) => {
+    console.log('[SW] Installing new version...');
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            console.log('Service Worker: Caching static assets');
+            console.log('[SW] Caching static assets');
             return cache.addAll(STATIC_ASSETS);
         })
     );
-    // Activate immediately
+    // Skip waiting to activate immediately
     self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Activate event - clean old caches and notify clients
 self.addEventListener('activate', (event) => {
+    console.log('[SW] Activating new version...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames
-                    .filter((cacheName) => cacheName !== CACHE_NAME)
-                    .map((cacheName) => caches.delete(cacheName))
+                    .filter((cacheName) => cacheName.startsWith('practice-koro-') && cacheName !== CACHE_NAME)
+                    .map((cacheName) => {
+                        console.log('[SW] Deleting old cache:', cacheName);
+                        return caches.delete(cacheName);
+                    })
             );
+        }).then(() => {
+            // Notify all clients about the update
+            self.clients.matchAll().then((clients) => {
+                clients.forEach((client) => {
+                    client.postMessage({ type: 'SW_UPDATED', version: CACHE_VERSION });
+                });
+            });
         })
     );
     // Take control of all clients immediately
     self.clients.claim();
+});
+
+// Message handler for manual update check
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
+    if (event.data && event.data.type === 'CHECK_UPDATE') {
+        self.registration.update();
+    }
 });
 
 // Fetch event - network-first strategy for API, cache-first for static
@@ -53,7 +76,7 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // For navigation requests, use network-first
+    // For navigation requests, use network-first with cache fallback
     if (request.mode === 'navigate') {
         event.respondWith(
             fetch(request)
@@ -75,31 +98,27 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // For static assets, use cache-first
+    // For static assets, use stale-while-revalidate strategy
     event.respondWith(
         caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-                return cachedResponse;
-            }
-            return fetch(request).then((response) => {
-                // Cache successful responses for static assets
-                if (response.status === 200 &&
-                    (url.pathname.endsWith('.js') ||
-                        url.pathname.endsWith('.css') ||
-                        url.pathname.endsWith('.png') ||
-                        url.pathname.endsWith('.ico'))) {
-                    const responseClone = response.clone();
+            const fetchPromise = fetch(request).then((networkResponse) => {
+                // Update cache with new version
+                if (networkResponse.status === 200) {
+                    const responseClone = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
                         cache.put(request, responseClone);
                     });
                 }
-                return response;
-            });
+                return networkResponse;
+            }).catch(() => cachedResponse);
+
+            // Return cached immediately, update in background
+            return cachedResponse || fetchPromise;
         })
     );
 });
 
-// Handle push notifications (for future use)
+// Handle push notifications
 self.addEventListener('push', (event) => {
     if (event.data) {
         const data = event.data.json();

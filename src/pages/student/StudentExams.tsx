@@ -175,34 +175,43 @@ const StudentExams = () => {
       <div className="w-full max-w-3xl mx-auto space-y-4 pb-24 overflow-x-hidden" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
-            COMPACT HERO - Mobile Optimized
+            PREMIUM HERO - Matches Dashboard Height
             ═══════════════════════════════════════════════════════════════ */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-900 shadow-lg"
+          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-900 shadow-xl"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl -mr-16 -mt-16" />
-          
-          <div className="relative z-10 flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <Trophy className="w-4 h-4 text-indigo-400" />
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Test Repository</span>
+          {/* Decorative Background Elements */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl -mr-24 -mt-24" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-violet-500/15 rounded-full blur-3xl -ml-20 -mb-20" />
+          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl" />
+
+          <div className="relative z-10">
+            {/* Header - Matches Dashboard style */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0">
+                <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-300" />
               </div>
-              <h1 className="text-lg font-bold text-white">
-                Master Your <span className="text-indigo-400">Exams</span>
-              </h1>
+              <div>
+                <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">📝 Test Repository</p>
+                <h1 className="text-xl sm:text-2xl font-bold text-white">Master Your Exams</h1>
+              </div>
             </div>
-            
-            <div className="flex gap-4">
-              <div className="text-center">
-                <p className="text-lg font-bold text-white">{completedTests}</p>
-                <p className="text-[8px] font-semibold text-slate-400 uppercase">Done</p>
+
+            {/* Stats Row - 3 columns like Dashboard */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-white">{completedTests}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Done</p>
               </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-emerald-400">{avgScore}%</p>
-                <p className="text-[8px] font-semibold text-slate-400 uppercase">Avg</p>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-emerald-400">{avgScore}%</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Avg Score</p>
+              </div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
+                <p className="text-2xl sm:text-3xl font-bold text-indigo-300">{Object.values(mockTests).flat().length}</p>
+                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Available</p>
               </div>
             </div>
           </div>
@@ -274,9 +283,8 @@ const StudentExams = () => {
                   >
                     <div className="p-3 flex items-center gap-3">
                       {/* Type Badge & Score */}
-                      <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${
-                        attempt?.passed ? 'bg-emerald-50' : test.test_type === 'full_mock' ? 'bg-indigo-50' : 'bg-slate-50'
-                      }`}>
+                      <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center shrink-0 ${attempt?.passed ? 'bg-emerald-50' : test.test_type === 'full_mock' ? 'bg-indigo-50' : 'bg-slate-50'
+                        }`}>
                         {attempt ? (
                           <>
                             <span className={`text-sm font-bold ${attempt.passed ? 'text-emerald-600' : 'text-slate-600'}`}>
@@ -285,14 +293,13 @@ const StudentExams = () => {
                             {attempt.passed && <CheckCircle className="w-3 h-3 text-emerald-500" />}
                           </>
                         ) : (
-                          <span className={`text-[9px] font-bold uppercase ${
-                            test.test_type === 'full_mock' ? 'text-indigo-600' : 'text-slate-500'
-                          }`}>
+                          <span className={`text-[9px] font-bold uppercase ${test.test_type === 'full_mock' ? 'text-indigo-600' : 'text-slate-500'
+                            }`}>
                             {test.test_type === 'full_mock' ? 'Full' : 'Topic'}
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm font-bold text-slate-900 truncate">{test.title}</h3>
@@ -310,11 +317,10 @@ const StudentExams = () => {
                       <motion.button
                         whileTap={{ scale: 0.95 }}
                         onClick={() => navigate(`/student/take-test/${test.id}`)}
-                        className={`px-3 py-2 rounded-lg font-bold text-xs shrink-0 tap-highlight ${
-                          attempt 
-                            ? 'bg-slate-100 text-slate-700' 
-                            : 'bg-indigo-600 text-white shadow-sm'
-                        }`}
+                        className={`px-3 py-2 rounded-lg font-bold text-xs shrink-0 tap-highlight ${attempt
+                          ? 'bg-slate-100 text-slate-700'
+                          : 'bg-indigo-600 text-white shadow-sm'
+                          }`}
                       >
                         {attempt ? (
                           <div className="flex items-center gap-1">
@@ -329,7 +335,7 @@ const StudentExams = () => {
                         )}
                       </motion.button>
                     </div>
-                </motion.div>
+                  </motion.div>
                 );
               })}
             </AnimatePresence>

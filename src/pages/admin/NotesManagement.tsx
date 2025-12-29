@@ -224,7 +224,7 @@ const NotesManagement = () => {
   const getTopicName = (topicId: string | null) => topics.find(t => t.id === topicId)?.name || "-";
 
   const CreateButton = (
-    <Button onClick={openCreateDialog} size="icon" className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600">
+    <Button onClick={openCreateDialog} size="icon" className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 border border-white/20">
       <Plus className="w-5 h-5" />
     </Button>
   );
@@ -330,7 +330,7 @@ const NotesManagement = () => {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>{editingNote ? "Edit Note" : "Create Note"}</DialogTitle>
             <DialogDescription>
@@ -389,7 +389,7 @@ const NotesManagement = () => {
 
       {/* View Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>{viewingNote?.title}</DialogTitle>
             <DialogDescription className="flex gap-2 mt-2">

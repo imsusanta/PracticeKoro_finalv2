@@ -274,7 +274,7 @@ const QuestionBank = () => {
     <Button
       onClick={() => navigate("/admin/add-question")}
       size="icon"
-      className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200"
+      className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 border border-white/20"
     >
       <Plus className="w-5 h-5" />
     </Button>
@@ -623,7 +623,7 @@ const QuestionBank = () => {
 
       {/* Edit Question Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>Edit Question</DialogTitle>
             <DialogDescription>Update question details</DialogDescription>
@@ -696,7 +696,7 @@ const QuestionBank = () => {
 
       {/* View Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-lg rounded-2xl">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>Question Details</DialogTitle>
           </DialogHeader>
@@ -751,7 +751,7 @@ const QuestionBank = () => {
 
       {/* Bulk Delete Dialog */}
       <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <DialogContent className="mx-4 rounded-2xl max-w-md">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete {selectedQuestions.length} Questions</DialogTitle>
             <DialogDescription>
@@ -770,7 +770,7 @@ const QuestionBank = () => {
 
       {/* Bulk Edit Subject/Topic Dialog */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
-        <DialogContent className="mx-4 rounded-2xl max-w-md">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>Edit Subject/Topic</DialogTitle>
             <DialogDescription>

@@ -314,12 +314,12 @@ const MockTestCreation = () => {
         <Button
           onClick={openCreateDialog}
           size="icon"
-          className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-200"
+          className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 border border-white/20"
         >
           <Plus className="w-5 h-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-2xl">
+      <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
         <DialogHeader>
           <DialogTitle>{editingTest ? "Edit Test" : "Create New Test"}</DialogTitle>
           <DialogDescription>{editingTest ? "Update test details" : "Fill in test details"}</DialogDescription>
@@ -693,7 +693,7 @@ const MockTestCreation = () => {
 
       {/* Question Selection Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogContent className="sm:max-w-4xl rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>Select Questions ({selectedQuestions.length})</DialogTitle>
             <DialogDescription>Choose questions for this test</DialogDescription>

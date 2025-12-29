@@ -415,7 +415,7 @@ const StudentManagement = () => {
   };
 
   const AddButton = (
-    <Button size="icon" onClick={() => setAddStudentDialogOpen(true)} className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 shadow-lg">
+    <Button size="icon" onClick={() => setAddStudentDialogOpen(true)} className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 border border-white/20">
       <Plus className="w-5 h-5" />
     </Button>
   );
@@ -741,7 +741,7 @@ const StudentManagement = () => {
 
       {/* View Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="mx-4 rounded-2xl max-w-md">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>Student Details</DialogTitle>
           </DialogHeader>
@@ -798,7 +798,7 @@ const StudentManagement = () => {
 
       {/* Approve Duration Dialog */}
       <Dialog open={durationDialogOpen} onOpenChange={setDurationDialogOpen}>
-        <DialogContent className="mx-4 rounded-2xl max-w-md">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>Approve Student</DialogTitle>
             <DialogDescription>Set access duration for {selectedStudent?.full_name}</DialogDescription>
@@ -874,7 +874,7 @@ const StudentManagement = () => {
 
       {/* Add Student Dialog */}
       <Dialog open={addStudentDialogOpen} onOpenChange={setAddStudentDialogOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle>Add New Student</DialogTitle>
             <DialogDescription>Create a new student account manually</DialogDescription>
@@ -925,7 +925,7 @@ const StudentManagement = () => {
 
       {/* Payment Reminder Dialog */}
       <Dialog open={paymentReminderOpen} onOpenChange={setPaymentReminderOpen}>
-        <DialogContent className="max-w-md mx-4 rounded-2xl">
+        <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-blue-500" />

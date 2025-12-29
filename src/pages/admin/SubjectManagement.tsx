@@ -24,6 +24,10 @@ interface Subject {
     exam_id: string;
     name: string;
     description: string | null;
+    icon?: string;
+    color?: string;
+    is_active?: boolean;
+    created_at?: string;
 }
 
 interface Topic {
@@ -31,6 +35,9 @@ interface Topic {
     subject_id: string;
     name: string;
     description: string | null;
+    order_index?: number;
+    is_active?: boolean;
+    created_at?: string;
 }
 
 const SubjectManagement = () => {
@@ -110,7 +117,7 @@ const SubjectManagement = () => {
             .from("topics")
             .select("id, subject_id, name, description")
             .eq("subject_id", subjectId)
-            .order("name");
+            .order("created_at");
 
         if (error) {
             toast({ title: "Error", description: "Failed to load topics", variant: "destructive" });
@@ -268,7 +275,7 @@ const SubjectManagement = () => {
     };
 
     const CreateSubjectButton = (
-        <Button onClick={openCreateSubject} size="icon" className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600">
+        <Button onClick={openCreateSubject} size="icon" className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 border border-white/20">
             <Plus className="w-5 h-5" />
         </Button>
     );
@@ -308,8 +315,8 @@ const SubjectManagement = () => {
                                         key={subject.id}
                                         onClick={() => selectSubject(subject)}
                                         className={`p-3 rounded-xl cursor-pointer transition-all flex items-center justify-between ${selectedSubject?.id === subject.id
-                                                ? "bg-emerald-50 border-2 border-emerald-500"
-                                                : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
+                                            ? "bg-emerald-50 border-2 border-emerald-500"
+                                            : "bg-gray-50 hover:bg-gray-100 border-2 border-transparent"
                                             }`}
                                     >
                                         <div className="flex items-center gap-3">
@@ -416,7 +423,7 @@ const SubjectManagement = () => {
 
             {/* Subject Dialog */}
             <Dialog open={subjectDialogOpen} onOpenChange={setSubjectDialogOpen}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
                     <DialogHeader>
                         <DialogTitle>{editingSubject ? "Edit Subject" : "Create Subject"}</DialogTitle>
                         <DialogDescription>
@@ -470,7 +477,7 @@ const SubjectManagement = () => {
 
             {/* Topic Dialog */}
             <Dialog open={topicDialogOpen} onOpenChange={setTopicDialogOpen}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
                     <DialogHeader>
                         <DialogTitle>{editingTopic ? "Edit Topic" : "Create Topic"}</DialogTitle>
                         <DialogDescription>
