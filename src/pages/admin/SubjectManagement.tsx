@@ -423,7 +423,7 @@ const SubjectManagement = () => {
 
             {/* Subject Dialog */}
             <Dialog open={subjectDialogOpen} onOpenChange={setSubjectDialogOpen}>
-                <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+                <DialogContent className="max-w-[440px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
                     <DialogHeader>
                         <DialogTitle>{editingSubject ? "Edit Subject" : "Create Subject"}</DialogTitle>
                         <DialogDescription>
@@ -477,7 +477,7 @@ const SubjectManagement = () => {
 
             {/* Topic Dialog */}
             <Dialog open={topicDialogOpen} onOpenChange={setTopicDialogOpen}>
-                <DialogContent className="max-w-[500px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+                <DialogContent className="max-w-[440px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
                     <DialogHeader>
                         <DialogTitle>{editingTopic ? "Edit Topic" : "Create Topic"}</DialogTitle>
                         <DialogDescription>
