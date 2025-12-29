@@ -13,7 +13,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import StudentDashboard from "./pages/student/StudentDashboard";
 import StudentExams from "./pages/student/StudentExams";
-import StudentPDFs from "./pages/student/StudentPDFs";
+import StudentNotes from "./pages/student/StudentNotes";
 import StudentResults from "./pages/student/StudentResults";
 import StudentProfile from "./pages/student/StudentProfile";
 import TakeTest from "./pages/student/TakeTest";
@@ -25,7 +25,8 @@ import ExamManagement from "./pages/admin/ExamManagement";
 import QuestionBank from "./pages/admin/QuestionBank";
 import MockTestCreation from "./pages/admin/MockTestCreation";
 import AIQuestionGenerator from "./pages/admin/AIQuestionGenerator";
-import PDFManagement from "./pages/admin/PDFManagement";
+import NotesManagement from "./pages/admin/NotesManagement";
+import SubjectManagement from "./pages/admin/SubjectManagement";
 import BulkMCQUpload from "./pages/admin/BulkMCQUpload";
 import AddQuestion from "./pages/admin/AddQuestion";
 import AdminProfile from "./pages/admin/AdminProfile";
@@ -58,16 +59,17 @@ const App = () => (
           <Route path="/student/exams" element={<StudentExams />} />
           <Route path="/student/take-test/:testId" element={<TakeTest />} />
           <Route path="/student/test-review/:attemptId" element={<ReviewTest />} />
-          <Route path="/student/pdfs" element={<StudentPDFs />} />
+          <Route path="/student/notes" element={<StudentNotes />} />
           <Route path="/student/results" element={<StudentResults />} />
           <Route path="/student/profile" element={<StudentProfile />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/students" element={<StudentManagement />} />
           <Route path="/admin/exams" element={<ExamManagement />} />
+          <Route path="/admin/subjects" element={<SubjectManagement />} />
           <Route path="/admin/questions" element={<QuestionBank />} />
           <Route path="/admin/tests" element={<MockTestCreation />} />
           <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
-          <Route path="/admin/pdfs" element={<PDFManagement />} />
+          <Route path="/admin/notes" element={<NotesManagement />} />
           <Route path="/admin/bulk-upload" element={<BulkMCQUpload />} />
           <Route path="/admin/add-question" element={<AddQuestion />} />
           <Route path="/admin/courses" element={<CourseManagement />} />

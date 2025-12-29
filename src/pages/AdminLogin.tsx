@@ -2,16 +2,16 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowLeft } from "lucide-react";
+import { Shield, ArrowLeft, Eye, EyeOff, Lock, Mail } from "lucide-react";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -28,11 +28,7 @@ const AdminLogin = () => {
 
     if (authError) {
       setLoading(false);
-      toast({
-        title: "Error",
-        description: authError.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: authError.message, variant: "destructive" });
       return;
     }
 
@@ -48,104 +44,88 @@ const AdminLogin = () => {
 
     if (roleError || !roleData) {
       await supabase.auth.signOut();
-      toast({
-        title: "Access Denied",
-        description: "You do not have admin privileges",
-        variant: "destructive",
-      });
+      toast({ title: "Access Denied", description: "You do not have admin privileges", variant: "destructive" });
     } else {
-      toast({
-        title: "Success",
-        description: "Admin login successful!",
-      });
+      toast({ title: "Success", description: "Admin login successful!" });
       navigate("/admin/dashboard");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-destructive/5 via-primary/5 to-secondary/5 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
-      <div className="absolute top-20 right-20 w-72 h-72 bg-destructive/10 rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 left-20 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      
-      {/* Back button */}
-      <Button
-        variant="outline"
-        className="absolute top-6 left-6 z-20 backdrop-blur-sm bg-background/80 border-border/50 hover:bg-background/90"
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      {/* Back Button - Fixed Position */}
+      <button
         onClick={() => navigate("/")}
+        className="fixed top-4 left-4 w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-colors z-10"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Home
-      </Button>
+        <ArrowLeft className="h-5 w-5 text-white/70" />
+      </button>
 
-      <Card className="w-full max-w-md relative z-10 shadow-2xl border-destructive/20 backdrop-blur-sm bg-card/95">
-        <CardHeader className="text-center space-y-4 pb-6">
-          <div className="flex justify-center">
+      {/* Centered Login Card */}
+      <div className="w-full max-w-sm bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-2xl p-6">
+        {/* Logo & Title */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-orange-600 shadow-lg shadow-red-500/30 mb-3">
+            <Shield className="w-7 h-7 text-white" />
+          </div>
+          <h1 className="text-xl font-bold text-white">Admin Portal</h1>
+          <p className="text-sm text-white/60 mt-1">Secure administration access</p>
+        </div>
+
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="email" className="text-sm font-medium text-white/80">Admin Email</Label>
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-destructive to-primary rounded-2xl blur-xl opacity-50 animate-pulse"></div>
-              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-destructive to-primary flex items-center justify-center shadow-lg">
-                <Shield className="w-8 h-8 text-primary-foreground" />
-              </div>
-            </div>
-          </div>
-          <div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-destructive via-primary to-secondary bg-clip-text text-transparent">
-              Admin Portal
-            </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2 text-base">
-              Secure access to administration panel
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground font-medium">Admin Email</Label>
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
               <Input
                 id="email"
                 type="email"
                 required
-                className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-destructive focus:ring-2 focus:ring-destructive/20 transition-all"
+                className="h-11 pl-10 text-sm bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-red-500/50 rounded-xl"
                 placeholder="admin@example.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground font-medium">Admin Password</Label>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="password" className="text-sm font-medium text-white/80">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
               <Input
                 id="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
-                className="h-11 bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-destructive focus:ring-2 focus:ring-destructive/20 transition-all"
-                placeholder="Enter admin password"
+                className="h-11 pl-10 pr-10 text-sm bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:border-red-500/50 rounded-xl"
+                placeholder="••••••••"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70">
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
-            <Button 
-              type="submit" 
-              className="w-full h-11 bg-gradient-to-r from-destructive to-primary hover:from-destructive/90 hover:to-primary/90 text-primary-foreground font-semibold shadow-lg hover:shadow-xl transition-all duration-300" 
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-                  Authenticating...
-                </span>
-              ) : (
-                "Admin Sign In"
-              )}
-            </Button>
-            <div className="mt-4 p-3 bg-muted/50 rounded-lg border border-border/50">
-              <p className="text-xs text-muted-foreground text-center">
-                🔒 Secure admin access only
-              </p>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full h-11 text-sm font-semibold rounded-xl bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 shadow-lg shadow-red-500/30"
+            disabled={loading}
+          >
+            {loading ? "Authenticating..." : "Sign In as Admin"}
+          </Button>
+        </form>
+
+        {/* Security Notice */}
+        <div className="mt-5 p-3 bg-white/5 rounded-xl border border-white/10">
+          <p className="text-xs text-white/50 text-center flex items-center justify-center gap-1.5">
+            <Lock className="w-3.5 h-3.5" />
+            Protected admin-only access
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

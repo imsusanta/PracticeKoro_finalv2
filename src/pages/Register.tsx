@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, ArrowLeft, Mail, Phone } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Sparkles } from "lucide-react";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -15,339 +14,121 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const [registerMethod, setRegisterMethod] = useState<"email" | "whatsapp">("email");
 
-  const [emailFormData, setEmailFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const [whatsappFormData, setWhatsappFormData] = useState({
-    fullName: "",
-    whatsappNumber: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const validateWhatsAppNumber = (number: string): boolean => {
-    return /^\d{10}$/.test(number);
-  };
+  const [emailFormData, setEmailFormData] = useState({ fullName: "", email: "", password: "", confirmPassword: "" });
+  const [whatsappFormData, setWhatsappFormData] = useState({ fullName: "", whatsappNumber: "", password: "", confirmPassword: "" });
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (emailFormData.password !== emailFormData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (emailFormData.password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    if (emailFormData.password !== emailFormData.confirmPassword) { toast({ title: "Error", description: "Passwords do not match", variant: "destructive" }); return; }
+    if (emailFormData.password.length < 6) { toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" }); return; }
     setLoading(true);
-
-    const { error } = await supabase.auth.signUp({
-      email: emailFormData.email,
-      password: emailFormData.password,
-      options: {
-        data: {
-          full_name: emailFormData.fullName,
-        },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
-
+    const { error } = await supabase.auth.signUp({ email: emailFormData.email, password: emailFormData.password, options: { data: { full_name: emailFormData.fullName } } });
     setLoading(false);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Account created! You can now login and start using the platform.",
-      });
-      navigate("/login");
-    }
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); }
+    else { toast({ title: "Success", description: "Account created!" }); navigate("/login"); }
   };
 
   const handleWhatsAppSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateWhatsAppNumber(whatsappFormData.whatsappNumber)) {
-      toast({
-        title: "Error",
-        description: "Please enter a valid 10-digit WhatsApp number",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (whatsappFormData.password !== whatsappFormData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "Passwords do not match",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (whatsappFormData.password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
-      return;
-    }
-
+    if (!/^\d{10}$/.test(whatsappFormData.whatsappNumber)) { toast({ title: "Error", description: "Enter valid 10-digit number", variant: "destructive" }); return; }
+    if (whatsappFormData.password !== whatsappFormData.confirmPassword) { toast({ title: "Error", description: "Passwords do not match", variant: "destructive" }); return; }
+    if (whatsappFormData.password.length < 6) { toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" }); return; }
     setLoading(true);
-
-    // Check if WhatsApp number already exists in ACTIVE profiles
-    // (only check profiles that have user_roles, ignoring orphaned/deleted profiles)
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id, user_roles!inner(role)")
-      .eq("whatsapp_number", whatsappFormData.whatsappNumber)
-      .maybeSingle();
-
-    if (existingProfile) {
-      setLoading(false);
-      toast({
-        title: "Error",
-        description: "This WhatsApp number is already registered. Please login instead.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Use WhatsApp number as pseudo-email for Supabase Auth
-    const pseudoEmail = `${whatsappFormData.whatsappNumber}@whatsapp.practicekoro.local`;
-
-    const { error } = await supabase.auth.signUp({
-      email: pseudoEmail,
-      password: whatsappFormData.password,
-      options: {
-        data: {
-          full_name: whatsappFormData.fullName,
-          whatsapp_number: whatsappFormData.whatsappNumber,
-        },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
-    });
-
+    const { data: existing } = await supabase.from("profiles").select("id, user_roles!inner(role)").eq("whatsapp_number", whatsappFormData.whatsappNumber).maybeSingle();
+    if (existing) { setLoading(false); toast({ title: "Error", description: "WhatsApp already registered", variant: "destructive" }); return; }
+    const { error } = await supabase.auth.signUp({ email: `${whatsappFormData.whatsappNumber}@whatsapp.practicekoro.local`, password: whatsappFormData.password, options: { data: { full_name: whatsappFormData.fullName, whatsapp_number: whatsappFormData.whatsappNumber } } });
     setLoading(false);
-
-    if (error) {
-      if (error.message.includes("already registered") || error.message.includes("duplicate key") || error.message.includes("unique constraint")) {
-        toast({
-          title: "Error",
-          description: "This WhatsApp number is already registered. Please login instead.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } else {
-      toast({
-        title: "Success",
-        description: "Account created! You can now login with your WhatsApp number.",
-      });
-      navigate("/login");
-    }
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); }
+    else { toast({ title: "Success", description: "Account created!" }); navigate("/login"); }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 flex items-center justify-center p-4 md:p-8">
-      {/* Back button */}
-      <Button
-        variant="outline"
-        className="absolute top-4 left-4 z-20 rounded-xl"
+    <div className="min-h-screen bg-gradient-to-br from-violet-50/50 via-white to-indigo-50/50 flex items-center justify-center p-4">
+      {/* Back Button */}
+      <button
         onClick={() => navigate("/")}
+        className="fixed top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 backdrop-blur border border-gray-200/50 shadow-sm text-xs font-medium text-gray-600 hover:bg-white transition-colors z-10"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Home
-      </Button>
+        <ArrowLeft className="h-3.5 w-3.5" /> Back
+      </button>
 
-      <Card className="w-full max-w-md md:max-w-lg lg:max-w-xl shadow-xl border-gray-100">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-primary-foreground" />
-            </div>
+      {/* Compact Centered Card */}
+      <div className="w-full max-w-xs">
+        {/* Logo & Title */}
+        <div className="text-center mb-5">
+          <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-200/50 mb-3">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <CardTitle className="text-xl sm:text-2xl lg:text-3xl text-foreground">Create Account</CardTitle>
-          <CardDescription className="text-xs sm:text-sm text-muted-foreground">
-            Register to access mock tests and study materials
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={registerMethod} onValueChange={(v) => setRegisterMethod(v as "email" | "whatsapp")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="email" className="flex items-center gap-2">
-                <Mail className="w-4 h-4" />
-                Email
-              </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                WhatsApp
-              </TabsTrigger>
-            </TabsList>
+          <h1 className="text-lg font-bold text-gray-900">Create Account</h1>
+          <p className="text-xs text-gray-500 mt-0.5">Register for mock tests</p>
+        </div>
 
-            <TabsContent value="email">
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    required
-                    autoComplete="name"
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="John Doe"
-                    value={emailFormData.fullName}
-                    onChange={(e) => setEmailFormData({ ...emailFormData, fullName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email" className="text-foreground">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="your.email@example.com"
-                    value={emailFormData.email}
-                    onChange={(e) => setEmailFormData({ ...emailFormData, email: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="password" className="text-foreground">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    autoComplete="new-password"
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="At least 6 characters"
-                    value={emailFormData.password}
-                    onChange={(e) => setEmailFormData({ ...emailFormData, password: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    required
-                    autoComplete="new-password"
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="Re-enter your password"
-                    value={emailFormData.confirmPassword}
-                    onChange={(e) => setEmailFormData({ ...emailFormData, confirmPassword: e.target.value })}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating Account..." : "Register with Email"}
-                </Button>
-              </form>
-            </TabsContent>
+        {/* Register Form */}
+        <Tabs value={registerMethod} onValueChange={(v) => setRegisterMethod(v as "email" | "whatsapp")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 h-9 bg-gray-100/80 rounded-full p-1">
+            <TabsTrigger value="email" className="flex items-center justify-center gap-1.5 text-xs rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">
+              <Mail className="w-3.5 h-3.5" /> Email
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="flex items-center justify-center gap-1.5 text-xs rounded-full data-[state=active]:bg-white data-[state=active]:shadow-sm font-medium">
+              <Phone className="w-3.5 h-3.5" /> WhatsApp
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="whatsapp">
-              <form onSubmit={handleWhatsAppSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="whatsappFullName" className="text-foreground">Full Name</Label>
-                  <Input
-                    id="whatsappFullName"
-                    type="text"
-                    required
-                    autoComplete="name"
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="John Doe"
-                    value={whatsappFormData.fullName}
-                    onChange={(e) => setWhatsappFormData({ ...whatsappFormData, fullName: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="whatsappNumber" className="text-foreground">WhatsApp Number</Label>
-                  <Input
-                    id="whatsappNumber"
-                    type="tel"
-                    required
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="10-digit number (e.g., 9876543210)"
-                    maxLength={10}
-                    value={whatsappFormData.whatsappNumber}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/\D/g, '');
-                      setWhatsappFormData({ ...whatsappFormData, whatsappNumber: value });
-                    }}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Enter without country code</p>
-                </div>
-                <div>
-                  <Label htmlFor="whatsappPassword" className="text-foreground">Password</Label>
-                  <Input
-                    id="whatsappPassword"
-                    type="password"
-                    required
-                    autoComplete="new-password"
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="At least 6 characters"
-                    value={whatsappFormData.password}
-                    onChange={(e) => setWhatsappFormData({ ...whatsappFormData, password: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="whatsappConfirmPassword" className="text-foreground">Confirm Password</Label>
-                  <Input
-                    id="whatsappConfirmPassword"
-                    type="password"
-                    required
-                    autoComplete="new-password"
-                    className="bg-white border-gray-200 text-foreground placeholder:text-muted-foreground focus:bg-gray-50 transition-all"
-                    placeholder="Re-enter your password"
-                    value={whatsappFormData.confirmPassword}
-                    onChange={(e) => setWhatsappFormData({ ...whatsappFormData, confirmPassword: e.target.value })}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creating Account..." : "Register with WhatsApp"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <TabsContent value="email" className="mt-4">
+            <form onSubmit={handleEmailSubmit} className="space-y-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">Full Name</Label>
+                <Input type="text" required placeholder="John Doe" className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={emailFormData.fullName} onChange={(e) => setEmailFormData({ ...emailFormData, fullName: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">Email</Label>
+                <Input type="email" required placeholder="you@example.com" className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={emailFormData.email} onChange={(e) => setEmailFormData({ ...emailFormData, email: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">Password</Label>
+                <Input type="password" required placeholder="Min 6 characters" className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={emailFormData.password} onChange={(e) => setEmailFormData({ ...emailFormData, password: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">Confirm Password</Label>
+                <Input type="password" required placeholder="Re-enter password" className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={emailFormData.confirmPassword} onChange={(e) => setEmailFormData({ ...emailFormData, confirmPassword: e.target.value })} />
+              </div>
+              <Button type="submit" className="w-full h-9 text-sm rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 font-semibold shadow-md shadow-violet-200/50" disabled={loading}>
+                {loading ? "..." : "Register"}
+              </Button>
+            </form>
+          </TabsContent>
 
-          <div className="text-center text-sm text-muted-foreground mt-6">
-            Already have an account?{" "}
-            <button
-              type="button"
-              className="text-primary hover:text-primary/80 font-semibold transition-colors"
-              onClick={() => navigate("/login")}
-            >
-              Login here
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+          <TabsContent value="whatsapp" className="mt-4">
+            <form onSubmit={handleWhatsAppSubmit} className="space-y-2.5">
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">Full Name</Label>
+                <Input type="text" required placeholder="John Doe" className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={whatsappFormData.fullName} onChange={(e) => setWhatsappFormData({ ...whatsappFormData, fullName: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">WhatsApp</Label>
+                <Input type="tel" required placeholder="10-digit number" maxLength={10} className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={whatsappFormData.whatsappNumber} onChange={(e) => setWhatsappFormData({ ...whatsappFormData, whatsappNumber: e.target.value.replace(/\D/g, '') })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">Password</Label>
+                <Input type="password" required placeholder="Min 6 characters" className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={whatsappFormData.password} onChange={(e) => setWhatsappFormData({ ...whatsappFormData, password: e.target.value })} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-medium text-gray-600">Confirm Password</Label>
+                <Input type="password" required placeholder="Re-enter password" className="h-9 text-sm bg-white border-gray-200 rounded-lg" value={whatsappFormData.confirmPassword} onChange={(e) => setWhatsappFormData({ ...whatsappFormData, confirmPassword: e.target.value })} />
+              </div>
+              <Button type="submit" className="w-full h-9 text-sm rounded-lg bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 font-semibold shadow-md shadow-violet-200/50" disabled={loading}>
+                {loading ? "..." : "Register"}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+
+        {/* Login Link */}
+        <p className="text-center text-xs text-gray-500 mt-4">
+          Have an account?{" "}
+          <button type="button" className="text-violet-600 font-semibold hover:underline" onClick={() => navigate("/login")}>Login</button>
+        </p>
+      </div>
     </div>
   );
 };
