@@ -209,7 +209,7 @@ const ExamManagement = () => {
           <Plus className="w-5 h-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[440px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+      <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
         <DialogHeader>
           <DialogTitle>{editingExam ? "Edit Exam" : "Create Exam"}</DialogTitle>
           <DialogDescription>
