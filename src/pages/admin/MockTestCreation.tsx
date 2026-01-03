@@ -91,25 +91,55 @@ const MockTestCreation = () => {
   };
 
   const handleSendNotification = async (test: MockTest) => {
-    // Add to in-app notifications
-    addNotification({
-      title: "🆕 New Mock Test Available!",
-      message: `${test.title} is now available. Duration: ${test.duration_minutes} mins, Total Marks: ${test.total_marks}. Start practicing now!`,
-      testId: test.id,
-      testTitle: test.title,
-      type: "new_test",
-    });
+    try {
+      const title = "🆕 New Mock Test Available!";
+      const message = `${test.title} is now available. Duration: ${test.duration_minutes} mins, Total Marks: ${test.total_marks}. Start practicing now!`;
+      const link = `/student/take-test/${test.id}`;
 
-    // Try to send browser notification (works if admin has given permission)
-    await sendBrowserNotification(
-      "New Mock Test Available!",
-      `${test.title} - ${test.duration_minutes} mins, ${test.total_marks} marks`
-    );
+      // Get all student user IDs
+      const { data: students, error: studentsError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "student");
 
-    toast({
-      title: "✅ Notification Sent!",
-      description: `Notification for "${test.title}" has been sent to all students.`,
-    });
+      if (studentsError) throw studentsError;
+
+      if (students && students.length > 0) {
+        // Create notifications for all students in Supabase
+        const notifications = students.map((s) => ({
+          user_id: s.user_id,
+          title,
+          message,
+          type: "new_test",
+          link,
+          is_read: false,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("notifications")
+          .insert(notifications);
+
+        if (insertError) throw insertError;
+      }
+
+      // Fallback for browser notification
+      await sendBrowserNotification(
+        "New Mock Test Available!",
+        `${test.title} - ${test.duration_minutes} mins, ${test.total_marks} marks`
+      );
+
+      toast({
+        title: "✅ Notification Sent!",
+        description: `Notification for "${test.title}" has been sent to all students.`,
+      });
+    } catch (error: any) {
+      console.error("Error sending notification:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send notifications to students.",
+        variant: "destructive",
+      });
+    }
   };
 
   useEffect(() => {
@@ -319,7 +349,7 @@ const MockTestCreation = () => {
           <Plus className="w-5 h-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+      <DialogContent className="sm:max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>{editingTest ? "Edit Test" : "Create New Test"}</DialogTitle>
           <DialogDescription>{editingTest ? "Update test details" : "Fill in test details"}</DialogDescription>
@@ -448,7 +478,7 @@ const MockTestCreation = () => {
 
         {/* Tests List - Row Based */}
         {tests.length === 0 ? (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl">
+          <Card className="border-0 bg-white rounded-2xl">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <BarChart className="w-8 h-8 text-emerald-600" />
@@ -462,7 +492,7 @@ const MockTestCreation = () => {
             </CardContent>
           </Card>
         ) : filteredTests.length === 0 ? (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl">
+          <Card className="border-0 bg-white rounded-2xl">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-gray-400" />
@@ -475,7 +505,7 @@ const MockTestCreation = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl overflow-hidden">
+          <Card className="border-0 bg-white rounded-2xl overflow-hidden">
             {/* Table Header */}
             <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <span>Test Name</span>
@@ -693,7 +723,7 @@ const MockTestCreation = () => {
 
       {/* Question Selection Dialog */}
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Select Questions ({selectedQuestions.length})</DialogTitle>
             <DialogDescription>Choose questions for this test</DialogDescription>

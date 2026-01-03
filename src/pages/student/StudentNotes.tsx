@@ -2,9 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { NotebookPen, Search, BookOpen, FolderOpen, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  NotebookPen, Search, BookOpen, FolderOpen, ChevronLeft,
+  ChevronRight, FileText, BookOpenCheck, Sparkles, Clock, Share2, ArrowLeft, Bookmark
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentLayout from "@/components/student/StudentLayout";
+import { Button } from "@/components/ui/button";
 
 interface Note {
   id: string;
@@ -18,24 +22,25 @@ interface Note {
 interface Subject {
   id: string;
   name: string;
+  description: string | null;
 }
 
 interface Topic {
   id: string;
   subject_id: string;
   name: string;
-  content: string | null;
 }
 
-// Category color palette
-const categoryColors = [
-  { bg: "from-indigo-500 via-violet-500 to-purple-500", light: "bg-gradient-to-br from-indigo-50 to-violet-50", text: "text-indigo-600", glow: "shadow-indigo-500/25" },
-  { bg: "from-emerald-500 via-teal-500 to-cyan-500", light: "bg-gradient-to-br from-emerald-50 to-teal-50", text: "text-emerald-600", glow: "shadow-emerald-500/25" },
-  { bg: "from-blue-500 via-sky-500 to-cyan-500", light: "bg-gradient-to-br from-blue-50 to-sky-50", text: "text-blue-600", glow: "shadow-blue-500/25" },
-  { bg: "from-orange-500 via-amber-500 to-yellow-500", light: "bg-gradient-to-br from-orange-50 to-amber-50", text: "text-orange-600", glow: "shadow-orange-500/25" },
-  { bg: "from-pink-500 via-rose-500 to-red-500", light: "bg-gradient-to-br from-pink-50 to-rose-50", text: "text-pink-600", glow: "shadow-pink-500/25" },
-  { bg: "from-purple-500 via-fuchsia-500 to-pink-500", light: "bg-gradient-to-br from-purple-50 to-fuchsia-50", text: "text-purple-600", glow: "shadow-purple-500/25" },
+const subjectColors = [
+  { bg: "from-indigo-600 to-violet-700", light: "bg-indigo-50", text: "text-indigo-600", icon: "bg-indigo-600/10" },
+  { bg: "from-emerald-600 to-teal-700", light: "bg-emerald-50", text: "text-emerald-600", icon: "bg-emerald-600/10" },
+  { bg: "from-amber-500 to-orange-600", light: "bg-amber-50", text: "text-amber-600", icon: "bg-amber-500/10" },
+  { bg: "from-rose-500 to-pink-600", light: "bg-rose-50", text: "text-rose-600", icon: "bg-rose-500/10" },
+  { bg: "from-blue-600 to-cyan-700", light: "bg-blue-50", text: "text-blue-600", icon: "bg-blue-600/10" },
+  { bg: "from-purple-600 to-fuchsia-700", light: "bg-purple-50", text: "text-purple-600", icon: "bg-purple-600/10" },
 ];
+
+type Screen = "subjects" | "topics" | "article";
 
 const StudentNotes = () => {
   const navigate = useNavigate();
@@ -45,9 +50,35 @@ const StudentNotes = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("all");
-  const [selectedTopic, setSelectedTopic] = useState<string>("all");
-  const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
+  const [currentScreen, setCurrentScreen] = useState<Screen>("subjects");
+  const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
+  const [readingProgress, setReadingProgress] = useState(0);
+
+  useEffect(() => {
+    if (currentScreen !== "article") {
+      setReadingProgress(0);
+      return;
+    }
+
+    const handleScroll = () => {
+      const scrollable = document.querySelector('main')?.parentElement || document.documentElement;
+      const { scrollTop, scrollHeight, clientHeight } = scrollable;
+      const progress = (scrollTop / (scrollHeight - clientHeight)) * 100;
+      setReadingProgress(isNaN(progress) ? 0 : progress);
+    };
+
+    // Attach to both window (mobile) and SidebarInset (desktop)
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    const inset = document.querySelector('main')?.parentElement;
+    if (inset) inset.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (inset) inset.removeEventListener("scroll", handleScroll);
+    };
+  }, [currentScreen]);
 
   useEffect(() => { loadData(); }, []);
 
@@ -57,8 +88,8 @@ const StudentNotes = () => {
 
     const [notesRes, subjectsRes, topicsRes] = await Promise.all([
       supabase.from("pdfs").select("id, title, content, subject_id, topic_id, created_at").order("created_at", { ascending: false }),
-      supabase.from("subjects").select("id, name").eq("is_active", true).order("name"),
-      supabase.from("topics").select("id, subject_id, name, content").eq("is_active", true).order("name")
+      supabase.from("subjects").select("id, name, description").order("name"),
+      supabase.from("topics").select("id, subject_id, name").order("name")
     ]);
 
     if (notesRes.data) setNotes(notesRes.data as Note[]);
@@ -67,223 +98,298 @@ const StudentNotes = () => {
     setLoading(false);
   };
 
-  const toggleExpand = (noteId: string) => {
-    const newExpanded = new Set(expandedNotes);
-    if (newExpanded.has(noteId)) newExpanded.delete(noteId);
-    else newExpanded.add(noteId);
-    setExpandedNotes(newExpanded);
+  const getColor = (id: string) => {
+    const index = subjects.findIndex(s => s.id === id);
+    return subjectColors[index % subjectColors.length] || subjectColors[0];
   };
 
-  const getCategoryColor = (subjectId: string | null) => {
-    const index = subjects.findIndex(s => s.id === subjectId);
-    return categoryColors[index % categoryColors.length] || categoryColors[0];
+  const getTopicsForSubject = (subjectId: string) => topics.filter(t => t.subject_id === subjectId);
+  const getNotesForTopic = (topicId: string) => notes.filter(n => n.topic_id === topicId);
+
+  const handleBack = () => {
+    if (currentScreen === "article") {
+      setSelectedNote(null);
+      setCurrentScreen("topics");
+    } else if (currentScreen === "topics") {
+      setSelectedSubject(null);
+      setCurrentScreen("subjects");
+    }
   };
-
-  const getSubjectName = (id: string | null) => subjects.find(s => s.id === id)?.name || "General";
-  const getTopicName = (id: string | null) => topics.find(t => t.id === id)?.name || "-";
-
-  const filteredTopics = selectedSubject === "all" ? topics : topics.filter(t => t.subject_id === selectedSubject);
-
-  const topicNotes: Note[] = topics
-    .filter(t => t.content && t.content.trim().length > 0)
-    .map(t => ({
-      id: `topic-${t.id}`,
-      title: t.name,
-      content: t.content || "",
-      subject_id: t.subject_id,
-      topic_id: t.id,
-      created_at: new Date().toISOString() // Placeholder
-    }));
-
-  const allNotes = [...notes, ...topicNotes];
-
-  const filteredNotes = allNotes.filter(note => {
-    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSubject = selectedSubject === "all" || note.subject_id === selectedSubject;
-    const matchesTopic = selectedTopic === "all" || note.topic_id === selectedTopic;
-    return matchesSearch && matchesSubject && matchesTopic;
-  });
 
   if (loading) {
     return (
-      <StudentLayout title="Notes" subtitle="Study notes">
-        <div className="w-full max-w-3xl md:max-w-6xl mx-auto space-y-5 pb-4 pt-2 px-4">
-          <div className="skeleton-premium h-32 rounded-2xl" />
-          <div className="skeleton-premium h-14 rounded-xl" />
-          {[1, 2, 3].map(i => <div key={i} className="skeleton-premium h-24 rounded-2xl" />)}
+      <StudentLayout title="Notes" subtitle="Loading your library...">
+        <div className="p-4 space-y-4 max-w-5xl mx-auto">
+          <div className="h-48 rounded-3xl skeleton-premium" />
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-40 rounded-2xl skeleton-premium" />)}
+          </div>
         </div>
       </StudentLayout>
     );
   }
 
-  return (
-    <StudentLayout title="Notes" subtitle="Study materials">
-      <div className="w-full max-w-3xl md:max-w-6xl mx-auto space-y-5 pb-28">
-
-        {/* Premium Hero Section - Matches Dashboard Height */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 rounded-3xl p-5 sm:p-6 text-white shadow-xl"
-        >
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-black/10 rounded-full blur-3xl -ml-20 -mb-20" />
-          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/5 rounded-full blur-2xl" />
-
-          <div className="relative z-10">
-            {/* Header - Matches Dashboard style */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0">
-                <NotebookPen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-              </div>
-              <div>
-                <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">📚 Library</p>
-                <h2 className="text-xl sm:text-2xl font-bold">Study Notes</h2>
-              </div>
+  // ================= SCREEN 1: SUBJECT GRID =================
+  const SubjectsView = () => (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-700 via-violet-600 to-purple-700 rounded-3xl p-8 text-white shadow-xl shadow-indigo-500/20">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-32 -mt-32" />
+        <div className="relative z-10">
+          <h2 className="text-3xl font-black mb-2 flex items-center gap-2">
+            <Sparkles className="w-8 h-8 text-yellow-300" />
+            Study Notes
+          </h2>
+          <p className="text-indigo-100 font-medium max-w-md">Access premium study materials and notes across all subjects, globally published.</p>
+          <div className="flex gap-4 mt-6">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
+              <span className="text-2xl font-bold block">{subjects.length}</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">Subjects</span>
             </div>
-
-            {/* Stats Row - 3 columns like Dashboard */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                <p className="text-2xl sm:text-3xl font-bold text-white">{allNotes.length}</p>
-                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Total Notes</p>
-              </div>
-              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                <p className="text-2xl sm:text-3xl font-bold text-white">{subjects.length}</p>
-                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Subjects</p>
-              </div>
-              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                <p className="text-2xl sm:text-3xl font-bold text-fuchsia-200">∞</p>
-                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Learning</p>
-              </div>
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
+              <span className="text-2xl font-bold block">{notes.length}</span>
+              <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">Articles</span>
             </div>
           </div>
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Search & Filters */}
-        <div className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full h-12 pl-12 pr-4 bg-white rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-400"
-            />
-          </div>
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <input
+          placeholder="Search for articles or subjects..."
+          className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white border-0 shadow-sm focus:ring-2 focus:ring-violet-500/20 transition-all font-medium"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
+      </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            <button
-              onClick={() => { setSelectedSubject("all"); setSelectedTopic("all"); }}
-              className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all ${selectedSubject === "all" ? "bg-violet-500 text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {subjects.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map((subject) => {
+          const color = getColor(subject.id);
+          const articleCount = notes.filter(n => n.subject_id === subject.id).length;
+          return (
+            <motion.button
+              key={subject.id}
+              whileHover={{ y: -5 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setSelectedSubject(subject); setCurrentScreen("topics"); }}
+              className={`p-5 rounded-3xl text-left transition-all ${color.light} border border-transparent hover:border-white hover:shadow-xl group`}
             >
-              All Subjects
-            </button>
-            {subjects.map(subject => (
-              <button
-                key={subject.id}
-                onClick={() => { setSelectedSubject(subject.id); setSelectedTopic("all"); }}
-                className={`shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all ${selectedSubject === subject.id ? "bg-violet-500 text-white shadow-lg" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  }`}
-              >
-                {subject.name}
-              </button>
-            ))}
-          </div>
+              <div className={`w-12 h-12 rounded-2xl ${color.icon} flex items-center justify-center mb-4 transition-transform group-hover:scale-110`}>
+                <BookOpen className={`w-6 h-6 ${color.text}`} />
+              </div>
+              <h3 className="font-bold text-gray-900 leading-tight mb-1">{subject.name}</h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{articleCount} Articles</p>
+            </motion.button>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
 
-          {selectedSubject !== "all" && filteredTopics.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              <button
-                onClick={() => setSelectedTopic("all")}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedTopic === "all" ? "bg-purple-100 text-purple-700" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
-                  }`}
-              >
-                All Topics
-              </button>
-              {filteredTopics.map(topic => (
-                <button
-                  key={topic.id}
-                  onClick={() => setSelectedTopic(topic.id)}
-                  className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${selectedTopic === topic.id ? "bg-purple-100 text-purple-700" : "bg-gray-50 text-gray-500 hover:bg-gray-100"
-                    }`}
-                >
-                  {topic.name}
-                </button>
-              ))}
+  // ================= SCREEN 2: TOPIC LIST =================
+  const TopicsView = () => {
+    if (!selectedSubject) return null;
+    const color = getColor(selectedSubject.id);
+    const subjectTopics = getTopicsForSubject(selectedSubject.id);
+
+    return (
+      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+        <button onClick={handleBack} className="flex items-center gap-2 text-gray-400 hover:text-gray-900 transition-colors font-bold text-sm mb-2 group">
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" /> Back to Subjects
+        </button>
+
+        <div className={`relative overflow-hidden p-8 rounded-[2rem] bg-gradient-to-br ${color.bg} text-white shadow-2xl shadow-indigo-500/20 group`}>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700" />
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-xl border border-white/30 shadow-inner group-hover:rotate-3 transition-transform">
+              <FolderOpen className="w-8 h-8" />
             </div>
-          )}
+            <div>
+              <p className="text-white/70 text-xs font-black uppercase tracking-widest leading-none mb-2">Subject Collection</p>
+              <h2 className="text-3xl font-black tracking-tight">{selectedSubject.name}</h2>
+            </div>
+          </div>
         </div>
 
-        {/* Notes List */}
-        {filteredNotes.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-8 text-center shadow-lg border border-gray-100"
+        <div className="grid gap-4 pt-2">
+          {subjectTopics.map(topic => {
+            const topicNotes = getNotesForTopic(topic.id);
+            if (topicNotes.length === 0) return null;
+
+            return (
+              <motion.button
+                key={topic.id}
+                whileHover={{ scale: 1.01, x: 5 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => {
+                  setSelectedNote(topicNotes[0]);
+                  setSelectedTopic(topic);
+                  setCurrentScreen("article");
+                }}
+                className="flex items-center gap-6 p-6 bg-white rounded-[2.5rem] border border-gray-100 hover:border-indigo-100 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all group text-left relative overflow-hidden"
+              >
+                {/* Visual Accent */}
+                <div className={`absolute left-0 top-0 bottom-0 w-2 bg-gradient-to-b ${color.bg} opacity-80`} />
+
+                <div className={`w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center shrink-0 group-hover:bg-gradient-to-br ${color.bg} transition-all duration-500 shadow-inner`}>
+                  <BookOpen className="w-7 h-7 text-gray-400 group-hover:text-white transition-colors" />
+                </div>
+
+                <div className="flex-1 min-w-0 pr-4">
+                  <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1 opacity-70">Chapter Headline</p>
+                  <h3 className="text-xl font-black text-gray-900 group-hover:text-indigo-700 transition-colors truncate tracking-tight">{topic.name}</h3>
+                  <div className="flex items-center gap-4 mt-3">
+                    <span className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-wider">
+                      <Clock className="w-3.5 h-3.5" /> 8 MIN READ
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[10px] font-black text-emerald-500 uppercase tracking-wider bg-emerald-50 px-2.5 py-1 rounded-lg">
+                      <BookOpenCheck className="w-3.5 h-3.5" /> READY TO READ
+                    </span>
+                  </div>
+                </div>
+
+                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors shrink-0">
+                  <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-600" />
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+  };
+
+  // ================= SCREEN 3: ARTICLE READER =================
+  const ArticleReader = () => {
+    if (!selectedNote || !selectedSubject || !selectedTopic) return null;
+    const color = getColor(selectedSubject.id);
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="pb-32"
+      >
+        {/* Floating Top Nav */}
+        <div className="sticky top-0 z-50 -mx-4 px-4 py-3 bg-white/70 backdrop-blur-xl border-b border-gray-100 flex items-center justify-between transition-all duration-300">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gray-50 text-gray-900 hover:bg-gray-100 transition-all font-bold text-sm group"
           >
-            <NotebookPen className="w-14 h-14 text-gray-200 mx-auto mb-3" />
-            <h3 className="font-semibold text-gray-800">No Notes Found</h3>
-            <p className="text-sm text-gray-500 mt-1">Try adjusting your filters</p>
-          </motion.div>
-        ) : (
-          <div className="space-y-3">
-            <AnimatePresence>
-              {filteredNotes.map((note, idx) => {
-                const colors = getCategoryColor(note.subject_id);
-                const isExpanded = expandedNotes.has(note.id);
-                const contentPreview = note.content?.substring(0, 150) + (note.content?.length > 150 ? "..." : "");
+            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+            <span className="hidden sm:inline">Back</span>
+          </button>
 
-                return (
-                  <motion.div
-                    key={note.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className={`${colors.light} rounded-2xl p-4 shadow-lg border border-white/50`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/80 ${colors.text}`}>
-                            <FolderOpen className="w-3 h-3" />
-                            {getSubjectName(note.subject_id)}
-                          </span>
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-white/60 text-gray-600">
-                            <BookOpen className="w-3 h-3" />
-                            {getTopicName(note.topic_id)}
-                          </span>
-                        </div>
-                        <h3 className="font-bold text-gray-900 text-base leading-tight">{note.title}</h3>
-
-                        {note.content && (
-                          <div className="mt-3 bg-white/80 rounded-xl p-3 border border-gray-100">
-                            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap select-none">
-                              {isExpanded ? note.content : contentPreview}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {note.content && note.content.length > 150 && (
-                      <button
-                        onClick={() => toggleExpand(note.id)}
-                        className={`mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${colors.text} bg-white/80 hover:bg-white`}
-                      >
-                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                        {isExpanded ? "Show Less" : "Read More"}
-                      </button>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
+          <div className="flex items-center gap-2">
+            <button className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all">
+              <Bookmark className="w-5 h-5" />
+            </button>
+            <button className="p-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all">
+              <Share2 className="w-5 h-5" />
+            </button>
           </div>
-        )}
+
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-100/50">
+            <motion.div
+              className={`h-full bg-gradient-to-r ${color.bg} shadow-[0_0_10px_rgba(0,0,0,0.1)]`}
+              style={{ width: `${readingProgress}%` }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            />
+          </div>
+        </div>
+
+        <div className="max-w-3xl mx-auto mt-12 px-2">
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-4xl sm:text-6xl font-black text-gray-900 tracking-tight leading-[1.1] selection:bg-indigo-100"
+          >
+            {selectedNote.title}
+          </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center gap-4 pt-6 border-t border-gray-100 mb-12"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100/50 flex items-center justify-center shadow-sm">
+                <Sparkles className="w-6 h-6 text-indigo-500" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-gray-900 leading-none mb-1">PracticeKoro Edu</p>
+                <p className="text-xs font-bold text-gray-400">Published {new Date(selectedNote.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              </div>
+            </div>
+            <div className="ml-auto hidden sm:flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+              <Clock className="w-3.5 h-3.5" /> 6 min read
+            </div>
+          </motion.div>
+
+          {/* Article Content - Enhanced HTML Support */}
+          <article className="relative">
+            <div
+              className="article-content"
+              dangerouslySetInnerHTML={{
+                __html: selectedNote.content || "<p>This article has no content yet. Stay tuned for updates!</p>"
+              }}
+            />
+          </article>
+
+          {/* Enhanced Footer */}
+          <footer className="mt-24 pt-12 border-t border-gray-100">
+            <motion.div
+              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              viewport={{ once: true }}
+              className="relative overflow-hidden bg-white rounded-[2.5rem] p-10 text-center border border-gray-100 shadow-2xl shadow-indigo-500/10 group"
+            >
+              {/* Background gradient blur */}
+              <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-gradient-to-br ${color.bg} opacity-[0.03] blur-3xl pointer-events-none group-hover:scale-150 transition-transform duration-700`} />
+
+              <div className="relative z-10">
+                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${color.bg} flex items-center justify-center mx-auto mb-6 group-hover:rotate-6 transition-transform`} style={{ boxShadow: '0 8px 24px rgba(99, 102, 241, 0.2)' }}>
+                  <BookOpenCheck className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">Knowledge Mastered!</h3>
+                <p className="text-gray-500 mb-8 font-medium max-w-sm mx-auto">You've reached the end of this <span className="text-emerald-600 font-bold">"{selectedTopic.name}"</span> chapter. Great job!</p>
+
+                <Button
+                  onClick={() => {
+                    toast({
+                      title: "Success",
+                      description: "Progress updated. Keep it up!",
+                      className: "bg-emerald-500 text-white border-0 rounded-2xl shadow-xl"
+                    });
+                    handleBack();
+                  }}
+                  className={`h-16 px-12 rounded-2xl font-black text-lg shadow-xl shadow-indigo-500/20 bg-gradient-to-r ${color.bg} text-white hover:scale-105 hover:shadow-2xl transition-all duration-300 relative overflow-hidden group/btn`}
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    Mark as Complete
+                  </span>
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" />
+                </Button>
+              </div>
+            </motion.div>
+          </footer>
+        </div>
+      </motion.div >
+    );
+  };
+
+  return (
+    <StudentLayout title="Notes" subtitle="University of Knowledge">
+      <div className="w-full max-w-5xl mx-auto py-2 px-1">
+        <AnimatePresence mode="wait">
+          {currentScreen === "subjects" && <SubjectsView key="subjects" />}
+          {currentScreen === "topics" && <TopicsView key="topics" />}
+          {currentScreen === "article" && <ArticleReader key="article" />}
+        </AnimatePresence>
       </div>
     </StudentLayout>
   );

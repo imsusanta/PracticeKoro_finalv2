@@ -447,7 +447,7 @@ const QuestionBank = () => {
 
         {/* Questions List - Row Based */}
         {filteredQuestions.length === 0 ? (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl">
+          <Card className="border-0 bg-white rounded-2xl">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <FileQuestion className="w-8 h-8 text-emerald-600" />
@@ -465,7 +465,7 @@ const QuestionBank = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl overflow-hidden">
+          <Card className="border-0 bg-white rounded-2xl overflow-hidden">
             {/* Table Header */}
             <div className="hidden md:grid md:grid-cols-[40px_3fr_1fr_1fr_80px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <span></span>
@@ -623,7 +623,7 @@ const QuestionBank = () => {
 
       {/* Edit Question Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Edit Question</DialogTitle>
             <DialogDescription>Update question details</DialogDescription>
@@ -696,7 +696,7 @@ const QuestionBank = () => {
 
       {/* View Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Question Details</DialogTitle>
           </DialogHeader>
@@ -751,7 +751,7 @@ const QuestionBank = () => {
 
       {/* Bulk Delete Dialog */}
       <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete {selectedQuestions.length} Questions</DialogTitle>
             <DialogDescription>
@@ -770,7 +770,7 @@ const QuestionBank = () => {
 
       {/* Bulk Edit Subject/Topic Dialog */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Edit Subject/Topic</DialogTitle>
             <DialogDescription>

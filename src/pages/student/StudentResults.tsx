@@ -105,13 +105,13 @@ const StudentResults = () => {
   return (
     <StudentLayout title="Results" subtitle="Your performance">
       <PullIndicator />
-      <div className="w-full space-y-3 pb-24" {...containerProps}>
+      <div className="w-full space-y-3 pb-12 px-1" {...containerProps}>
 
         {/* Premium Hero Section - Matches Dashboard Height */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700 shadow-xl"
+          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-emerald-600 via-teal-600 to-emerald-700"
         >
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
@@ -121,7 +121,7 @@ const StudentResults = () => {
           <div className="relative z-10">
             {/* Header - Matches Dashboard style */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shrink-0">
                 <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
               <div>

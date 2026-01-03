@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Remove focus ring from inputs globally */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    PRACTICEKORO PREMIUM DESIGN SYSTEM v2.0
    $80B Startup Quality · Native App Experience
@@ -108,6 +119,13 @@
     --duration-fast: 150ms;
     --duration-normal: 250ms;
     --duration-slow: 400ms;
+
+    /* ─── Shadow Fix - Prevent side bleed on rounded corners ─── */
+    /* Use these shadows for elements with rounded corners */
+    --shadow-clean-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-clean-md: 0 4px 8px rgba(0, 0, 0, 0.06);
+    --shadow-clean-lg: 0 8px 16px rgba(0, 0, 0, 0.08);
+    --shadow-clean-xl: 0 12px 24px rgba(0, 0, 0, 0.1);
   }
 
   .dark {
@@ -197,7 +215,7 @@
     width: 100% !important;
   }
 
-  /* Force all containers to respect width */
+  /* Ensure containers handle overflow without breaking layout */
   div,
   section,
   article,
@@ -206,177 +224,177 @@
   footer,
   main,
   nav {
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+}
+
+/* Prevent any element from causing horizontal overflow */
+img,
+video,
+iframe,
+embed,
+object,
+svg,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensure text doesn't overflow */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+li,
+td,
+th,
+span,
+a,
+button,
+label,
+input,
+textarea {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+/* ═══ CURVED/EDGE DISPLAY PROTECTION ═══ */
+/* Extra padding for curved edge displays like Samsung Galaxy Edge, OnePlus, etc. */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(env(safe-area-inset-left), 8px);
+    padding-right: max(env(safe-area-inset-right), 8px);
+  }
+}
+
+/* Ensure main content has minimum side margins for curved displays */
+main,
+.main-content,
+[role="main"] {
+  margin-left: max(0px, env(safe-area-inset-left));
+  margin-right: max(0px, env(safe-area-inset-right));
+}
+
+/* Container protection for all devices */
+.container,
+[class*="max-w-"] {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+/* ═══ 380px and Below - Small Mobile Optimization ═══ */
+@media screen and (max-width: 380px) {
+  html {
+    font-size: 14px;
+  }
+
+  /* Ensure all containers respect width */
+  .container,
+  main,
+  section,
+  article,
+  div {
     max-width: 100% !important;
     overflow-x: hidden;
   }
 
-  /* Prevent any element from causing horizontal overflow */
-  img,
-  video,
-  iframe,
-  embed,
-  object,
-  svg,
-  canvas {
-    max-width: 100%;
-    height: auto;
-  }
-
-  /* Ensure text doesn't overflow */
-  p,
+  /* Prevent long text from causing overflow */
   h1,
   h2,
   h3,
   h4,
   h5,
   h6,
-  li,
-  td,
-  th,
+  p,
   span,
   a,
   button,
-  label,
-  input,
-  textarea {
-    overflow-wrap: break-word;
+  label {
     word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
 
-  /* ═══ CURVED/EDGE DISPLAY PROTECTION ═══ */
-  /* Extra padding for curved edge displays like Samsung Galaxy Edge, OnePlus, etc. */
-  @supports (padding: max(0px)) {
-    body {
-      padding-left: max(env(safe-area-inset-left), 8px);
-      padding-right: max(env(safe-area-inset-right), 8px);
-    }
+  /* Compact padding for small screens */
+  .card-glass-premium,
+  .card-premium {
+    padding: 0.75rem !important;
   }
 
-  /* Ensure main content has minimum side margins for curved displays */
-  main,
-  .main-content,
-  [role="main"] {
-    margin-left: max(0px, env(safe-area-inset-left));
-    margin-right: max(0px, env(safe-area-inset-right));
+  /* Smaller rounded corners on tiny screens */
+  .rounded-3xl {
+    border-radius: 1rem !important;
   }
 
-  /* Container protection for all devices */
-  .container,
-  [class*="max-w-"] {
-    padding-left: 8px;
-    padding-right: 8px;
+  .rounded-\[24px\],
+  .rounded-\[28px\],
+  .rounded-\[32px\],
+  .rounded-\[36px\] {
+    border-radius: 1rem !important;
   }
 
-  /* ═══ 380px and Below - Small Mobile Optimization ═══ */
-  @media screen and (max-width: 380px) {
-    html {
-      font-size: 14px;
-    }
-
-    /* Ensure all containers respect width */
-    .container,
-    main,
-    section,
-    article,
-    div {
-      max-width: 100% !important;
-      overflow-x: hidden;
-    }
-
-    /* Prevent long text from causing overflow */
-    h1,
-    h2,
-    h3,
-    h4,
-    h5,
-    h6,
-    p,
-    span,
-    a,
-    button,
-    label {
-      word-wrap: break-word;
-      word-break: break-word;
-      overflow-wrap: break-word;
-      hyphens: auto;
-    }
-
-    /* Compact padding for small screens */
-    .card-glass-premium,
-    .card-premium {
-      padding: 0.75rem !important;
-    }
-
-    /* Smaller rounded corners on tiny screens */
-    .rounded-3xl {
-      border-radius: 1rem !important;
-    }
-
-    .rounded-\[24px\],
-    .rounded-\[28px\],
-    .rounded-\[32px\],
-    .rounded-\[36px\] {
-      border-radius: 1rem !important;
-    }
-
-    /* Ensure grids don't overflow */
-    .grid {
-      gap: 0.5rem !important;
-    }
-
-    /* Smaller horizontal padding */
-    .px-4,
-    .px-5,
-    .px-6 {
-      padding-left: 0.75rem !important;
-      padding-right: 0.75rem !important;
-    }
-
-    /* Ensure flex items don't overflow */
-    .flex {
-      flex-wrap: wrap;
-    }
-
-    /* Compact stats boxes */
-    .flex-1 {
-      min-width: 0;
-    }
+  /* Ensure grids don't overflow */
+  .grid {
+    gap: 0.5rem !important;
   }
 
-  /* ═══ 320px and Below - Extra Small Screen ═══ */
-  @media screen and (max-width: 320px) {
-    html {
-      font-size: 13px;
-    }
+  /* Smaller horizontal padding */
+  .px-4,
+  .px-5,
+  .px-6 {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+  }
 
-    /* Even more compact padding */
-    .p-5,
-    .p-6 {
-      padding: 0.625rem !important;
-    }
+  /* Ensure flex items don't overflow */
+  .flex {
+    flex-wrap: wrap;
+  }
 
-    .px-3,
-    .px-4,
-    .px-5 {
-      padding-left: 0.5rem !important;
-      padding-right: 0.5rem !important;
-    }
+  /* Compact stats boxes */
+  .flex-1 {
+    min-width: 0;
+  }
+}
 
-    .py-2,
-    .py-2\.5,
-    .py-3 {
-      padding-top: 0.375rem !important;
-      padding-bottom: 0.375rem !important;
-    }
+/* ═══ 320px and Below - Extra Small Screen ═══ */
+@media screen and (max-width: 320px) {
+  html {
+    font-size: 13px;
+  }
 
-    /* Smaller text for extra small screens */
-    .text-xl {
-      font-size: 1rem !important;
-    }
+  /* Even more compact padding */
+  .p-5,
+  .p-6 {
+    padding: 0.625rem !important;
+  }
 
-    .text-2xl {
-      font-size: 1.125rem !important;
-    }
+  .px-3,
+  .px-4,
+  .px-5 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .py-2,
+  .py-2\.5,
+  .py-3 {
+    padding-top: 0.375rem !important;
+    padding-bottom: 0.375rem !important;
+  }
+
+  /* Smaller text for extra small screens */
+  .text-xl {
+    font-size: 1rem !important;
+  }
+
+  .text-2xl {
+    font-size: 1.125rem !important;
   }
 }
 
@@ -896,7 +914,7 @@ h6,
     display: none;
   }
 
-  .horizontal-scroll > * {
+  .horizontal-scroll>* {
     scroll-snap-align: start;
     flex-shrink: 0;
   }
@@ -1913,4 +1931,73 @@ h6,
   .stack-mobile {
     flex-direction: row;
   }
+}
+
+/* Article Typography System */
+.article-content {
+  @apply text-slate-700 leading-[1.8] font-medium text-lg sm:text-xl selection:bg-indigo-100 selection:text-indigo-900;
+}
+
+.article-content h1 {
+  @apply text-4xl font-black text-slate-900 mb-8 mt-12 tracking-tight;
+}
+
+.article-content h2 {
+  @apply text-3xl font-black text-slate-900 mb-6 mt-10 tracking-tight border-b border-gray-100 pb-3;
+}
+
+.article-content h3 {
+  @apply text-2xl font-black text-slate-900 mb-4 mt-8 tracking-tight;
+}
+
+.article-content p {
+  @apply mb-6;
+}
+
+.article-content ul {
+  @apply list-disc list-outside ml-6 mb-6 space-y-2;
+}
+
+.article-content ol {
+  @apply list-decimal list-outside ml-6 mb-6 space-y-2;
+}
+
+.article-content li {
+  @apply pl-2;
+}
+
+.article-content blockquote {
+  @apply border-l-4 border-indigo-500 bg-indigo-50/50 px-6 py-4 my-8 rounded-r-2xl italic text-slate-800;
+}
+
+.article-content img {
+  @apply rounded-[2rem] shadow-2xl my-10 w-full h-auto border border-gray-100;
+}
+
+.article-content pre {
+  @apply bg-slate-900 text-slate-50 p-6 rounded-2xl my-8 overflow-x-auto font-mono text-sm;
+}
+
+.article-content code {
+  @apply font-mono bg-slate-100 text-indigo-600 px-1.5 py-0.5 rounded text-sm;
+}
+
+.article-content strong {
+  @apply font-black text-slate-900;
+}
+
+.article-content a {
+  @apply text-indigo-600 font-bold underline decoration-indigo-200 underline-offset-4 hover:text-indigo-700 hover:decoration-indigo-500 transition-all;
+}
+
+.article-content table {
+  @apply w-full border-collapse my-8 rounded-2xl overflow-hidden border border-gray-100;
+}
+
+.article-content th {
+  @apply bg-slate-50 px-4 py-3 text-left text-sm font-black text-slate-900 border border-gray-100;
+}
+
+.article-content td {
+  @apply px-4 py-3 text-sm text-slate-600 border border-gray-100;
 }

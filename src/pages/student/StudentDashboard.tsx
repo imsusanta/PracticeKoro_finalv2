@@ -72,17 +72,30 @@ const StudentDashboard = () => {
   });
   const [showChat, setShowChat] = useState(false);
   const [dailyQuote] = useState(quotes[Math.floor(Math.random() * quotes.length)]);
+  const [studyStreak, setStudyStreak] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<Array<{
+    id: string;
+    testName: string;
+    score: number;
+    passed: boolean;
+    date: string;
+  }>>([]);
 
   const loadDashboardData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/login"); return; }
 
-    const [roleResult, profileResult, approvalResult, examsResult, attemptsResult] = await Promise.all([
+    const [roleResult, profileResult, approvalResult, examsResult, attemptsResult, recentAttemptsResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "student").maybeSingle(),
       supabase.from("profiles").select("*").eq("id", session.user.id).single(),
       supabase.from("approval_status").select("status").eq("user_id", session.user.id).single(),
       supabase.from("exams").select("id, name").eq("is_active", true).order("name"),
-      supabase.from("test_attempts").select("percentage, passed").eq("user_id", session.user.id)
+      supabase.from("test_attempts").select("percentage, passed, created_at").eq("user_id", session.user.id),
+      supabase.from("test_attempts")
+        .select("id, percentage, passed, created_at, mock_test_id, mock_tests(name)")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false })
+        .limit(5)
     ]);
 
     if (!roleResult.data) {
@@ -102,6 +115,49 @@ const StudentDashboard = () => {
       testsPassed: attempts.filter(a => a.passed).length,
       availableExams: examsResult.data?.length || 0
     });
+
+    // Calculate study streak (consecutive days with activity)
+    if (attempts.length > 0) {
+      const sortedDates = attempts
+        .map(a => new Date(a.created_at).toDateString())
+        .filter((value, index, self) => self.indexOf(value) === index)
+        .map(d => new Date(d))
+        .sort((a, b) => b.getTime() - a.getTime());
+
+      let streak = 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      for (let i = 0; i < sortedDates.length; i++) {
+        const expectedDate = new Date(today);
+        expectedDate.setDate(today.getDate() - i);
+        expectedDate.setHours(0, 0, 0, 0);
+
+        const attemptDate = new Date(sortedDates[i]);
+        attemptDate.setHours(0, 0, 0, 0);
+
+        if (attemptDate.getTime() === expectedDate.getTime()) {
+          streak++;
+        } else if (i === 0 && attemptDate.getTime() === expectedDate.getTime() - 86400000) {
+          // Yesterday was last activity, count from yesterday
+          streak++;
+        } else {
+          break;
+        }
+      }
+      setStudyStreak(streak);
+    }
+
+    // Set recent activity
+    if (recentAttemptsResult.data) {
+      setRecentActivity(recentAttemptsResult.data.map((a: any) => ({
+        id: a.id,
+        testName: a.mock_tests?.name || "Unknown Test",
+        score: Math.round(a.percentage),
+        passed: a.passed,
+        date: a.created_at
+      })));
+    }
 
     setAuthChecked(true);
   }, [navigate]);
@@ -134,7 +190,7 @@ const StudentDashboard = () => {
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center gap-4"
           >
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-indigo-500/30">
               <Zap className="w-8 h-8 text-white" />
             </div>
             <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
@@ -154,19 +210,19 @@ const StudentDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center w-full max-w-sm"
           >
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mx-auto mb-6">
               <Lock className="w-10 h-10 text-slate-400" />
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mb-2">Payment Required</h1>
             <p className="text-slate-500 text-sm mb-8">Unlock all features with a one-time payment</p>
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 mb-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 mb-6">
               <img src="/payment-qr.jpg" alt="QR" className="w-36 h-36 rounded-xl mx-auto" />
               <p className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent mt-4">₹99</p>
               <p className="text-xs text-slate-400 mt-1">One-time payment</p>
             </div>
             <button
               onClick={() => window.open("https://wa.me/918927093059", "_blank")}
-              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-lg shadow-green-500/25"
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-green-500/25"
             >
               <MessageSquare className="w-5 h-5" />
               WhatsApp Payment
@@ -188,7 +244,7 @@ const StudentDashboard = () => {
   return (
     <StudentLayout title="Dashboard" subtitle="Your learning hub" hideNavbar={showChat}>
       <PullIndicator />
-      <div className="w-full max-w-2xl mx-auto space-y-5 pb-28 overflow-x-hidden" {...containerProps}>
+      <div className="w-full mx-auto space-y-3 pb-12 overflow-x-hidden px-1" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM HERO CARD - Standardized Size
@@ -196,7 +252,7 @@ const StudentDashboard = () => {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br ${greeting.color} shadow-xl`}
+          className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 bg-gradient-to-br ${greeting.color}`}
         >
           {/* Decorative Elements */}
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
@@ -209,7 +265,7 @@ const StudentDashboard = () => {
               <div className="flex items-center gap-4 min-w-0 flex-1">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0"
+                  className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shrink-0"
                 >
                   <span className="text-2xl sm:text-3xl font-bold text-white">{firstName[0]}</span>
                 </motion.div>
@@ -217,7 +273,7 @@ const StudentDashboard = () => {
                   <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">{greeting.text} {greeting.emoji}</p>
                   <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{firstName}</h1>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-lg shadow-emerald-400/50" />
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-emerald-400/50" />
                     <p className="text-white/80 text-xs font-semibold">Active Student</p>
                   </div>
                 </div>
@@ -225,7 +281,7 @@ const StudentDashboard = () => {
             </div>
 
             {/* Stats Row */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2">
               <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
                 <p className="text-2xl sm:text-3xl font-bold text-white">{statistics.totalTestsTaken}</p>
                 <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Tests Taken</p>
@@ -254,7 +310,7 @@ const StudentDashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate("/student/exams?type=full_mock")}
-            className="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-left flex items-center gap-4 shadow-lg shadow-indigo-500/25 active:shadow-md transition-all"
+            className="w-full p-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 text-left flex items-center gap-4 shadow-indigo-500/25 active:shadow-md transition-all"
           >
             <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
               <GraduationCap className="w-6 h-6 text-white" />
@@ -324,6 +380,105 @@ const StudentDashboard = () => {
             ))}
           </div>
         </div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            STUDY STREAK - Gamification Element
+            ═══════════════════════════════════════════════════════════════ */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12" />
+          <div className="relative z-10 flex items-center gap-4">
+            <motion.div
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center shrink-0"
+            >
+              <Flame className="w-7 h-7 text-white" />
+            </motion.div>
+            <div className="flex-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-3xl font-bold text-white">{studyStreak}</span>
+                <span className="text-white/80 font-semibold text-sm">day streak</span>
+              </div>
+              <p className="text-amber-100 text-xs mt-0.5">
+                {studyStreak === 0 ? "Take a test to start your streak!" :
+                  studyStreak === 1 ? "Great start! Keep it going!" :
+                    `You're on fire! ${studyStreak} days in a row!`}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ═══════════════════════════════════════════════════════════════
+            RECENT ACTIVITY - Activity Feed
+            ═══════════════════════════════════════════════════════════════ */}
+        {recentActivity.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.13 }}
+            className="p-5 rounded-2xl bg-white border border-slate-100 shadow-sm"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">Recent Activity</h3>
+                <p className="text-xs text-slate-500">Your latest test attempts</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {recentActivity.map((activity, idx) => {
+                const date = new Date(activity.date);
+                const timeAgo = (() => {
+                  const diff = Date.now() - date.getTime();
+                  const mins = Math.floor(diff / 60000);
+                  const hours = Math.floor(mins / 60);
+                  const days = Math.floor(hours / 24);
+                  if (mins < 60) return `${mins}m ago`;
+                  if (hours < 24) return `${hours}h ago`;
+                  if (days < 7) return `${days}d ago`;
+                  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+                })();
+
+                return (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + idx * 0.05 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activity.passed ? 'bg-emerald-100' : 'bg-red-100'
+                      }`}>
+                      {activity.passed ? (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      ) : (
+                        <Target className="w-5 h-5 text-red-500" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-900 text-sm truncate">{activity.testName}</p>
+                      <p className="text-xs text-slate-500">{timeAgo}</p>
+                    </div>
+                    <div className={`px-3 py-1 rounded-lg font-bold text-sm ${activity.passed
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-red-100 text-red-600'
+                      }`}>
+                      {activity.score}%
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════
             PROGRESS OVERVIEW - Detailed Stats
@@ -408,7 +563,7 @@ const StudentDashboard = () => {
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-violet-500/20 rounded-full blur-2xl" />
 
           <div className="relative z-10 flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-amber-500/30">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1 min-w-0">
@@ -438,7 +593,7 @@ const StudentDashboard = () => {
               </button>
             </div>
 
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 -mx-4 px-4">
+            <div className="flex flex-nowrap gap-2.5 overflow-x-auto scrollbar-hide pb-2 -mx-2 px-2">
               {exams.map((exam, idx) => (
                 <motion.button
                   key={exam.id}
@@ -447,12 +602,12 @@ const StudentDashboard = () => {
                   transition={{ delay: 0.25 + idx * 0.05 }}
                   whileTap={{ scale: 0.96 }}
                   onClick={() => navigate(`/student/exams?exam=${exam.id}`)}
-                  className="shrink-0 px-5 py-4 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center gap-3 active:bg-slate-50 transition-all min-w-[160px]"
+                  className="shrink-0 px-4 py-3 rounded-xl bg-white border border-slate-100 shadow-sm flex items-center gap-2.5 active:bg-slate-50 transition-all snap-start"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
-                    <GraduationCap className="w-5 h-5 text-indigo-600" />
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-100 to-violet-100 flex items-center justify-center">
+                    <GraduationCap className="w-4 h-4 text-indigo-600" />
                   </div>
-                  <span className="font-bold text-slate-900 text-sm whitespace-nowrap">{exam.name}</span>
+                  <span className="font-bold text-slate-900 text-xs whitespace-nowrap">{exam.name}</span>
                 </motion.button>
               ))}
             </div>
@@ -476,7 +631,7 @@ const StudentDashboard = () => {
             <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowChat(true)}
-              className="w-full p-5 rounded-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-left flex items-center gap-4 shadow-lg shadow-indigo-500/25 active:shadow-md transition-all relative overflow-hidden"
+              className="w-full p-5 rounded-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-600 text-left flex items-center gap-4 shadow-indigo-500/25 active:shadow-md transition-all relative overflow-hidden"
             >
               {/* Background decorations */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />

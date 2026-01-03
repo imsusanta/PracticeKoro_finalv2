@@ -17,11 +17,15 @@ import {
   CheckCircle,
   Shield,
   Clock,
-  Camera
+  Camera,
+  Bell
 } from "lucide-react";
 import StudentLayout from "@/components/student/StudentLayout";
 import { differenceInDays } from "date-fns";
 import { motion } from "framer-motion";
+import StudentChat from "@/components/StudentChat";
+import { getStudentUnreadCount } from "@/config/chat";
+import { formatDistanceToNow } from "date-fns";
 
 interface ProfileStatistics {
   totalTests: number;
@@ -41,6 +45,10 @@ const StudentProfile = () => {
   const [formData, setFormData] = useState({ full_name: "", whatsapp_number: "" });
   const [isEditing, setIsEditing] = useState(false);
   const [accountDays, setAccountDays] = useState(0);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const [chatUnreadCount, setChatUnreadCount] = useState(0);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,30 +67,38 @@ const StudentProfile = () => {
     setUploadingImage(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
 
       // Upload to storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data: uploadData } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
 
-      // Get public URL
+      // Get public URL with cache-busting
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const avatarUrlWithCacheBust = `${publicUrl}?t=${Date.now()}`;
 
       // Update profile with avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ avatar_url: publicUrl })
+        .update({ avatar_url: avatarUrlWithCacheBust })
         .eq('id', profile.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Profile update error:", updateError);
+        throw updateError;
+      }
 
-      setProfile({ ...profile, avatar_url: publicUrl });
+      setProfile({ ...profile, avatar_url: avatarUrlWithCacheBust });
       toast({ title: "Success", description: "Profile photo updated!" });
     } catch (error: any) {
+      console.error("Avatar upload error:", error);
       toast({ title: "Error", description: error.message || "Failed to upload", variant: "destructive" });
     }
     setUploadingImage(false);
@@ -91,6 +107,82 @@ const StudentProfile = () => {
   useEffect(() => {
     checkAuthAndLoadData();
   }, []);
+
+  // Load notifications
+  useEffect(() => {
+    if (profile?.id) {
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [profile?.id]);
+
+  const loadNotifications = async () => {
+    if (!profile?.id) return;
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error) {
+      console.error("Error loading notifications:", error);
+      return;
+    }
+
+    if (data) {
+      setNotifications(data);
+      setUnreadNotificationCount(data.filter(n => !n.is_read).length);
+    }
+  };
+
+  // Load chat unread count
+  useEffect(() => {
+    if (profile?.id) {
+      loadChatUnreadCount(profile.id);
+      const interval = setInterval(() => loadChatUnreadCount(profile.id), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [profile?.id]);
+
+  const loadChatUnreadCount = async (studentId: string) => {
+    const count = await getStudentUnreadCount(studentId);
+    setChatUnreadCount(count);
+  };
+
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.is_read) {
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("id", notif.id);
+      loadNotifications();
+    }
+
+    if (notif.link) {
+      navigate(notif.link);
+    } else if (notif.test_id) {
+      // For backwards compatibility if test_id exists in any old local testing data
+      navigate(`/student/take-test/${notif.test_id}`);
+    }
+  };
+
+  const formatNotificationTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  };
 
   const checkAuthAndLoadData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -213,14 +305,14 @@ const StudentProfile = () => {
     : 'ST';
 
   return (
-    <StudentLayout title="Profile" subtitle="Your account">
-      <div className="w-full space-y-3 pb-24">
+    <StudentLayout title="Profile" subtitle="Your account" hideNavbar={chatOpen}>
+      <div className="w-full space-y-3 pb-12 px-1">
 
         {/* Premium Profile Header - Matches Dashboard Height */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 shadow-xl"
+          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700"
         >
           <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl -mr-24 -mt-24" />
           <div className="absolute bottom-0 left-0 w-40 h-40 bg-black/10 rounded-full blur-3xl -ml-20 -mb-20" />
@@ -240,7 +332,7 @@ const StudentProfile = () => {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingImage}
-                className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0 overflow-hidden group"
+                className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shrink-0 overflow-hidden group"
               >
                 {profile?.avatar_url ? (
                   <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
@@ -376,6 +468,106 @@ const StudentProfile = () => {
             )}
           </div>
         </motion.div>
+
+        {/* Notifications Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="bg-white rounded-xl border border-slate-100 overflow-hidden"
+        >
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Notifications</p>
+            {unreadNotificationCount > 0 && (
+              <span className="text-[9px] font-bold text-white bg-indigo-500 px-1.5 py-0.5 rounded-full">
+                {unreadNotificationCount} new
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-slate-100">
+            {notifications.length === 0 ? (
+              <div className="p-6 text-center">
+                <Bell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                <p className="text-sm text-slate-400">No notifications yet</p>
+              </div>
+            ) : (
+              notifications.slice(0, 3).map((notif) => {
+                const isUnread = !notif.is_read;
+                return (
+                  <div
+                    key={notif.id}
+                    onClick={() => handleNotificationClick(notif)}
+                    className={`p-3 flex items-start gap-3 cursor-pointer hover:bg-slate-50 transition-colors ${isUnread ? "bg-emerald-50/50" : ""}`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${isUnread ? "bg-emerald-100" : "bg-slate-100"}`}>
+                      <Bell className={`w-4 h-4 ${isUnread ? "text-emerald-600" : "text-slate-400"}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-semibold truncate ${isUnread ? "text-slate-900" : "text-slate-600"}`}>{notif.title}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{notif.message}</p>
+                    </div>
+                    <span className="text-[9px] text-slate-400 shrink-0">
+                      {notif.created_at ? formatNotificationTime(notif.created_at) : ""}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          {notifications.length > 3 && (
+            <button
+              onClick={() => navigate("/student/notifications")} // Assuming this route exists or we just want the UI
+              className="w-full p-2.5 text-center text-xs font-semibold text-emerald-600 hover:bg-emerald-50 transition-colors border-t border-slate-100"
+            >
+              View All Notifications
+            </button>
+          )}
+        </motion.div>
+
+        {/* Chat Inbox Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          className="bg-white rounded-xl border border-slate-100 overflow-hidden"
+        >
+          <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Chat Inbox</p>
+            {chatUnreadCount > 0 && (
+              <span className="text-[9px] font-bold text-white bg-emerald-500 px-1.5 py-0.5 rounded-full">
+                {chatUnreadCount} new
+              </span>
+            )}
+          </div>
+          <div className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center">
+                <MessageSquare className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-slate-900">Admin Support</p>
+                <p className="text-xs text-slate-500">Chat with our support team</p>
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setChatOpen(true)}
+            className="w-full p-3 text-center text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 transition-all flex items-center justify-center gap-2"
+          >
+            <MessageSquare className="w-4 h-4" />
+            Open Chat
+          </button>
+        </motion.div>
+
+        {/* Student Chat Component */}
+        {profile && (
+          <StudentChat
+            studentId={profile.id}
+            studentName={profile.full_name || "Student"}
+            isOpen={chatOpen}
+            onOpenChange={setChatOpen}
+          />
+        )}
 
         {/* Quick Links */}
         <motion.div

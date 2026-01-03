@@ -7,7 +7,8 @@ const OFFLINE_URL = '/';
 const STATIC_ASSETS = [
     '/',
     '/manifest.json',
-    '/favicon.ico'
+    '/icons/icon-192x192.png',
+    '/icons/icon-512x512.png'
 ];
 
 // Install event - cache static assets
@@ -69,51 +70,39 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Skip API/Supabase requests - always fetch from network
+    // Skip API/Supabase requests or non-GET requests - always fetch from network
     if (url.hostname.includes('supabase') ||
+        url.origin.includes('supabase.co') ||
         url.pathname.startsWith('/api') ||
         request.method !== 'GET') {
         return;
     }
 
-    // For navigation requests, use network-first with cache fallback
-    if (request.mode === 'navigate') {
-        event.respondWith(
-            fetch(request)
-                .then((response) => {
-                    // Cache successful responses
-                    if (response.status === 200) {
-                        const responseClone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(request, responseClone);
-                        });
-                    }
-                    return response;
-                })
-                .catch(() => {
-                    // Return cached page if network fails
-                    return caches.match(OFFLINE_URL);
-                })
-        );
-        return;
-    }
-
-    // For static assets, use stale-while-revalidate strategy
     event.respondWith(
         caches.match(request).then((cachedResponse) => {
-            const fetchPromise = fetch(request).then((networkResponse) => {
-                // Update cache with new version
-                if (networkResponse.status === 200) {
-                    const responseClone = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(request, responseClone);
-                    });
-                }
-                return networkResponse;
-            }).catch(() => cachedResponse);
+            if (cachedResponse) {
+                return cachedResponse;
+            }
 
-            // Return cached immediately, update in background
-            return cachedResponse || fetchPromise;
+            return fetch(request).then((networkResponse) => {
+                // Don't cache non-successful responses or external assets
+                if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+                    return networkResponse;
+                }
+
+                const responseToCache = networkResponse.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(request, responseToCache);
+                });
+
+                return networkResponse;
+            }).catch(error => {
+                console.error('[SW] Fetch failed:', error);
+                // Fail silently for non-navigation requests
+                if (request.mode === 'navigate') {
+                    return caches.match(OFFLINE_URL);
+                }
+            });
         })
     );
 });

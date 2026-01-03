@@ -212,7 +212,7 @@ const AdminChatInbox = () => {
         <AdminLayout title="Chat Inbox" subtitle="Chat with students">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[calc(100vh-160px)] md:h-[calc(100vh-200px)] min-h-[500px]">
                 {/* Students/Conversations List */}
-                <Card className={`border-0 shadow-lg rounded-2xl overflow-hidden flex flex-col ${selectedStudent ? "hidden lg:flex" : "flex"}`}>
+                <Card className={`border-0 rounded-2xl overflow-hidden flex flex-col ${selectedStudent ? "hidden lg:flex" : "flex"}`}>
                     <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100/50 py-3 px-4">
                         <div className="flex items-center justify-between mb-3">
                             <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -345,7 +345,7 @@ const AdminChatInbox = () => {
                 </Card>
 
                 {/* Chat Area */}
-                <Card className={`border-0 shadow-lg rounded-2xl overflow-hidden lg:col-span-2 flex flex-col ${!selectedStudent ? "hidden lg:flex" : "flex"}`}>
+                <Card className={`border-0 rounded-2xl overflow-hidden lg:col-span-2 flex flex-col ${!selectedStudent ? "hidden lg:flex" : "flex"}`}>
                     {selectedStudent ? (
                         <>
                             {/* Chat Header */}

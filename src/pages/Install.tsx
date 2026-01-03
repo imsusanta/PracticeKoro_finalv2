@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { 
-  Download, 
-  Smartphone, 
-  Zap, 
-  CheckCircle, 
-  Share, 
-  Plus, 
-  Wifi, 
-  Bell, 
-  Shield,
+import {
+  Download,
+  Share,
+  Plus,
+  CheckCircle,
+  Apple,
+  Smartphone,
   ArrowLeft,
+  Wifi,
+  Zap,
+  Bell,
+  Shield,
   Chrome,
-  Apple
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -30,24 +31,62 @@ const Install = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [installing, setInstalling] = useState(false);
 
+  const [diag, setDiag] = useState({
+    https: false,
+    sw: false,
+    manifest: false,
+    prompt: false
+  });
+
+  const [browserInfo, setBrowserInfo] = useState<{ name: string; icon: any } | null>(null);
+
   useEffect(() => {
     // Check if already installed
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
     }
 
-    // Detect platform
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isIOSDevice = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
-    const isAndroidDevice = /android/.test(userAgent);
-    
+    // Detect platform & browser
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(ua) && !(window as any).MSStream;
+    const isAndroidDevice = /android/.test(ua);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+    const isChrome = /chrome/.test(ua) && !/edge|opr/.test(ua);
+
     setIsIOS(isIOSDevice);
     setIsAndroid(isAndroidDevice);
+
+    if (isSafari) setBrowserInfo({ name: "Safari", icon: Smartphone });
+    else if (isChrome) setBrowserInfo({ name: "Chrome", icon: Chrome });
+    else setBrowserInfo({ name: "Browser", icon: Smartphone });
+
+    // Diagnostics
+    const checkDiag = async () => {
+      const isHttps = window.location.protocol === "https:" || window.location.hostname === "localhost";
+      const hasSW = "serviceWorker" in navigator;
+      const swReg = hasSW ? await navigator.serviceWorker.getRegistration() : null;
+
+      let hasManifest = false;
+      try {
+        const resp = await fetch("/manifest.json");
+        hasManifest = resp.ok;
+      } catch (e) { }
+
+      setDiag({
+        https: isHttps,
+        sw: !!swReg,
+        manifest: hasManifest,
+        prompt: !!deferredPrompt
+      });
+    };
+
+    checkDiag();
 
     // Handle beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setDiag(prev => ({ ...prev, prompt: true }));
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -60,7 +99,7 @@ const Install = () => {
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     };
-  }, []);
+  }, [deferredPrompt]);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
@@ -78,21 +117,14 @@ const Install = () => {
   };
 
   const features = [
-    { icon: Wifi, title: "Works Offline", description: "Access your tests even without internet", color: "from-blue-500 to-cyan-500" },
-    { icon: Zap, title: "Lightning Fast", description: "Instant loading, native app experience", color: "from-amber-500 to-orange-500" },
-    { icon: Bell, title: "Push Notifications", description: "Get notified about new tests & results", color: "from-purple-500 to-pink-500" },
-    { icon: Shield, title: "Secure & Private", description: "Your data stays safe on your device", color: "from-emerald-500 to-teal-500" },
+    { icon: Wifi, title: "Works Offline", description: "Access tests without internet", color: "from-blue-500 to-cyan-500" },
+    { icon: Zap, title: "Speed+", description: "Native app-like performance", color: "from-amber-500 to-orange-500" },
+    { icon: Bell, title: "Notifications", description: "Test & result alerts", color: "from-purple-500 to-pink-500" },
+    { icon: Shield, title: "Premium UI", description: "Full-screen experience", color: "from-emerald-500 to-teal-500" },
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/50 to-violet-50/50 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-[500px] h-[500px] bg-gradient-to-br from-indigo-200/40 to-violet-200/40 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -left-40 w-[400px] h-[400px] bg-gradient-to-br from-blue-200/30 to-cyan-200/30 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 right-1/4 w-[450px] h-[450px] bg-gradient-to-br from-purple-200/25 to-pink-200/25 rounded-full blur-3xl" />
-      </div>
-
       <div className="relative z-10 max-w-lg mx-auto px-4 py-8 min-h-screen flex flex-col" style={{ paddingTop: 'max(env(safe-area-inset-top), 32px)', paddingBottom: 'max(env(safe-area-inset-bottom), 32px)' }}>
         {/* Back button */}
         <motion.button
@@ -108,60 +140,85 @@ const Install = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-6"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.1 }}
-            className="w-24 h-24 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 flex items-center justify-center shadow-2xl shadow-indigo-500/30"
+            className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 flex items-center justify-center"
+            style={{ boxShadow: '0 12px 32px rgba(99, 102, 241, 0.3)' }}
           >
-            <Zap className="w-12 h-12 text-white" />
+            <Zap className="w-10 h-10 text-white" />
           </motion.div>
-          
-          <h1 className="text-3xl font-black text-slate-900 mb-2">Install Practice Koro</h1>
-          <p className="text-slate-500 text-sm">Get the full native app experience</p>
+
+          <h1 className="text-2xl font-black text-slate-900 mb-1">Install App</h1>
+          <p className="text-slate-500 text-xs">Practice Koro Premium Experience</p>
         </motion.div>
 
-        {/* Already installed message */}
-        {isInstalled && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6 text-center"
-          >
-            <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-emerald-900 mb-1">Already Installed!</h3>
-            <p className="text-emerald-600 text-sm">You can open the app from your home screen</p>
-            <Button
-              onClick={() => navigate("/student/dashboard")}
-              className="mt-4 bg-emerald-600 hover:bg-emerald-700"
-            >
-              Go to Dashboard
-            </Button>
-          </motion.div>
-        )}
+        {/* System Diagnostic Check */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-3xl p-5 border border-slate-100 shadow-xl shadow-indigo-500/5 mb-6"
+        >
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-indigo-600" />
+              Environment Check
+            </h3>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200">
+              {browserInfo && <browserInfo.icon className="w-3 h-3 text-slate-400" />}
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-tight">{browserInfo?.name || "Checking..."}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {[
+              { label: "Connection", ok: diag.https, desc: "Secure HTTPS" },
+              { label: "Engine", ok: diag.sw, desc: "Service Worker" },
+              { label: "Configuration", ok: diag.manifest, desc: "App Manifest" },
+              { label: "Compatibility", ok: diag.prompt || isIOS || browserInfo?.name === "Safari", desc: "Install Support" },
+            ].map((item) => (
+              <div key={item.label} className={`flex flex-col gap-1 p-3 rounded-2xl border transition-colors ${item.ok ? 'bg-emerald-50/30 border-emerald-100' : 'bg-red-50/30 border-red-100'}`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-bold ${item.ok ? 'text-emerald-700' : 'text-red-700'}`}>{item.label}</span>
+                  <div className={`w-1.5 h-1.5 rounded-full ${item.ok ? 'bg-emerald-500' : 'bg-red-500'} ${!item.ok ? 'animate-pulse' : ''}`} />
+                </div>
+                <span className="text-[8px] text-slate-400 font-medium leading-none">{item.desc}</span>
+              </div>
+            ))}
+          </div>
+
+          {!diag.https && (
+            <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100 flex gap-2 items-start">
+              <X className="w-3 h-3 text-red-500 mt-0.5 shrink-0" />
+              <p className="text-[10px] text-red-700 font-medium leading-normal italic">
+                PWA installation requires a secure (HTTPS) connection. If you are on a local network, please use localhost or a secure tunnel.
+              </p>
+            </div>
+          )}
+        </motion.div>
 
         {/* Features grid */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 gap-3 mb-8"
+          transition={{ delay: 0.3 }}
+          className="grid grid-cols-4 gap-2 mb-8"
         >
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 + index * 0.1 }}
-              className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm"
+              transition={{ delay: 0.4 + index * 0.1 }}
+              className="flex flex-col items-center"
             >
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-3 shadow-md`}>
-                <feature.icon className="w-5 h-5 text-white" />
+              <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center mb-2 shadow-lg shadow-indigo-500/10`}>
+                <feature.icon className="w-4 h-4 text-white" />
               </div>
-              <h4 className="font-bold text-slate-900 text-sm mb-1">{feature.title}</h4>
-              <p className="text-[11px] text-slate-500 leading-relaxed">{feature.description}</p>
+              <h4 className="font-black text-slate-900 text-[9px] uppercase tracking-tighter text-center">{feature.title}</h4>
             </motion.div>
           ))}
         </motion.div>
@@ -175,111 +232,98 @@ const Install = () => {
             className="flex-1"
           >
             {/* Android/Chrome - Direct install */}
-            {(deferredPrompt || isAndroid) && !isIOS && (
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                    <Chrome className="w-6 h-6 text-white" />
+            {deferredPrompt && !isIOS && (
+              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xl shadow-indigo-500/10 mb-6">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                    <Download className="w-6 h-6 text-indigo-600" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900">Install with One Click</h3>
-                    <p className="text-sm text-slate-500">Android & Chrome</p>
+                    <h3 className="font-black text-slate-900 leading-tight">Instant Install</h3>
+                    <p className="text-[11px] text-slate-500 font-medium">Add to home screen now</p>
                   </div>
                 </div>
-                
+
                 <Button
                   onClick={handleInstall}
-                  disabled={!deferredPrompt || installing}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold rounded-2xl py-6 text-base shadow-xl shadow-indigo-500/25"
+                  disabled={installing}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-black rounded-2xl py-7 text-base shadow-xl shadow-indigo-500/30 transition-all active:scale-95"
                 >
                   {installing ? (
                     <span className="flex items-center gap-2">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Installing...
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
-                      <Download className="w-5 h-5" />
-                      Install App Now
+                      Install Practice Koro
                     </span>
                   )}
                 </Button>
-                
-                {!deferredPrompt && !isIOS && (
-                  <p className="text-xs text-center text-slate-400 mt-3">
-                    If the button doesn't work, use your browser menu → "Add to Home Screen"
+              </div>
+            )}
+
+            {/* Manual Instructions (iOS or Failed Direct Install) */}
+            {(!deferredPrompt || isIOS || browserInfo?.name === "Safari") && (
+              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-2xl shadow-indigo-500/10 mb-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-3xl -mr-16 -mt-16 opacity-50" />
+
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg">
+                    {isIOS || browserInfo?.name === "Safari" ? <Apple className="w-6 h-6 text-white" /> : <Smartphone className="w-6 h-6 text-white" />}
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 leading-tight">Manual Install</h3>
+                    <p className="text-[11px] text-slate-500 font-medium italic">Required for {browserInfo?.name || 'this browser'}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  {[
+                    {
+                      step: "1",
+                      icon: Share,
+                      color: "text-blue-600",
+                      bg: "bg-blue-50",
+                      title: "Tap Share",
+                      desc: "Find this icon in your browser's bottom or top menu."
+                    },
+                    {
+                      step: "2",
+                      icon: Plus,
+                      color: "text-emerald-600",
+                      bg: "bg-emerald-50",
+                      title: "Add to Home Screen",
+                      desc: "Scroll down the menu to find this magic button."
+                    },
+                    {
+                      step: "3",
+                      icon: CheckCircle,
+                      color: "text-purple-600",
+                      bg: "bg-purple-50",
+                      title: "Confirm 'Add'",
+                      desc: "Tap 'Add' in the top right corner to finish."
+                    },
+                  ].map((item) => (
+                    <div key={item.step} className="flex gap-4 group">
+                      <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0 shadow-sm border border-white transition-transform group-hover:scale-110`}>
+                        <item.icon className={`w-5 h-5 ${item.color}`} />
+                      </div>
+                      <div>
+                        <p className="font-black text-slate-900 text-sm leading-tight mb-1">{item.title}</p>
+                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100/50">
+                  <p className="text-[10px] text-indigo-700 font-black flex items-center gap-2 uppercase tracking-tight">
+                    <Zap className="w-3.5 h-3.5" />
+                    Pro Tip
                   </p>
-                )}
-              </div>
-            )}
-
-            {/* iOS Instructions */}
-            {isIOS && (
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg mb-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
-                    <Apple className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900">Install on iPhone/iPad</h3>
-                    <p className="text-sm text-slate-500">Follow these simple steps</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-                      <Share className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm">Step 1: Tap Share</p>
-                      <p className="text-xs text-slate-500 mt-0.5">Tap the share button at the bottom of Safari</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                      <Plus className="w-5 h-5 text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm">Step 2: Add to Home Screen</p>
-                      <p className="text-xs text-slate-500 mt-0.5">Scroll down and tap "Add to Home Screen"</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-4 p-4 bg-slate-50 rounded-xl">
-                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-                      <CheckCircle className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-900 text-sm">Step 3: Tap Add</p>
-                      <p className="text-xs text-slate-500 mt-0.5">Confirm by tapping "Add" in the top right</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Generic instructions for desktop/other browsers */}
-            {!isIOS && !isAndroid && !deferredPrompt && (
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-lg mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                    <Smartphone className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900">Install from Browser</h3>
-                    <p className="text-sm text-slate-500">Works on all devices</p>
-                  </div>
-                </div>
-                
-                <p className="text-sm text-slate-600 mb-4">
-                  Look for the install icon in your browser's address bar, or use the browser menu and select "Install App" or "Add to Home Screen".
-                </p>
-                
-                <div className="p-4 bg-indigo-50 rounded-xl">
-                  <p className="text-xs text-indigo-700 font-medium">
-                    💡 Tip: Open this page on your mobile device for the best installation experience!
+                  <p className="text-[11px] text-indigo-600 font-medium mt-1 leading-normal italic">
+                    Once added, the app will appear on your home screen just like a native app from the Play Store or App Store!
                   </p>
                 </div>
               </div>

@@ -40,7 +40,7 @@ const SidebarToggleButton = () => {
     return (
         <button
             onClick={toggleSidebar}
-            className={`hidden md:flex fixed z-[100] rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30 items-center justify-center hover:from-indigo-600 hover:to-violet-700 hover:shadow-xl hover:scale-110 transition-all duration-300 border-2 border-white w-8 h-8 ${isCollapsed
+            className={`hidden md:flex fixed z-[100] rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30 items-center justify-center hover:from-indigo-600 hover:to-violet-700 hover:shadow-xl hover:scale-110 transition-all duration-150 border-2 border-white w-8 h-8 ${isCollapsed
                 ? "left-[4rem] top-5"
                 : "left-[15.5rem] top-5"
                 }`}
@@ -104,14 +104,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 relative flex flex-col overflow-x-hidden">
-            {/* Animated Background Gradient Orbs */}
-            <div className="fixed inset-0 pointer-events-none overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-emerald-200/50 to-teal-200/50 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute top-1/3 -left-40 w-80 h-80 bg-gradient-to-br from-blue-200/40 to-cyan-200/40 rounded-full blur-3xl" />
-                <div className="absolute -bottom-40 right-1/4 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl" />
-                {/* Subtle dot pattern */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(0,0,0,0.03)_1px,transparent_0)] bg-[size:20px_20px]" />
-            </div>
+            {/* Clean Background - No blur orbs */}
 
             <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 {/* Toggle Button - Fixed position, always accessible */}
@@ -122,7 +115,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                     side="left"
                     variant="sidebar"
                     collapsible="icon"
-                    className="bg-white/70 backdrop-blur-2xl border-r border-white/50 shadow-xl shadow-emerald-500/5 transition-all duration-500 h-screen sticky top-0"
+                    className="bg-white/70 backdrop-blur-sm border-r border-white/50 shadow-xl shadow-emerald-500/5 transition-all duration-200 h-screen sticky top-0"
                 >
 
                     <SidebarHeader className="border-b border-emerald-100/30 bg-gradient-to-r from-white/80 to-emerald-50/50 backdrop-blur-sm">
@@ -155,7 +148,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                             <SidebarMenuButton
                                                 asChild
                                                 isActive={isActive}
-                                                className={`rounded-xl transition-all duration-300 group/item h-auto ${isActive
+                                                className={`rounded-xl transition-all duration-150 group/item h-auto ${isActive
                                                     ? `bg-gradient-to-r ${colorSet.activeBg} text-white shadow-lg`
                                                     : "text-gray-600 hover:bg-white/80 hover:shadow-sm"
                                                     } group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2`}
@@ -168,7 +161,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                                     <motion.div
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.95 }}
-                                                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 ${isActive
+                                                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150 shrink-0 ${isActive
                                                             ? "bg-white/25 shadow-inner"
                                                             : `bg-gradient-to-br ${colorSet.bg} shadow-sm`
                                                             }`}
@@ -191,7 +184,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                             {/* Home Button */}
                             <SidebarMenuButton
                                 asChild
-                                className="w-full rounded-xl text-gray-600 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-300 group/btn group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 h-auto"
+                                className="w-full rounded-xl text-gray-600 hover:bg-emerald-50/80 hover:text-emerald-700 transition-all duration-150 group/btn group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 h-auto"
                             >
                                 <button
                                     onClick={() => navigate("/")}
@@ -211,7 +204,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                             {/* Logout Button */}
                             <SidebarMenuButton
                                 asChild
-                                className="w-full rounded-xl text-gray-600 hover:bg-red-50/80 hover:text-red-600 transition-all duration-300 group/btn group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 h-auto"
+                                className="w-full rounded-xl text-gray-600 hover:bg-red-50/80 hover:text-red-600 transition-all duration-150 group/btn group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2 h-auto"
                             >
                                 <button
                                     onClick={handleLogout}
@@ -234,10 +227,10 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                 <SidebarInset className="bg-transparent flex-1 md:h-screen md:overflow-y-auto">
                     {/* Transparent Floating Header */}
                     <header className="sticky top-0 z-20 safe-area-top">
-                        <div className="mx-4 md:mx-6 mt-4 rounded-2xl bg-white/40 backdrop-blur-xl border border-white/50 shadow-lg shadow-gray-200/20">
+                        <div className="mx-4 md:mx-6 mt-4 rounded-2xl bg-white/40 backdrop-blur-sm border border-white/50 shadow-lg shadow-gray-200/20">
                             <div className="flex items-center h-14 md:h-16 px-4 md:px-5 gap-3">
                                 {/* Mobile Menu Trigger */}
-                                <SidebarTrigger className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white/60 text-emerald-700 hover:bg-white transition-all duration-300">
+                                <SidebarTrigger className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-white/60 text-emerald-700 hover:bg-white transition-all duration-150">
                                     <Menu className="w-5 h-5" />
                                 </SidebarTrigger>
 
@@ -289,7 +282,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
 
                     {/* Enhanced Bottom Navigation (Mobile) */}
                     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-4 pb-safe-area-bottom pointer-events-none">
-                        <div className="mx-auto mb-4 rounded-2xl bg-white/90 backdrop-blur-xl border border-white/40 shadow-2xl pointer-events-auto max-w-md">
+                        <div className="mx-auto mb-4 rounded-2xl bg-white/90 backdrop-blur-sm border border-white/40 shadow-2xl pointer-events-auto max-w-md">
                             <div className="flex items-center justify-around h-16 p-2">
                                 {managementTools.slice(0, 4).map((tool, index) => {
                                     const Icon = tool.icon;
@@ -299,12 +292,12 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                         <Link
                                             key={tool.path}
                                             to={tool.path}
-                                            className={`relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-300 ${isActive
+                                            className={`relative flex flex-col items-center justify-center w-14 h-14 rounded-2xl transition-all duration-150 ${isActive
                                                 ? `text-white bg-gradient-to-br ${colorSet.activeBg} shadow-lg shadow-emerald-500/20 scale-105`
                                                 : "text-gray-400 hover:text-emerald-600"
                                                 }`}
                                         >
-                                            <Icon className={`w-5 h-5 relative z-10 transition-transform duration-300 ${isActive ? "scale-110" : ""}`} />
+                                            <Icon className={`w-5 h-5 relative z-10 transition-transform duration-150 ${isActive ? "scale-110" : ""}`} />
                                             <span className={`relative z-10 text-[8px] font-bold mt-1.5 truncate max-w-full px-1 uppercase tracking-tighter ${isActive ? "text-white" : "text-gray-500"}`}>
                                                 {tool.name.split(" ")[0]}
                                             </span>
@@ -317,7 +310,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <button
-                                                className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition-all duration-300 ${managementTools.slice(4).some(t => location.pathname === t.path)
+                                                className={`flex flex-col items-center justify-center w-14 h-14 rounded-xl transition-all duration-150 ${managementTools.slice(4).some(t => location.pathname === t.path)
                                                     ? "text-emerald-600 bg-emerald-50 shadow-sm"
                                                     : "text-gray-400 hover:text-emerald-600"
                                                     }`}
@@ -326,7 +319,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                                 <span className="text-[9px] font-bold mt-1">More</span>
                                             </button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="mb-4 w-56 p-2 rounded-2xl bg-white/95 backdrop-blur-xl border-white/50 shadow-2xl z-[100]">
+                                        <DropdownMenuContent align="end" className="mb-4 w-56 p-2 rounded-2xl bg-white/95 backdrop-blur-sm border-white/50 shadow-2xl z-[100]">
                                             <div className="grid grid-cols-2 gap-2">
                                                 {managementTools.slice(4).map((tool, index) => {
                                                     const Icon = tool.icon;
@@ -340,7 +333,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                                         >
                                                             <Link
                                                                 to={tool.path}
-                                                                className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl transition-all duration-300 border border-transparent ${isActive
+                                                                className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl transition-all duration-150 border border-transparent ${isActive
                                                                     ? `text-white bg-gradient-to-br ${colorSet.activeBg} shadow-md`
                                                                     : "text-gray-600 hover:bg-emerald-50/50 hover:border-emerald-100"
                                                                     }`}

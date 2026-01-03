@@ -6,10 +6,10 @@ import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, ArrowLeft, Eye, EyeOff, Lock, Mail, Loader2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, Loader2, Shield } from "lucide-react";
 import loginIllustration from "@/assets/login-illustration.png";
 
-const AdminLogin = () => {
+const AdminLoginPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -55,35 +55,39 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-muted/30">
-      {/* Left Side - Illustration (Hidden on mobile, Fixed position) */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] fixed left-0 top-0 h-screen bg-gradient-to-br from-rose-50 via-orange-50 to-amber-50 items-center justify-center p-8 xl:p-12">
+    <div className="min-h-screen bg-[#f8fafc]">
+      {/* Left Side - Illustration (Fixed position - doesn't scroll) */}
+      <div
+        className="hidden lg:flex items-center justify-center p-8 xl:p-12 overflow-hidden"
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          width: '50%',
+          height: '100vh',
+          background: 'linear-gradient(to bottom right, #fff1f2, #ffedd5, #fef3c7)',
+          zIndex: 10
+        }}
+      >
         <div className="relative w-full max-w-lg xl:max-w-xl">
           {/* Decorative elements */}
           <div className="absolute -top-8 -left-8 w-24 h-24 bg-rose-200/40 rounded-full blur-2xl" />
           <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-orange-200/40 rounded-full blur-2xl" />
 
-          {/* Main illustration container */}
-          <div className="relative bg-white/60 backdrop-blur-sm rounded-[2.5rem] p-6 xl:p-8 shadow-xl shadow-rose-100/50 border border-white/80">
+          {/* Main illustration */}
+          <div className="relative flex items-center justify-center w-full max-w-[480px]">
             <img
               src={loginIllustration}
               alt="Admin portal illustration"
-              className="w-full h-auto rounded-2xl"
+              className="w-full h-auto mix-blend-multiply transition-all duration-700 select-none pointer-events-none"
             />
-            {/* Admin Badge */}
-            <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-500 to-orange-500 px-6 py-2 rounded-full shadow-lg shadow-red-500/30">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-white" />
-                <span className="text-white font-semibold text-sm">Admin Portal</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="flex-1 flex flex-col min-h-screen lg:min-h-0 lg:ml-[50%] xl:ml-[55%]">
-        {/* Header with Back button */}
+      {/* Right Side - Login Form (offset from fixed left panel) */}
+      <div className="min-h-screen flex flex-col lg:ml-[50%]">
+        {/* Header with Back button and Student Login */}
         <div className="flex justify-between items-center p-4 sm:p-6 lg:p-8">
           <Button
             variant="outline"
@@ -105,21 +109,14 @@ const AdminLogin = () => {
         {/* Form Container */}
         <div className="flex-1 flex items-center justify-center px-4 sm:px-8 pb-8 lg:pb-0">
           <div className="w-full max-w-md space-y-8">
-            {/* Mobile Illustration */}
+            {/* Mobile Illustration - No shadow */}
             <div className="lg:hidden flex justify-center mb-6">
-              <div className="w-48 h-48 sm:w-56 sm:h-56 bg-gradient-to-br from-rose-50 via-orange-50 to-amber-50 rounded-3xl p-4 shadow-lg shadow-rose-100/30 relative">
+              <div className="w-48 h-48 sm:w-56 sm:h-56 bg-gradient-to-br from-rose-50 via-orange-50 to-amber-50 rounded-[2rem] p-4 border border-rose-100/30 overflow-hidden">
                 <img
                   src={loginIllustration}
                   alt="Admin portal"
-                  className="w-full h-full object-cover rounded-2xl"
+                  className="w-full h-full object-contain rounded-2xl mix-blend-multiply"
                 />
-                {/* Admin Badge */}
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-500 to-orange-500 px-4 py-1.5 rounded-full shadow-lg">
-                  <div className="flex items-center gap-1.5">
-                    <Shield className="w-3.5 h-3.5 text-white" />
-                    <span className="text-white font-semibold text-xs">Admin</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -221,7 +218,7 @@ const AdminLogin = () => {
             {/* Security Notice */}
             <div className="p-4 bg-muted/50 rounded-xl border border-border/40">
               <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
-                <Lock className="w-4 h-4" />
+                <Shield className="w-4 h-4" />
                 Protected admin-only access
               </p>
             </div>
@@ -232,4 +229,4 @@ const AdminLogin = () => {
   );
 };
 
-export default AdminLogin;
+export default AdminLoginPage;

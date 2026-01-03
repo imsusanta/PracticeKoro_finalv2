@@ -71,7 +71,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                             }}
                             className="mx-auto mb-6"
                         >
-                            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl bg-white shadow-2xl flex items-center justify-center">
+                            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl bg-white flex items-center justify-center" style={{ boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)' }}>
                                 <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 text-primary" />
                             </div>
                         </motion.div>
@@ -85,40 +85,14 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
                         >
                             Practice Koro
                         </motion.h1>
-
-                        {/* Tagline */}
                         <motion.p
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.7 }}
-                            className="mt-3 text-sm md:text-base text-white/80 font-medium"
-                        >
-                            Master Your Exams
-                        </motion.p>
-
-                        {/* Loading Indicator */}
-                        <motion.div
                             initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 1 }}
-                            className="mt-8 flex justify-center"
+                            animate={{ opacity: 0.8 }}
+                            transition={{ duration: 0.5, delay: 0.8 }}
+                            className="text-white/80 text-sm sm:text-base mt-2 font-medium tracking-wide"
                         >
-                            <div className="flex gap-1.5">
-                                {[0, 1, 2].map((i) => (
-                                    <motion.div
-                                        key={i}
-                                        initial={{ opacity: 0.3 }}
-                                        animate={{ opacity: [0.3, 1, 0.3] }}
-                                        transition={{
-                                            duration: 0.8,
-                                            repeat: Infinity,
-                                            delay: i * 0.15,
-                                        }}
-                                        className="w-2 h-2 rounded-full bg-white"
-                                    />
-                                ))}
-                            </div>
-                        </motion.div>
+                            #1 Mock Test Platform
+                        </motion.p>
                     </div>
                 </motion.div>
             ) : null}

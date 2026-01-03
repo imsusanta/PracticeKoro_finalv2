@@ -1,15 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Brain, FileText, TrendingUp, Sparkles, LogOut, User, Clock, Award, PlayCircle, ChevronRight, CheckCircle, UserPlus, Library, LineChart, Target, FileQuestion, Zap, ArrowRight, Trophy, Download, Smartphone } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import {
+  BookOpen, Brain, FileText, TrendingUp, Sparkles, LogOut, User, Clock, Award, PlayCircle, ChevronRight, CheckCircle, UserPlus, Library, LineChart, Target, FileQuestion, Zap, ArrowRight, Trophy, Download, Smartphone, Send, Mail, MapPin, Phone as PhoneIcon, Heart
+} from "lucide-react";
 import HowItWorks from "@/components/landing/HowItWorks";
 import Footer from "@/components/landing/Footer";
-import SplashScreen from "@/components/landing/SplashScreen";
-import PWAInstallPrompt from "@/components/landing/PWAInstallPrompt";
+import SplashScreen from "../components/landing/SplashScreen";
+// import PWAInstallPrompt removed to avoid conflict with global App.tsx version
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AnimatePresence, motion } from "framer-motion";
+
 
 interface Exam {
   id: string;
@@ -169,9 +172,9 @@ const Landing = () => {
             {/* Desktop Header - Premium Floating Style (Non-Sticky) */}
             <header className="hidden md:block absolute top-0 left-0 right-0 z-50">
               <div className="container mx-auto px-4 py-4">
-                <div className="flex justify-between items-center bg-white/80 backdrop-blur-xl rounded-2xl px-6 py-3 border border-gray-200/50 shadow-lg shadow-gray-200/30">
+                <div className="flex justify-between items-center bg-white/80 backdrop-blur-sm rounded-2xl px-6 py-3 border border-gray-200/50" style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)' }}>
                   <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/")}>
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-105 transition-transform">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center group-hover:scale-105 transition-transform" style={{ filter: 'drop-shadow(0 3px 8px rgba(16, 185, 129, 0.3))' }}>
                       <Zap className="w-5 h-5 text-white" />
                     </div>
                     <h1 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">Practice Koro</h1>
@@ -194,7 +197,7 @@ const Landing = () => {
                       <Button variant="ghost" size="sm" onClick={() => navigate("/login")} className="rounded-xl text-gray-600 hover:text-emerald-700 font-medium">
                         Log In
                       </Button>
-                      <Button variant="default" size="sm" onClick={() => navigate("/register")} className="rounded-xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 active:scale-95 transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
+                      <Button variant="default" size="sm" onClick={() => navigate("/register")} className="rounded-xl active:scale-95 transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700">
                         Get Started
                         <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
@@ -206,80 +209,7 @@ const Landing = () => {
 
             {/* Hero Section with Integrated Header (Mobile only) */}
             <section className="relative min-h-[100dvh] flex flex-col bg-gradient-to-br from-emerald-50 via-white to-teal-50 pb-8 overflow-hidden">
-              {/* Floating Decorative Icons - Desktop Only */}
-              <div className="hidden md:block absolute inset-0 pointer-events-none overflow-hidden">
-                {/* Top Left */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 0.5 }}
-                  className="absolute top-[15%] left-[5%] md:left-[10%]"
-                >
-                  <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-50 flex items-center justify-center shadow-lg shadow-purple-200/50 rotate-12">
-                    <Brain className="w-7 h-7 md:w-8 md:h-8 text-purple-500" />
-                  </div>
-                </motion.div>
 
-                {/* Top Right */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 0.7 }}
-                  className="absolute top-[20%] right-[5%] md:right-[12%]"
-                >
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-blue-100 to-blue-50 flex items-center justify-center shadow-lg shadow-blue-200/50 -rotate-12">
-                    <BookOpen className="w-6 h-6 md:w-7 md:h-7 text-blue-500" />
-                  </div>
-                </motion.div>
-
-                {/* Middle Left */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 0.9 }}
-                  className="absolute top-[45%] left-[3%] md:left-[8%]"
-                >
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center shadow-lg shadow-orange-200/50 rotate-6">
-                    <TrendingUp className="w-5 h-5 md:w-6 md:h-6 text-orange-500" />
-                  </div>
-                </motion.div>
-
-                {/* Middle Right */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 1.1 }}
-                  className="absolute top-[50%] right-[3%] md:right-[8%]"
-                >
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-emerald-100 to-emerald-50 flex items-center justify-center shadow-lg shadow-emerald-200/50 -rotate-6">
-                    <Award className="w-6 h-6 md:w-7 md:h-7 text-emerald-500" />
-                  </div>
-                </motion.div>
-
-                {/* Bottom Left */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 1.3 }}
-                  className="absolute bottom-[25%] left-[8%] md:left-[15%]"
-                >
-                  <div className="w-11 h-11 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-pink-100 to-pink-50 flex items-center justify-center shadow-lg shadow-pink-200/50 rotate-12">
-                    <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-pink-500" />
-                  </div>
-                </motion.div>
-
-                {/* Bottom Right */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.6, delay: 1.5 }}
-                  className="absolute bottom-[20%] right-[10%] md:right-[18%]"
-                >
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-teal-100 to-teal-50 flex items-center justify-center shadow-lg shadow-teal-200/50 -rotate-12">
-                    <FileText className="w-5 h-5 md:w-6 md:h-6 text-teal-500" />
-                  </div>
-                </motion.div>
-              </div>
 
               {/* Mobile App Header - Enhanced Native Style */}
               <div className="md:hidden">
@@ -288,10 +218,18 @@ const Landing = () => {
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
                       animate={{ scale: 1, rotate: 0 }}
-                      transition={{ duration: 0.5, type: "spring" }}
-                      className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/40"
+                      transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 via-emerald-500 to-teal-600 flex items-center justify-center"
+                      style={{ filter: 'drop-shadow(0 6px 16px rgba(16, 185, 129, 0.4))' }}
                     >
-                      <Zap className="w-6 h-6 text-white" />
+                      <motion.div
+                        animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.1, 0.4] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-0 rounded-2xl bg-emerald-400"
+                      />
+                      <Zap className="w-6 h-6 text-white relative z-10" />
                     </motion.div>
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
@@ -311,7 +249,7 @@ const Landing = () => {
                       transition={{ duration: 0.3, delay: 0.3 }}
                       whileTap={{ scale: 0.92 }}
                       onClick={() => navigate("/login")}
-                      className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-emerald-50 border border-emerald-100 shadow-sm min-w-[56px] min-h-[56px]"
+                      className="flex flex-col items-center justify-center gap-1 p-2 rounded-xl bg-emerald-50 border border-emerald-100 min-w-[56px] min-h-[56px]"
                     >
                       <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center">
                         <User className="w-4 h-4 text-white" />
@@ -323,7 +261,8 @@ const Landing = () => {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: 0.3 }}
-                      className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer shadow-lg shadow-emerald-500/30 ring-2 ring-white"
+                      className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg cursor-pointer ring-2 ring-white"
+                      style={{ filter: 'drop-shadow(0 4px 10px rgba(16, 185, 129, 0.3))' }}
                       onClick={() => navigate(userRole === "admin" ? "/admin/dashboard" : "/student/dashboard")}
                     >
                       {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
@@ -339,7 +278,7 @@ const Landing = () => {
                   initial={{ opacity: 0, y: 30, rotateX: 10 }}
                   animate={{ opacity: 1, y: 0, rotateX: 0 }}
                   transition={{ duration: 0.5, type: "spring" }}
-                  className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 rounded-[28px] p-6 mb-6 relative overflow-hidden shadow-2xl shadow-emerald-500/30"
+                  className="bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 rounded-[28px] p-6 mb-6 relative overflow-hidden"
                 >
                   {/* Animated decorative elements */}
                   <motion.div
@@ -377,7 +316,7 @@ const Landing = () => {
                     {!isLoggedIn ? (
                       <Button
                         onClick={() => navigate("/register")}
-                        className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold rounded-xl px-6 py-3 shadow-xl active:scale-95 transition-all text-sm"
+                        className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold rounded-xl px-6 py-3 active:scale-95 transition-all text-sm"
                       >
                         Get Started Free
                         <ArrowRight className="w-4 h-4 ml-2" />
@@ -385,7 +324,7 @@ const Landing = () => {
                     ) : (
                       <Button
                         onClick={() => navigate(userRole === "admin" ? "/admin/dashboard" : "/student/dashboard")}
-                        className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold rounded-xl px-6 py-3 shadow-xl active:scale-95 transition-all text-sm"
+                        className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold rounded-xl px-6 py-3 active:scale-95 transition-all text-sm"
                       >
                         Continue Practice
                         <ArrowRight className="w-4 h-4 ml-2" />
@@ -408,22 +347,26 @@ const Landing = () => {
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { icon: BookOpen, label: "Exams", color: "from-blue-500 to-indigo-600", bgLight: "bg-blue-50", path: "/student/exams" },
-                      { icon: FileText, label: "PDFs", color: "from-orange-500 to-red-500", bgLight: "bg-orange-50", path: "/student/pdfs" },
+                      { icon: FileText, label: "Notes", color: "from-orange-500 to-red-500", bgLight: "bg-orange-50", path: "/student/notes" },
                       { icon: Trophy, label: "Results", color: "from-purple-500 to-pink-600", bgLight: "bg-purple-50", path: "/student/results" },
                     ].map((item, index) => (
                       <motion.button
                         key={item.label}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.2 + index * 0.05 }}
-                        whileTap={{ scale: 0.92 }}
+                        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.4, delay: 0.2 + index * 0.08, type: "spring", bounce: 0.3 }}
+                        whileHover={{ scale: 1.03, y: -2 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => isLoggedIn ? navigate(item.path) : navigate("/login")}
-                        className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl ${item.bgLight} border border-gray-100/50 shadow-sm`}
+                        className={`flex flex-col items-center gap-3 p-5 rounded-3xl ${item.bgLight} border border-gray-100/50 transition-colors`}
                       >
-                        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg`}>
-                          <item.icon className="w-5 h-5 text-white" />
-                        </div>
-                        <span className="text-xs font-semibold text-gray-700">{item.label}</span>
+                        <motion.div
+                          className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center`}
+                          style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))' }}
+                        >
+                          <item.icon className="w-6 h-6 text-white" />
+                        </motion.div>
+                        <span className="text-sm font-bold text-gray-700">{item.label}</span>
                       </motion.button>
                     ))}
                   </div>
@@ -434,28 +377,27 @@ const Landing = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.25 }}
-                  className="grid grid-cols-3 gap-3 mb-6"
+                  className="grid grid-cols-2 gap-3 mb-6"
                 >
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-4 border border-blue-100/50">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-2 shadow-md">
+                  <div className="bg-gradient-to-br from-blue-50 via-blue-50 to-cyan-50 rounded-2xl p-5 border border-blue-100/50">
+                    <div
+                      className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center"
+                      style={{ filter: 'drop-shadow(0 4px 10px rgba(59, 130, 246, 0.3))' }}
+                    >
                       <Award className="w-5 h-5 text-white" />
                     </div>
-                    <p className="text-xl font-bold text-gray-900">{featuredTests.length}+</p>
-                    <p className="text-[10px] text-gray-600 font-bold uppercase">Tests</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{featuredTests.length}+</p>
+                    <p className="text-[11px] text-gray-600 font-bold uppercase mt-0.5">Tests</p>
                   </div>
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-100/50">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-2 shadow-md">
+                  <div className="bg-gradient-to-br from-purple-50 via-purple-50 to-pink-50 rounded-2xl p-5 border border-purple-100/50">
+                    <div
+                      className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center"
+                      style={{ filter: 'drop-shadow(0 4px 10px rgba(168, 85, 247, 0.3))' }}
+                    >
                       <Target className="w-5 h-5 text-white" />
                     </div>
-                    <p className="text-xl font-bold text-gray-900">{exams.length}+</p>
-                    <p className="text-[10px] text-gray-600 font-bold uppercase">Exams</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-4 border border-emerald-100/50">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-2 shadow-md">
-                      <FileText className="w-5 h-5 text-white" />
-                    </div>
-                    <p className="text-xl font-bold text-gray-900">50+</p>
-                    <p className="text-[10px] text-gray-600 font-bold uppercase">PDFs</p>
+                    <p className="text-2xl font-bold text-gray-900 mt-1">{exams.length}+</p>
+                    <p className="text-[11px] text-gray-600 font-bold uppercase mt-0.5">Exams</p>
                   </div>
                 </motion.div>
 
@@ -481,9 +423,9 @@ const Landing = () => {
                         transition={{ duration: 0.3, delay: 0.4 + index * 0.08 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => handleStartTest(test.id)}
-                        className="bg-white rounded-2xl p-4 border border-gray-100 shadow-md flex items-center gap-4 cursor-pointer hover:shadow-lg transition-shadow"
+                        className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center gap-4 cursor-pointer hover:border-gray-200 transition-colors"
                       >
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${test.test_type === "full_mock"
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${test.test_type === "full_mock"
                           ? "bg-gradient-to-br from-violet-500 via-purple-600 to-indigo-600"
                           : "bg-gradient-to-br from-amber-500 via-orange-500 to-red-500"
                           }`}>
@@ -523,7 +465,7 @@ const Landing = () => {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="space-y-6"
                   >
-                    <Badge className="bg-emerald-100/80 text-emerald-700 border-emerald-200/50 backdrop-blur-sm shadow-sm py-1.5 px-4 text-xs font-semibold uppercase tracking-wider">
+                    <Badge className="bg-emerald-100/80 text-emerald-700 border-emerald-200/50 backdrop-blur-sm py-1.5 px-4 text-xs font-semibold uppercase tracking-wider">
                       #1 Mock Test Platform
                     </Badge>
 
@@ -545,7 +487,7 @@ const Landing = () => {
                           size="lg"
                           variant="default"
                           onClick={() => navigate("/register")}
-                          className="text-base font-semibold py-6 px-8 rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-95 transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                          className="text-base font-semibold py-6 px-8 rounded-2xl active:scale-95 transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                         >
                           Get Started Free
                           <ChevronRight className="w-5 h-5 ml-2" />
@@ -560,7 +502,7 @@ const Landing = () => {
                           size="lg"
                           variant="default"
                           onClick={() => navigate(userRole === "admin" ? "/admin/dashboard" : "/student/dashboard")}
-                          className="text-base font-semibold py-6 px-8 rounded-2xl shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-95 transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                          className="text-base font-semibold py-6 px-8 rounded-2xl active:scale-95 transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
                         >
                           {userRole === "admin" ? "Go to Admin Panel" : "Go to Dashboard"}
                           <ChevronRight className="w-5 h-5 ml-2" />
@@ -570,10 +512,10 @@ const Landing = () => {
                   </motion.div>
                 </div>
               </div>
-            </section>
+            </section >
 
             {/* Exams Section - Mobile Friendly */}
-            <section className="py-8 md:py-16 lg:py-24 bg-white">
+            < section className="py-8 md:py-16 lg:py-24 bg-white" >
               <div className="container mx-auto">
                 {/* Section Header */}
                 <div className="text-center mb-6 md:mb-10 px-4">
@@ -593,10 +535,10 @@ const Landing = () => {
                     <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  <>
-                    {/* Mobile: Horizontal Scroll Cards */}
-                    <div className="md:hidden horizontal-scroll pb-4 px-4" style={{ touchAction: 'pan-x' }}>
-                      <div className="flex gap-3">
+                  /* Horizontal Scroll Cards - All Screen Sizes - Centered */
+                  <div className="w-full flex justify-center">
+                    <div className="overflow-x-auto pb-4 scrollbar-hide max-w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <div className="flex gap-4 px-4 md:px-8 justify-start md:justify-center" style={{ minWidth: 'min-content' }}>
                         {exams.map((exam, index) => (
                           <motion.div
                             key={exam.id}
@@ -606,12 +548,12 @@ const Landing = () => {
                             viewport={{ once: true }}
                             whileTap={{ scale: 0.97 }}
                             onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
-                            className="w-[200px] shrink-0 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-3xl p-5 cursor-pointer shadow-sm active:shadow-md transition-all"
+                            className="min-w-[180px] w-[180px] md:min-w-[220px] md:w-[220px] shrink-0 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-3xl p-5 cursor-pointer hover:border-emerald-200 transition-all"
                           >
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/20">
-                              <BookOpen className="w-7 h-7 text-white" />
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-3" style={{ filter: 'drop-shadow(0 3px 10px rgba(16, 185, 129, 0.25))' }}>
+                              <BookOpen className="w-6 h-6 text-white" />
                             </div>
-                            <h4 className="text-base font-bold text-gray-900 mb-2 line-clamp-2 leading-tight">
+                            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-2 leading-tight">
                               {exam.name}
                             </h4>
                             <div className="flex items-center text-emerald-600 text-sm font-semibold">
@@ -622,53 +564,19 @@ const Landing = () => {
                         ))}
                       </div>
                     </div>
-
-                    {/* Desktop: Grid Layout */}
-                    <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto px-4">
-                      {exams.map((exam, index) => (
-                        <motion.div
-                          key={exam.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.4, delay: index * 0.1 }}
-                          viewport={{ once: true }}
-                        >
-                          <div
-                            onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
-                            className="group h-full bg-white border-2 border-emerald-100 hover:border-emerald-300 rounded-3xl p-6 cursor-pointer hover:shadow-xl hover:shadow-emerald-100/50 hover:-translate-y-1 transition-all duration-300"
-                          >
-                            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:from-emerald-200 group-hover:to-teal-200 transition-all">
-                              <BookOpen className="w-7 h-7 text-emerald-600" />
-                            </div>
-                            <h4 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-emerald-700 transition-colors">
-                              {exam.name}
-                            </h4>
-                            {exam.description && (
-                              <p className="text-sm text-gray-600 font-medium line-clamp-2 mb-4">
-                                {exam.description}
-                              </p>
-                            )}
-                            <div className="flex items-center text-emerald-600 font-medium text-sm group-hover:text-emerald-700">
-                              <span>Explore</span>
-                              <ChevronRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
-            </section>
+            </section >
 
             {/* Featured Tests Section - Premium Redesign */}
-            <section className="py-10 sm:py-16 md:py-24 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
+            <section className="py-14 sm:py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
               {/* Decorative Background Elements */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              < div className="absolute inset-0 overflow-hidden pointer-events-none" >
                 <div className="absolute -top-10 -left-10 w-52 sm:w-80 h-52 sm:h-80 bg-gradient-to-br from-emerald-200/40 to-teal-200/30 rounded-full blur-3xl" />
                 <div className="absolute -bottom-10 -right-10 w-60 sm:w-96 h-60 sm:h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/20 rounded-full blur-3xl" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-blue-100/30 to-cyan-100/20 rounded-full blur-3xl" />
-              </div>
+              </div >
 
               <div className="container mx-auto px-4 relative z-10">
                 {/* Section Header */}
@@ -694,7 +602,7 @@ const Landing = () => {
 
                 {/* Filter Tabs - Compact Mobile Style */}
                 <div className="flex justify-center mb-6 sm:mb-8 overflow-x-auto pb-1 -mx-2 px-2">
-                  <div className="inline-flex bg-white/80 backdrop-blur-sm rounded-xl p-1 border border-gray-200 shadow-sm">
+                  <div className="inline-flex bg-white/80 backdrop-blur-sm rounded-xl p-1 border border-gray-200">
                     {[
                       { key: "all", label: "All", icon: Target },
                       { key: "full_mock", label: "Full", icon: Award },
@@ -703,8 +611,8 @@ const Landing = () => {
                       <button
                         key={tab.key}
                         onClick={() => setFilterType(tab.key as any)}
-                        className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-300 ${filterType === tab.key
-                          ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg"
+                        className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 ${filterType === tab.key
+                          ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
                           : "text-gray-600 hover:text-gray-900"
                           }`}
                       >
@@ -733,9 +641,9 @@ const Landing = () => {
                         transition={{ duration: 0.5, delay: index * 0.1 }}
                         viewport={{ once: true }}
                       >
-                        <div className="group relative bg-white rounded-xl sm:rounded-2xl border border-gray-200 shadow-lg shadow-gray-100/50 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-100/50 transition-all duration-500 overflow-hidden sm:hover:-translate-y-2 active:scale-[0.98] sm:active:scale-100">
+                        <div className="group relative bg-white rounded-xl sm:rounded-2xl border border-gray-200 hover:border-emerald-300 transition-all duration-200 overflow-hidden sm:hover:-translate-y-1 active:scale-[0.98] sm:active:scale-100">
                           {/* Glow Effect on Hover */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/0 to-teal-50/0 group-hover:from-emerald-50/50 group-hover:to-teal-50/30 transition-all duration-500" />
+                          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/0 to-teal-50/0 group-hover:from-emerald-50/50 group-hover:to-teal-50/30 transition-all duration-200" />
 
                           {/* Top Gradient Bar */}
                           <div className={`h-1.5 w-full ${test.test_type === "full_mock"
@@ -795,7 +703,7 @@ const Landing = () => {
                             {/* CTA Button */}
                             <Button
                               onClick={() => handleStartTest(test.id)}
-                              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl py-6 text-base shadow-lg shadow-emerald-500/20 transition-all duration-300"
+                              className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl py-6 text-base transition-all duration-150"
                             >
                               <PlayCircle className="w-5 h-5 mr-2" />
                               Start Test
@@ -822,149 +730,139 @@ const Landing = () => {
                   </div>
                 )}
               </div>
-            </section>
+            </section >
 
-            {/* Features Section */}
-            <section className="py-16 sm:py-20 md:py-24 bg-gradient-to-b from-slate-50 via-white to-emerald-50/30 relative overflow-hidden">
-              {/* Decorative Background Elements */}
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-emerald-200/30 to-teal-200/20 rounded-full blur-3xl" />
-                <div className="absolute bottom-20 right-10 w-80 h-80 bg-gradient-to-br from-purple-200/25 to-pink-200/20 rounded-full blur-3xl" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-br from-blue-100/20 to-cyan-100/15 rounded-full blur-3xl" />
-              </div>
-
-              <div className="container mx-auto px-4 relative z-10">
-                <div className="text-center mb-12 sm:mb-16 max-w-3xl mx-auto">
+            {/* Features Section - Modern Bento Grid Design */}
+            <section id="features" className="py-20 sm:py-28 bg-slate-50">
+              <div className="container mx-auto px-5">
+                {/* Section Header - Clean & Minimal */}
+                <div className="text-center mb-12 sm:mb-16 max-w-2xl mx-auto">
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                     viewport={{ once: true }}
                   >
-                    <Badge className="mb-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-0 py-1.5 px-4 text-xs font-semibold uppercase tracking-wider shadow-lg shadow-emerald-500/25">
-                      ✨ Features
-                    </Badge>
-                    <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
-                      Why Choose <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-500 to-cyan-500">Practice Koro?</span>
+                    <span className="inline-block mb-4 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+                      Why Choose Us
+                    </span>
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+                      Everything You Need to{' '}
+                      <span className="text-emerald-600">Succeed</span>
                     </h3>
-                    <p className="text-gray-600 text-base sm:text-lg max-w-xl mx-auto">
-                      A complete exam preparation toolkit designed to help you learn smarter, practice better, and track every improvement.
+                    <p className="text-slate-500 text-sm sm:text-base max-w-lg mx-auto">
+                      A complete learning ecosystem designed to help you crack your dream exam
                     </p>
                   </motion.div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
-                  {/* Feature 1 - AI - Purple Theme */}
+                {/* Bento Grid Layout */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto">
+                  {/* Card 1 - Large */}
                   <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0 }}
+                    transition={{ duration: 0.4 }}
                     viewport={{ once: true }}
-                    className="group relative bg-white/80 backdrop-blur-sm border border-purple-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-purple-200/40 hover:-translate-y-2 transition-all duration-300 overflow-hidden"
+                    className="col-span-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-white relative overflow-hidden"
                   >
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-50/50 via-transparent to-pink-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    {/* Floating Decoration */}
-                    <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-purple-200/40 to-pink-200/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16" />
                     <div className="relative z-10">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-purple-500/30">
-                        <CheckCircle className="w-8 h-8 text-white" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/20 flex items-center justify-center mb-4">
+                        <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
-                      <h4 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-purple-700 transition-colors">
-                        Instant Results & Explanations
-                      </h4>
-                      <p className="text-gray-500 leading-relaxed">
-                        Get detailed results immediately after each test with question-wise explanations to learn from mistakes.
+                      <h4 className="text-lg sm:text-xl font-bold mb-2">Instant Results</h4>
+                      <p className="text-white/80 text-xs sm:text-sm leading-relaxed">
+                        Get detailed scorecards and explanations immediately after every test
                       </p>
-                      <div className="mt-4 flex items-center gap-2 text-purple-600 font-medium text-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                        <Sparkles className="w-4 h-4" />
-                        <span>Learn Faster</span>
-                      </div>
                     </div>
                   </motion.div>
 
-                  {/* Feature 2 - Mock Tests - Blue Theme */}
+                  {/* Card 2 - Small */}
                   <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
                     viewport={{ once: true }}
-                    className="group relative bg-white/80 backdrop-blur-sm border border-blue-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-blue-200/40 hover:-translate-y-2 transition-all duration-300 overflow-hidden"
+                    className="col-span-1 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-cyan-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-blue-200/40 to-cyan-200/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-
-                    <div className="relative z-10">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-blue-500/30">
-                        <BookOpen className="w-8 h-8 text-white" />
-                      </div>
-                      <h4 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-700 transition-colors">
-                        Real Exam-like Mock Tests
-                      </h4>
-                      <p className="text-gray-500 leading-relaxed">
-                        Practice with full-length and topic-wise mocks that mirror real exam patterns, timing, and difficulty.
-                      </p>
-                      <div className="mt-4 flex items-center gap-2 text-blue-600 font-medium text-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                        <Clock className="w-4 h-4" />
-                        <span>Timed Practice</span>
-                      </div>
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
+                      <BookOpen className="w-5 h-5 text-blue-600" />
                     </div>
+                    <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">Updated Content</h4>
+                    <p className="text-slate-500 text-[11px] sm:text-xs">Latest exam patterns</p>
                   </motion.div>
 
-                  {/* Feature 3 - Study Materials - Orange Theme */}
+                  {/* Card 3 - Small */}
                   <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
+                    transition={{ duration: 0.4, delay: 0.15 }}
                     viewport={{ once: true }}
-                    className="group relative bg-white/80 backdrop-blur-sm border border-orange-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-orange-200/40 hover:-translate-y-2 transition-all duration-300 overflow-hidden"
+                    className="col-span-1 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-transparent to-amber-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-orange-200/40 to-amber-200/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
-
-                    <div className="relative z-10">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-orange-500/30">
-                        <FileText className="w-8 h-8 text-white" />
-                      </div>
-                      <h4 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-orange-700 transition-colors">
-                        Curated Study Materials
-                      </h4>
-                      <p className="text-gray-500 leading-relaxed">
-                        Organized PDFs and notes by exam and topic so you can revise fast without wasting time searching.
-                      </p>
-                      <div className="mt-4 flex items-center gap-2 text-orange-600 font-medium text-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                        <Library className="w-4 h-4" />
-                        <span>Organized Library</span>
-                      </div>
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center mb-3">
+                      <Library className="w-5 h-5 text-purple-600" />
                     </div>
+                    <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">Study Vault</h4>
+                    <p className="text-slate-500 text-[11px] sm:text-xs">Curated PDFs & notes</p>
                   </motion.div>
 
-                  {/* Feature 4 - Progress - Emerald Theme */}
+                  {/* Card 4 - Small */}
                   <motion.div
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
+                    transition={{ duration: 0.4, delay: 0.2 }}
                     viewport={{ once: true }}
-                    className="group relative bg-white/80 backdrop-blur-sm border border-emerald-100 rounded-3xl p-6 hover:shadow-2xl hover:shadow-emerald-200/40 hover:-translate-y-2 transition-all duration-300 overflow-hidden"
+                    className="col-span-1 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-transparent to-teal-50/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-emerald-200/40 to-teal-200/30 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center mb-3">
+                      <LineChart className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">AI Analytics</h4>
+                    <p className="text-slate-500 text-[11px] sm:text-xs">Track your progress</p>
+                  </motion.div>
 
+                  {/* Card 5 - Small */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.25 }}
+                    viewport={{ once: true }}
+                    className="col-span-1 bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-slate-100"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center mb-3">
+                      <Target className="w-5 h-5 text-rose-600" />
+                    </div>
+                    <h4 className="text-sm sm:text-base font-bold text-slate-900 mb-1">Topic-wise</h4>
+                    <p className="text-slate-500 text-[11px] sm:text-xs">Focused practice</p>
+                  </motion.div>
+
+                  {/* Card 6 - Large Stats */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
+                    viewport={{ once: true }}
+                    className="col-span-2 bg-slate-900 rounded-2xl sm:rounded-3xl p-5 sm:p-6 text-white relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl -mr-20 -mt-20" />
                     <div className="relative z-10">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-emerald-500/30">
-                        <TrendingUp className="w-8 h-8 text-white" />
-                      </div>
-                      <h4 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-emerald-700 transition-colors">
-                        Smart Progress Tracking
-                      </h4>
-                      <p className="text-gray-500 leading-relaxed">
-                        See your scores, strengths, and weak areas clearly so you always know what to improve next.
-                      </p>
-                      <div className="mt-4 flex items-center gap-2 text-emerald-600 font-medium text-sm opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                        <LineChart className="w-4 h-4" />
-                        <span>Visual Analytics</span>
+                      <div className="flex items-center gap-6 sm:gap-8">
+                        <div>
+                          <p className="text-3xl sm:text-4xl font-bold text-emerald-400">1000+</p>
+                          <p className="text-white/60 text-xs sm:text-sm">Mock Tests</p>
+                        </div>
+                        <div className="w-px h-10 bg-white/20" />
+                        <div>
+                          <p className="text-3xl sm:text-4xl font-bold text-emerald-400">50K+</p>
+                          <p className="text-white/60 text-xs sm:text-sm">Students</p>
+                        </div>
+                        <div className="w-px h-10 bg-white/20 hidden sm:block" />
+                        <div className="hidden sm:block">
+                          <p className="text-3xl sm:text-4xl font-bold text-emerald-400">95%</p>
+                          <p className="text-white/60 text-xs sm:text-sm">Success Rate</p>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -975,278 +873,222 @@ const Landing = () => {
             {/* How It Works Section */}
             <HowItWorks />
 
-            {/* CTA Section */}
-            {!isLoggedIn && (
-              <section className="relative py-16 sm:py-20 md:py-24 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 overflow-hidden">
-                {/* Floating Icons */}
-                <div className="absolute inset-0 pointer-events-none">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    viewport={{ once: true }}
-                    className="absolute top-[20%] left-[8%] md:left-[15%]"
-                  >
-                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center rotate-12">
-                      <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-white/80" />
-                    </div>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    viewport={{ once: true }}
-                    className="absolute bottom-[20%] right-[8%] md:right-[15%]"
-                  >
-                    <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center -rotate-12">
-                      <Award className="w-6 h-6 md:w-7 md:h-7 text-white/80" />
-                    </div>
-                  </motion.div>
-                </div>
 
-                <div className="container mx-auto px-4 text-center relative z-10">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    viewport={{ once: true }}
-                    className="max-w-2xl mx-auto"
-                  >
-                    <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 text-white leading-tight">
-                      Ready to Start Your Journey?
-                    </h3>
-                    <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-xl mx-auto">
-                      Join thousands of students who are already improving their exam performance with Practice Koro.
-                    </p>
-                    <Button
-                      size="lg"
-                      onClick={() => navigate("/register")}
-                      className="text-base font-semibold py-6 px-8 rounded-2xl bg-white text-emerald-700 hover:bg-emerald-50 shadow-lg shadow-black/10 hover:shadow-xl active:scale-95 transition-all duration-200"
-                    >
-                      Register Now - It's Free
-                      <ChevronRight className="w-5 h-5 ml-2" />
-                    </Button>
-                  </motion.div>
-                </div>
-              </section>
-            )}
-
-            {/* App Download Section - PWA Promotion */}
-            <section className="py-12 sm:py-16 md:py-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
-              {/* Decorative Background */}
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -top-20 -left-20 w-60 sm:w-96 h-60 sm:h-96 bg-emerald-500/10 rounded-full blur-3xl" />
-                <div className="absolute -bottom-20 -right-20 w-72 sm:w-[500px] h-72 sm:h-[500px] bg-teal-500/10 rounded-full blur-3xl" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-emerald-500/5 rounded-full blur-2xl" />
-                {/* Grid Pattern */}
-                <div className="absolute inset-0 opacity-5" style={{
-                  backgroundImage: 'radial-gradient(circle, #10b981 1px, transparent 1px)',
-                  backgroundSize: '40px 40px'
-                }} />
+            {/* App Download Section - Green & White Theme with Phone Mockup */}
+            <section className="py-16 sm:py-24 bg-gradient-to-br from-emerald-50 via-white to-teal-50 relative">
+              {/* Subtle Background Decoration */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-100 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 opacity-60" />
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-teal-100 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/2 opacity-60" />
               </div>
 
-              <div className="container mx-auto px-4 relative z-10">
-                <div className="max-w-4xl mx-auto">
-                  {/* Mobile Layout */}
-                  <div className="md:hidden text-center">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5 }}
-                      viewport={{ once: true }}
-                      className="w-20 h-20 mx-auto mb-5 rounded-3xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 flex items-center justify-center shadow-2xl shadow-emerald-500/30 ring-4 ring-white/10"
-                    >
-                      <Zap className="w-10 h-10 text-white" />
-                    </motion.div>
+              <div className="container mx-auto px-5 relative z-10">
+                <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-10 lg:gap-14">
 
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.1 }}
-                      viewport={{ once: true }}
-                    >
-                      <Badge className="mb-4 bg-emerald-500/20 text-emerald-300 border-emerald-500/30 py-1.5 px-4 text-xs font-semibold uppercase tracking-wider">
-                        📱 Install Our App
-                      </Badge>
-                      <h3 className="text-2xl sm:text-3xl font-extrabold text-white mb-3 leading-tight">
-                        Get the <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Practice Koro</span> App
-                      </h3>
-                      <p className="text-gray-400 text-sm mb-6 max-w-md mx-auto">
-                        Install our app for faster access, offline support, and a native app experience!
-                      </p>
-                    </motion.div>
+                  {/* Left - Phone Mockup */}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.6 }}
+                    viewport={{ once: true }}
+                    className="flex-1 relative order-2 md:order-1 mt-12 md:mt-0 pl-6 pr-14 sm:pl-10 sm:pr-20 py-12"
+                  >
+                    <div className="relative mx-auto w-52 sm:w-56 lg:w-60 overflow-visible">
+                      {/* Outer Glow */}
+                      <div className="absolute inset-0 bg-emerald-200/30 rounded-[2.5rem] blur-2xl scale-110" />
 
-                    {/* Feature Pills - Mobile */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                      viewport={{ once: true }}
-                      className="flex flex-wrap justify-center gap-2 mb-6"
-                    >
+                      {/* Phone Container */}
+                      <div className="relative bg-slate-800 rounded-[2.5rem] p-2 ring-1 ring-slate-700 z-10">
+                        {/* Speaker/Notch */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-800 rounded-b-xl z-30 flex items-center justify-center">
+                          <div className="w-8 h-1 bg-slate-700 rounded-full" />
+                        </div>
+
+                        {/* Screen Content */}
+                        <div className="bg-white rounded-[2rem] overflow-hidden aspect-[9/18] relative select-none touch-none">
+                          {/* App Preview */}
+                          <div className="p-3 pt-7 space-y-2.5 pointer-events-none">
+                            {/* App Header */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                                <Zap className="w-4 h-4 text-white" />
+                              </div>
+                              <div className="space-y-1">
+                                <div className="h-3 bg-slate-800 rounded w-16" />
+                                <div className="h-1.5 bg-emerald-400/50 rounded w-10" />
+                              </div>
+                            </div>
+
+                            {/* Hero Card */}
+                            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-3">
+                              <div className="h-1 bg-white/30 rounded w-1/4 mb-1.5" />
+                              <div className="h-6 bg-white/20 rounded-lg w-full" />
+                            </div>
+
+                            {/* Mini Cards */}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {[1, 2].map((i) => (
+                                <div key={i} className="bg-slate-50 rounded-lg p-2 border border-slate-100">
+                                  <div className="w-6 h-6 rounded bg-blue-100 mb-1.5" />
+                                  <div className="h-1 bg-slate-200 rounded w-full" />
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* List Item */}
+                            <div className="bg-white rounded-xl p-2.5 border border-slate-100 flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-lg bg-purple-100" />
+                              <div className="flex-1 space-y-1">
+                                <div className="h-1.5 bg-slate-700 rounded w-full" />
+                                <div className="h-1 bg-slate-200 rounded w-1/2" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Install Badge */}
+                      <motion.div
+                        animate={{
+                          y: [0, -5, 0],
+                          scale: [1, 1.02, 1]
+                        }}
+                        transition={{
+                          y: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                          scale: { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
+                        }}
+                        className="absolute top-4 right-2 z-20 bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border-2 border-white flex items-center gap-1 shadow-md shadow-emerald-500/20"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span>Install</span>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+
+                  {/* Right - Content */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    viewport={{ once: true }}
+                    className="flex-1 text-center md:text-left order-1 md:order-2"
+                  >
+                    <span className="inline-block mb-3 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+                      📱 Install App
+                    </span>
+
+                    <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-900 mb-3 leading-tight">
+                      Get Practice Koro{' '}
+                      <span className="text-emerald-600">On Your Phone</span>
+                    </h3>
+
+                    <p className="text-slate-500 text-sm sm:text-base mb-6 max-w-md mx-auto md:mx-0">
+                      Install directly from your browser. No app store needed, works on all devices.
+                    </p>
+
+                    {/* Features */}
+                    <div className="grid grid-cols-2 gap-2 mb-6 max-w-sm mx-auto md:mx-0">
                       {[
-                        { icon: "⚡", text: "Instant Load" },
-                        { icon: "🌐", text: "Works Online" },
-                        { icon: "🔔", text: "Notifications" },
-                        { icon: "🚀", text: "No App Store" },
-                      ].map((feature) => (
-                        <div key={feature.text} className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
-                          <span className="text-sm">{feature.icon}</span>
-                          <span className="text-xs font-medium text-gray-300">{feature.text}</span>
+                        { icon: Zap, text: "Instant Launch", color: "text-amber-600" },
+                        { icon: Download, text: "No Storage", color: "text-blue-600" },
+                        { icon: Smartphone, text: "Native Feel", color: "text-purple-600" },
+                        { icon: CheckCircle, text: "One Click", color: "text-emerald-600" },
+                      ].map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2 p-2.5 rounded-xl bg-white border border-slate-100"
+                        >
+                          <item.icon className={`w-4 h-4 ${item.color}`} />
+                          <span className="font-medium text-slate-700 text-xs">{item.text}</span>
                         </div>
                       ))}
-                    </motion.div>
+                    </div>
 
-                    {/* Install Button - Mobile */}
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                      viewport={{ once: true }}
+                    {/* Install Button */}
+                    <Button
+                      size="lg"
+                      onClick={() => {
+                        const event = new CustomEvent('show-pwa-prompt');
+                        window.dispatchEvent(event);
+                      }}
+                      className="text-sm sm:text-base font-bold py-5 px-8 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 active:scale-95 transition-all text-white"
                     >
-                      <Button
-                        size="lg"
-                        onClick={() => {
-                          // Trigger PWA install or show popup
-                          const event = new CustomEvent('show-pwa-prompt');
-                          window.dispatchEvent(event);
-                        }}
-                        className="w-full sm:w-auto text-base font-bold py-5 px-8 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-xl shadow-emerald-500/25 active:scale-95 transition-all"
-                      >
-                        <Download className="w-5 h-5 mr-2" />
-                        Install App
-                      </Button>
-                      <p className="text-xs text-gray-500 mt-3">
-                        Works on Android & iOS
-                      </p>
-                    </motion.div>
-                  </div>
+                      <Download className="w-4 h-4 mr-2" />
+                      Install Free App
+                    </Button>
+                    <p className="mt-2 text-slate-400 text-[11px]">
+                      Works on all devices • No download required
+                    </p>
+                  </motion.div>
 
-                  {/* Desktop Layout - Side by Side */}
-                  <div className="hidden md:flex items-center gap-12 lg:gap-16">
-                    {/* Left - App Preview Mock */}
-                    <motion.div
-                      initial={{ opacity: 0, x: -50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.6 }}
-                      viewport={{ once: true }}
-                      className="flex-1 relative"
-                    >
-                      <div className="relative mx-auto w-64">
-                        {/* Phone Frame */}
-                        <div className="bg-gray-800 rounded-[40px] p-3 shadow-2xl ring-1 ring-white/10">
-                          <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-[28px] overflow-hidden aspect-[9/16] relative">
-                            {/* Status Bar */}
-                            <div className="h-6 bg-white/90 flex items-center justify-center">
-                              <div className="w-16 h-4 bg-black rounded-full" />
-                            </div>
-                            {/* App Content Preview */}
-                            <div className="p-4 space-y-3">
-                              <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                                  <Zap className="w-6 h-6 text-white" />
-                                </div>
-                                <div>
-                                  <div className="h-4 bg-gray-900 rounded w-24 mb-1" />
-                                  <div className="h-3 bg-emerald-500 rounded w-32" />
-                                </div>
-                              </div>
-                              <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-4 shadow-lg">
-                                <div className="h-3 bg-white/30 rounded w-2/3 mb-2" />
-                                <div className="h-4 bg-white rounded w-full mb-1" />
-                                <div className="h-4 bg-white/80 rounded w-3/4" />
-                              </div>
-                              <div className="grid grid-cols-3 gap-2">
-                                {[1, 2, 3].map((i) => (
-                                  <div key={i} className="bg-white rounded-xl p-3 shadow-sm">
-                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-blue-200 mb-2" />
-                                    <div className="h-2 bg-gray-200 rounded w-full" />
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="bg-white rounded-xl p-3 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500" />
-                                  <div className="flex-1">
-                                    <div className="h-3 bg-gray-800 rounded w-full mb-1" />
-                                    <div className="h-2 bg-gray-300 rounded w-2/3" />
-                                  </div>
-                                  <div className="w-8 h-8 rounded-full bg-emerald-100" />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        {/* Floating Badge */}
-                        <div className="absolute -top-4 -right-4 bg-gradient-to-br from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg animate-bounce">
-                          FREE
-                        </div>
-                      </div>
-                    </motion.div>
-
-                    {/* Right - Content */}
-                    <motion.div
-                      initial={{ opacity: 0, x: 50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.6 }}
-                      viewport={{ once: true }}
-                      className="flex-1 text-left"
-                    >
-                      <Badge className="mb-4 bg-emerald-500/20 text-emerald-300 border-emerald-500/30 py-1.5 px-4 text-xs font-semibold uppercase tracking-wider">
-                        📱 Progressive Web App
-                      </Badge>
-                      <h3 className="text-3xl lg:text-4xl font-extrabold text-white mb-4 leading-tight">
-                        Install <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">Practice Koro</span> App
-                      </h3>
-                      <p className="text-gray-400 text-base lg:text-lg mb-6 max-w-md">
-                        Get instant access from your home screen. No app store required - install directly from your browser!
-                      </p>
-
-                      {/* Features Grid */}
-                      <div className="grid grid-cols-2 gap-3 mb-8">
-                        {[
-                          { icon: Zap, text: "Lightning Fast", desc: "Instant page loads" },
-                          { icon: Download, text: "Works Online", desc: "Internet required" },
-                          { icon: Smartphone, text: "Native Feel", desc: "Full-screen experience" },
-                          { icon: CheckCircle, text: "Auto Updates", desc: "Always latest version" },
-                        ].map((feature) => (
-                          <div key={feature.text} className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center shrink-0">
-                              <feature.icon className="w-5 h-5 text-emerald-400" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-white text-sm">{feature.text}</p>
-                              <p className="text-xs text-gray-500">{feature.desc}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <Button
-                        size="lg"
-                        onClick={() => {
-                          const event = new CustomEvent('show-pwa-prompt');
-                          window.dispatchEvent(event);
-                        }}
-                        className="text-base font-bold py-5 px-8 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-xl shadow-emerald-500/25 hover:shadow-emerald-500/35 active:scale-95 transition-all"
-                      >
-                        <Download className="w-5 h-5 mr-2" />
-                        Install App
-                        <ChevronRight className="w-5 h-5 ml-1" />
-                      </Button>
-                    </motion.div>
-                  </div>
                 </div>
               </div>
             </section>
 
-            <Footer />
-          </motion.div>
-        )}
-      </AnimatePresence>
+            {/* CTA Section */}
+            {
+              !isLoggedIn && (
+                <section className="relative py-16 sm:py-20 md:py-24 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 overflow-hidden">
+                  {/* Floating Icons */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.2 }}
+                      viewport={{ once: true }}
+                      className="absolute top-[20%] left-[8%] md:left-[15%]"
+                    >
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center rotate-12">
+                        <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-white/80" />
+                      </div>
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.5, delay: 0.4 }}
+                      viewport={{ once: true }}
+                      className="absolute bottom-[20%] right-[8%] md:right-[15%]"
+                    >
+                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center -rotate-12">
+                        <Award className="w-6 h-6 md:w-7 md:h-7 text-white/80" />
+                      </div>
+                    </motion.div>
+                  </div>
 
-      {/* PWA Install Prompt */}
-      {!showSplash && <PWAInstallPrompt />}
+                  <div className="container mx-auto px-4 text-center relative z-10">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                      viewport={{ once: true }}
+                      className="max-w-2xl mx-auto"
+                    >
+                      <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 text-white leading-tight">
+                        Ready to Start Your Journey?
+                      </h3>
+                      <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-xl mx-auto">
+                        Join thousands of students who are already improving their exam performance with Practice Koro.
+                      </p>
+                      <Button
+                        size="lg"
+                        onClick={() => navigate("/register")}
+                        className="text-base font-semibold py-6 px-8 rounded-2xl bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all duration-200"
+                      >
+                        Register Now - It's Free
+                        <ChevronRight className="w-5 h-5 ml-2" />
+                      </Button>
+                    </motion.div>
+                  </div>
+                </section>
+              )
+            }
+
+            <Footer />
+          </motion.div >
+        )}
+      </AnimatePresence >
+
+      {/* PWA Install Prompt handled globally in App.tsx */}
     </>
   );
 };

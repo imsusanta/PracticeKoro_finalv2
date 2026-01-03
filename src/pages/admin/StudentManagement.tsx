@@ -472,7 +472,7 @@ const StudentManagement = () => {
 
         {/* Students List - Row Based */}
         {filteredStudents.length === 0 ? (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl">
+          <Card className="border-0 bg-white rounded-2xl">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <Users className="w-8 h-8 text-emerald-600" />
@@ -482,7 +482,7 @@ const StudentManagement = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl overflow-hidden">
+          <Card className="border-0 bg-white rounded-2xl overflow-hidden">
             {/* Table Header */}
             <div className="hidden md:grid md:grid-cols-[2fr_1.5fr_1fr_1fr_80px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <span>Student</span>
@@ -741,7 +741,7 @@ const StudentManagement = () => {
 
       {/* View Details Dialog */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Student Details</DialogTitle>
           </DialogHeader>
@@ -798,7 +798,7 @@ const StudentManagement = () => {
 
       {/* Approve Duration Dialog */}
       <Dialog open={durationDialogOpen} onOpenChange={setDurationDialogOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Approve Student</DialogTitle>
             <DialogDescription>Set access duration for {selectedStudent?.full_name}</DialogDescription>
@@ -832,7 +832,7 @@ const StudentManagement = () => {
 
       {/* Delete Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="mx-4 rounded-2xl max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-red-600">Delete Student</DialogTitle>
             <DialogDescription>This will permanently delete {selectedStudent?.full_name}. This cannot be undone.</DialogDescription>
@@ -848,7 +848,7 @@ const StudentManagement = () => {
 
       {/* Password Reset Dialog */}
       <Dialog open={passwordResetOpen} onOpenChange={setPasswordResetOpen}>
-        <DialogContent className="mx-4 rounded-2xl max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Reset Password</DialogTitle>
             <DialogDescription>Set new password for {selectedStudent?.full_name}</DialogDescription>
@@ -874,7 +874,7 @@ const StudentManagement = () => {
 
       {/* Add Student Dialog */}
       <Dialog open={addStudentDialogOpen} onOpenChange={setAddStudentDialogOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Add New Student</DialogTitle>
             <DialogDescription>Create a new student account manually</DialogDescription>
@@ -925,7 +925,7 @@ const StudentManagement = () => {
 
       {/* Payment Reminder Dialog */}
       <Dialog open={paymentReminderOpen} onOpenChange={setPaymentReminderOpen}>
-        <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+        <DialogContent className="sm:max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-blue-500" />

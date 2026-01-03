@@ -297,7 +297,8 @@ const StudentChat = ({ studentId, studentName, isOpen: controlledOpen, onOpenCha
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleSend}
                                 disabled={!newMessage.trim() || loading || isSending}
-                                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center shadow-xl shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+                                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+                                style={{ boxShadow: '0 8px 24px rgba(99, 102, 241, 0.3)' }}
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700" />
                                 <Send className="w-5 h-5 text-white relative z-10" />

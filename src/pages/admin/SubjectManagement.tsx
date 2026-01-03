@@ -294,7 +294,7 @@ const SubjectManagement = () => {
         <AdminLayout title="Subject & Topics" subtitle="Manage subjects and topics for notes" headerActions={CreateSubjectButton}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Subjects List */}
-                <Card className="border-0 shadow-lg bg-white rounded-2xl">
+                <Card className="border-0 bg-white rounded-2xl">
                     <CardContent className="p-4">
                         <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
                             <FolderOpen className="w-5 h-5 text-emerald-600" />
@@ -357,7 +357,7 @@ const SubjectManagement = () => {
                 </Card>
 
                 {/* Topics List */}
-                <Card className="border-0 shadow-lg bg-white rounded-2xl">
+                <Card className="border-0 bg-white rounded-2xl">
                     <CardContent className="p-4">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="font-bold text-gray-900 flex items-center gap-2">
@@ -423,7 +423,7 @@ const SubjectManagement = () => {
 
             {/* Subject Dialog */}
             <Dialog open={subjectDialogOpen} onOpenChange={setSubjectDialogOpen}>
-                <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+                <DialogContent className="sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>{editingSubject ? "Edit Subject" : "Create Subject"}</DialogTitle>
                         <DialogDescription>
@@ -477,7 +477,7 @@ const SubjectManagement = () => {
 
             {/* Topic Dialog */}
             <Dialog open={topicDialogOpen} onOpenChange={setTopicDialogOpen}>
-                <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+                <DialogContent className="sm:max-w-md rounded-2xl">
                     <DialogHeader>
                         <DialogTitle>{editingTopic ? "Edit Topic" : "Create Topic"}</DialogTitle>
                         <DialogDescription>

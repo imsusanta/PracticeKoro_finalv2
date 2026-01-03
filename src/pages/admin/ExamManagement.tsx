@@ -209,7 +209,7 @@ const ExamManagement = () => {
           <Plus className="w-5 h-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[400px] max-h-[650px] overflow-y-auto mx-4 rounded-2xl border-white/40 shadow-xl">
+      <DialogContent className="sm:max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>{editingExam ? "Edit Exam" : "Create Exam"}</DialogTitle>
           <DialogDescription>
@@ -295,7 +295,7 @@ const ExamManagement = () => {
 
         {/* Exams List - Row Based */}
         {exams.length === 0 ? (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl">
+          <Card className="border-0 bg-white rounded-2xl">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto mb-4">
                 <BookOpen className="w-8 h-8 text-emerald-600" />
@@ -309,7 +309,7 @@ const ExamManagement = () => {
             </CardContent>
           </Card>
         ) : (
-          <Card className="border-0 shadow-lg bg-white rounded-2xl overflow-hidden">
+          <Card className="border-0 bg-white rounded-2xl overflow-hidden">
             {/* Table Header */}
             <div className="hidden md:grid md:grid-cols-[2fr_2fr_1fr_1fr_80px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <span>Exam Name</span>

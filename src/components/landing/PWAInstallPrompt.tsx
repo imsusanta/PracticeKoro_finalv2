@@ -14,6 +14,8 @@ const PWAInstallPrompt = () => {
     const [isIOS, setIsIOS] = useState(false);
     const [isInstalled, setIsInstalled] = useState(false);
     const [showIOSGuide, setShowIOSGuide] = useState(false);
+    const [isAndroidChrome, setIsAndroidChrome] = useState(false);
+    const [showAndroidGuide, setShowAndroidGuide] = useState(false);
 
     useEffect(() => {
         // Check if already installed
@@ -22,26 +24,31 @@ const PWAInstallPrompt = () => {
             return;
         }
 
+        // Also check navigator.standalone for iOS
+        if ((navigator as any).standalone === true) {
+            setIsInstalled(true);
+            return;
+        }
+
         // Check if dismissed before (within 7 days)
         const dismissedTime = localStorage.getItem("pwa-prompt-dismissed");
-        if (dismissedTime) {
+        const shouldAutoShow = !dismissedTime || (() => {
             const dismissedDate = new Date(parseInt(dismissedTime));
             const now = new Date();
             const daysDiff = (now.getTime() - dismissedDate.getTime()) / (1000 * 60 * 60 * 24);
-            if (daysDiff < 7) {
-                // Don't auto-show, but still allow manual trigger
-            } else {
-                // Auto show after timeout
-                setTimeout(() => setShowPrompt(true), 3000);
-            }
-        }
+            return daysDiff >= 7;
+        })();
 
         // Detect iOS
         const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
         setIsIOS(isIOSDevice);
 
-        if (isIOSDevice && !dismissedTime) {
-            // Show prompt after 3 seconds for iOS
+        // Detect Android Chrome (which supports PWA install)
+        const isAndroid = /Android/.test(navigator.userAgent);
+        const isChrome = /Chrome/.test(navigator.userAgent) && !/Edge|Edg/.test(navigator.userAgent);
+        setIsAndroidChrome(isAndroid && isChrome);
+
+        if (isIOSDevice && shouldAutoShow) {
             const timer = setTimeout(() => {
                 setShowPrompt(true);
             }, 3000);
@@ -52,8 +59,7 @@ const PWAInstallPrompt = () => {
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e as BeforeInstallPromptEvent);
-            // Show prompt after 3 seconds if not dismissed
-            if (!dismissedTime) {
+            if (shouldAutoShow) {
                 setTimeout(() => {
                     setShowPrompt(true);
                 }, 3000);
@@ -75,6 +81,14 @@ const PWAInstallPrompt = () => {
             setDeferredPrompt(null);
         });
 
+        // For Android Chrome where beforeinstallprompt didn't fire, still show option
+        if (isAndroid && shouldAutoShow && !isIOSDevice) {
+            const timer = setTimeout(() => {
+                setShowPrompt(true);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+
         return () => {
             window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
             window.removeEventListener("show-pwa-prompt", handleManualTrigger);
@@ -82,17 +96,20 @@ const PWAInstallPrompt = () => {
     }, []);
 
     const handleInstall = async () => {
-        if (!deferredPrompt) return;
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
 
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === "accepted") {
+                setIsInstalled(true);
+            }
 
-        if (outcome === "accepted") {
-            setIsInstalled(true);
+            setDeferredPrompt(null);
+            setShowPrompt(false);
+        } else if (isAndroidChrome) {
+            // Show Android installation guide if no deferred prompt
+            setShowAndroidGuide(true);
         }
-
-        setDeferredPrompt(null);
-        setShowPrompt(false);
     };
 
     const handleDismiss = () => {
@@ -104,7 +121,8 @@ const PWAInstallPrompt = () => {
         setShowIOSGuide(true);
     };
 
-    if (isInstalled || (!deferredPrompt && !isIOS)) {
+    // Show for iOS, or Android with deferred prompt, or Android Chrome without prompt (will show guide)
+    if (isInstalled || (!deferredPrompt && !isIOS && !isAndroidChrome)) {
         return null;
     }
 
@@ -129,7 +147,7 @@ const PWAInstallPrompt = () => {
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className="fixed bottom-0 left-0 right-0 z-[101] p-4 pb-safe-area-bottom"
                     >
-                        <div className="bg-white rounded-2xl sm:rounded-t-[28px] overflow-hidden shadow-2xl max-w-md mx-auto">
+                        <div className="bg-white rounded-2xl sm:rounded-t-[28px] overflow-hidden max-w-md mx-auto">
                             {/* Drag Handle */}
                             <div className="flex justify-center py-3">
                                 <div className="w-10 h-1 bg-gray-300 rounded-full" />
@@ -147,7 +165,7 @@ const PWAInstallPrompt = () => {
                                 /* iOS Installation Guide */
                                 <div className="px-6 pb-8">
                                     <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/30">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center" style={{ filter: 'drop-shadow(0 4px 12px rgba(16, 185, 129, 0.3))' }}>
                                             <Zap className="w-6 h-6 text-white" />
                                         </div>
                                         <div>
@@ -190,7 +208,61 @@ const PWAInstallPrompt = () => {
 
                                     <Button
                                         onClick={handleDismiss}
-                                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-2xl py-4 text-base shadow-lg shadow-emerald-500/20"
+                                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-2xl py-4 text-base"
+                                        style={{ filter: 'drop-shadow(0 4px 12px rgba(16, 185, 129, 0.2))' }}
+                                    >
+                                        Got it!
+                                    </Button>
+                                </div>
+                            ) : showAndroidGuide ? (
+                                /* Android Installation Guide */
+                                <div className="px-6 pb-8">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center" style={{ filter: 'drop-shadow(0 4px 12px rgba(16, 185, 129, 0.3))' }}>
+                                            <Zap className="w-6 h-6 text-white" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-gray-900">Install on Android</h3>
+                                            <p className="text-sm text-gray-500">Follow these steps</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4 mb-6">
+                                        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                                <Download className="w-4 h-4 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">Step 1: Open Menu</p>
+                                                <p className="text-xs text-gray-500">Tap the three dots (⋮) in the top right corner of Chrome</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                                                <Plus className="w-4 h-4 text-emerald-600" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">Step 2: Add to Home Screen</p>
+                                                <p className="text-xs text-gray-500">Tap "Add to Home Screen" or "Install App"</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                                            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center shrink-0">
+                                                <CheckCircle className="w-4 h-4 text-purple-600" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">Step 3: Confirm Install</p>
+                                                <p className="text-xs text-gray-500">Tap "Add" or "Install" to confirm</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        onClick={handleDismiss}
+                                        className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-2xl py-4 text-base"
+                                        style={{ filter: 'drop-shadow(0 4px 12px rgba(16, 185, 129, 0.2))' }}
                                     >
                                         Got it!
                                     </Button>
@@ -204,7 +276,8 @@ const PWAInstallPrompt = () => {
                                             initial={{ scale: 0 }}
                                             animate={{ scale: 1 }}
                                             transition={{ type: "spring", delay: 0.1 }}
-                                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30"
+                                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 flex items-center justify-center"
+                                            style={{ boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)' }}
                                         >
                                             <Zap className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                                         </motion.div>
@@ -241,7 +314,7 @@ const PWAInstallPrompt = () => {
                                     <div className="space-y-3">
                                         <Button
                                             onClick={isIOS ? handleIOSInstall : handleInstall}
-                                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl py-4 sm:py-5 text-base shadow-xl shadow-emerald-500/25 active:scale-[0.98] transition-all"
+                                            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl py-4 sm:py-5 text-base active:scale-[0.98] transition-all"
                                         >
                                             <Download className="w-5 h-5 mr-2" />
                                             {isIOS ? "How to Install" : "Install App"}

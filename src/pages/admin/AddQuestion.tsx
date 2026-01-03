@@ -174,7 +174,7 @@ const AddQuestion = () => {
   return (
     <AdminLayout title="Add Question" subtitle="Create new MCQ">
       <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl">
+        <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FilePlus className="w-5 h-5 text-emerald-600" />

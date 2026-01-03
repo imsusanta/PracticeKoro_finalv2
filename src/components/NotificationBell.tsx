@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, X, CheckCircle, Clock, Megaphone } from "lucide-react";
+import { Bell, X, CheckCircle, Clock, Megaphone, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -9,57 +9,93 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-    getNotifications,
-    getUnreadCount,
-    markNotificationAsRead,
-    markAllNotificationsAsRead,
-    getReadNotificationIds,
-    Notification,
-} from "@/config/notifications";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+
+interface DbNotification {
+    id: string;
+    title: string;
+    message: string;
+    type: string | null;
+    link: string | null;
+    is_read: boolean | null;
+    created_at: string | null;
+}
 
 const NotificationBell = () => {
     const navigate = useNavigate();
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notifications, setNotifications] = useState<DbNotification[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [readIds, setReadIds] = useState<string[]>([]);
     const [open, setOpen] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
 
-    const loadNotifications = () => {
-        const notifs = getNotifications();
-        const reads = getReadNotificationIds();
-        setNotifications(notifs);
-        setReadIds(reads);
-        setUnreadCount(notifs.filter(n => !reads.includes(n.id)).length);
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                setUserId(session.user.id);
+            }
+        };
+        fetchUser();
+    }, []);
+
+    const loadNotifications = async () => {
+        if (!userId) return;
+
+        const { data, error } = await supabase
+            .from("notifications")
+            .select("*")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(20);
+
+        if (error) {
+            console.error("Error loading notifications:", error);
+            return;
+        }
+
+        if (data) {
+            setNotifications(data);
+            setUnreadCount(data.filter(n => !n.is_read).length);
+        }
     };
 
     useEffect(() => {
-        loadNotifications();
-        // Poll for new notifications every 30 seconds
-        const interval = setInterval(loadNotifications, 30000);
-        return () => clearInterval(interval);
-    }, []);
+        if (userId) {
+            loadNotifications();
+            // Poll for new notifications every 30 seconds
+            const interval = setInterval(loadNotifications, 30000);
+            return () => clearInterval(interval);
+        }
+    }, [userId]);
 
-    const handleMarkAsRead = (id: string) => {
-        markNotificationAsRead(id);
+    const handleMarkAsRead = async (id: string) => {
+        await supabase
+            .from("notifications")
+            .update({ is_read: true })
+            .eq("id", id);
         loadNotifications();
     };
 
-    const handleMarkAllRead = () => {
-        markAllNotificationsAsRead();
+    const handleMarkAllRead = async () => {
+        if (!userId) return;
+        await supabase
+            .from("notifications")
+            .update({ is_read: true })
+            .eq("user_id", userId);
         loadNotifications();
     };
 
-    const handleNotificationClick = (notification: Notification) => {
+    const handleNotificationClick = (notification: DbNotification) => {
         handleMarkAsRead(notification.id);
-        if (notification.testId) {
-            navigate(`/student/take-test/${notification.testId}`);
+        if (notification.link) {
+            navigate(notification.link);
             setOpen(false);
         }
     };
 
-    const formatTime = (dateString: string) => {
+    const formatTime = (dateString: string | null) => {
+        if (!dateString) return "";
         const date = new Date(dateString);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
@@ -74,7 +110,7 @@ const NotificationBell = () => {
         return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
     };
 
-    const getTypeIcon = (type: Notification["type"]) => {
+    const getTypeIcon = (type: string | null) => {
         switch (type) {
             case "new_test":
                 return <CheckCircle className="w-4 h-4 text-emerald-500" />;
@@ -103,78 +139,70 @@ const NotificationBell = () => {
                     )}
                 </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:w-[400px] p-0">
-                <SheetHeader className="p-4 border-b bg-gradient-to-r from-emerald-50 to-teal-50">
-                    <div className="flex items-center justify-between">
-                        <SheetTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-                                <Bell className="w-4 h-4 text-white" />
-                            </div>
+            <SheetContent side="right" className="w-[340px] sm:w-[400px] p-0">
+                <SheetHeader className="p-4 border-b bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
+                    <SheetTitle className="text-white flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Bell className="w-5 h-5" />
                             Notifications
-                        </SheetTitle>
+                        </div>
                         {unreadCount > 0 && (
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={handleMarkAllRead}
-                                className="text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                className="text-white/80 hover:text-white hover:bg-white/20 text-xs"
                             >
                                 Mark all read
                             </Button>
                         )}
-                    </div>
+                    </SheetTitle>
                 </SheetHeader>
 
-                <div className="flex-1 overflow-y-auto max-h-[calc(100vh-100px)]">
+                <div className="overflow-y-auto max-h-[calc(100vh-80px)]">
                     {notifications.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 px-4">
-                            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-                                <Bell className="w-8 h-8 text-gray-300" />
+                        <div className="flex flex-col items-center justify-center py-12 px-4">
+                            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                                <Bell className="w-8 h-8 text-gray-400" />
                             </div>
                             <p className="text-gray-500 font-medium">No notifications yet</p>
-                            <p className="text-gray-400 text-sm text-center mt-1">
-                                You'll see new test alerts and announcements here
+                            <p className="text-gray-400 text-sm mt-1">
+                                You'll see updates about new tests here
                             </p>
                         </div>
                     ) : (
                         <div className="divide-y divide-gray-100">
                             {notifications.map((notification) => {
-                                const isRead = readIds.includes(notification.id);
+                                const isUnread = !notification.is_read;
                                 return (
                                     <div
                                         key={notification.id}
                                         onClick={() => handleNotificationClick(notification)}
-                                        className={`p-4 cursor-pointer transition-colors hover:bg-gray-50 ${!isRead ? "bg-emerald-50/50" : ""
+                                        className={`p-4 cursor-pointer transition-colors ${isUnread ? "bg-emerald-50/50" : "hover:bg-gray-50"
                                             }`}
                                     >
                                         <div className="flex gap-3">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${notification.type === "new_test"
-                                                    ? "bg-emerald-100"
-                                                    : notification.type === "reminder"
-                                                        ? "bg-amber-100"
-                                                        : "bg-blue-100"
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isUnread
+                                                ? "bg-emerald-100"
+                                                : "bg-gray-100"
                                                 }`}>
                                                 {getTypeIcon(notification.type)}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-start justify-between gap-2">
-                                                    <p className={`text-sm font-medium ${!isRead ? "text-gray-900" : "text-gray-600"}`}>
+                                                    <p className={`text-sm font-medium truncate ${isUnread ? "text-gray-900" : "text-gray-600"
+                                                        }`}>
                                                         {notification.title}
                                                     </p>
-                                                    {!isRead && (
+                                                    {isUnread && (
                                                         <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 mt-1.5" />
                                                     )}
                                                 </div>
                                                 <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
                                                     {notification.message}
                                                 </p>
-                                                {notification.testTitle && (
-                                                    <Badge className="mt-2 text-[10px] bg-emerald-100 text-emerald-700 border-0">
-                                                        {notification.testTitle}
-                                                    </Badge>
-                                                )}
-                                                <p className="text-[10px] text-gray-400 mt-2">
-                                                    {formatTime(notification.createdAt)}
+                                                <p className="text-[10px] text-gray-400 mt-1">
+                                                    {formatTime(notification.created_at)}
                                                 </p>
                                             </div>
                                         </div>
@@ -183,6 +211,19 @@ const NotificationBell = () => {
                             })}
                         </div>
                     )}
+                    <div className="p-4 border-t bg-gray-50 flex justify-center">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                                navigate("/student/notifications");
+                                setOpen(false);
+                            }}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 text-xs font-bold gap-1"
+                        >
+                            View All Notifications <ExternalLink className="w-3 h-3" />
+                        </Button>
+                    </div>
                 </div>
             </SheetContent>
         </Sheet>

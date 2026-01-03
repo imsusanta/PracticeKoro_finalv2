@@ -64,7 +64,7 @@ const AdminIndex = () => {
                 className="flex flex-col items-center gap-4"
             >
                 <div className="relative">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-200/50">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center" style={{ boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)' }}>
                         <Shield className="w-8 h-8 text-white" />
                     </div>
                     <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full animate-ping" />

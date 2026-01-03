@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,8 +7,46 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, Eye, EyeOff, Lock, Loader2 } from "lucide-react";
+import { Mail, Phone, Eye, EyeOff, Lock, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import loginIllustration from "@/assets/login-illustration.png";
+
+// Password strength calculation
+const getPasswordStrength = (password: string): { level: number; label: string; color: string } => {
+  if (!password) return { level: 0, label: "", color: "bg-gray-200" };
+  let score = 0;
+  if (password.length >= 6) score++;
+  if (password.length >= 8) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  if (score <= 2) return { level: 1, label: "Weak", color: "bg-red-500" };
+  if (score <= 3) return { level: 2, label: "Medium", color: "bg-amber-500" };
+  return { level: 3, label: "Strong", color: "bg-emerald-500" };
+};
+
+// Email validation
+const isValidEmail = (email: string): boolean => {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
+// Get user-friendly error message
+const getErrorMessage = (error: any): string => {
+  const message = error?.message?.toLowerCase() || "";
+  if (message.includes("invalid login credentials")) {
+    return "Invalid email or password. Please check your credentials and try again.";
+  }
+  if (message.includes("email not confirmed")) {
+    return "Please verify your email address before logging in.";
+  }
+  if (message.includes("too many requests")) {
+    return "Too many login attempts. Please wait a few minutes and try again.";
+  }
+  if (message.includes("network") || message.includes("fetch")) {
+    return "Network error. Please check your internet connection.";
+  }
+  return error?.message || "An unexpected error occurred. Please try again.";
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -17,6 +55,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"email" | "whatsapp">("email");
+  const [touched, setTouched] = useState({ email: false, password: false, whatsappNumber: false });
 
   const [emailFormData, setEmailFormData] = useState({
     email: "",
@@ -28,12 +67,33 @@ const Login = () => {
     password: "",
   });
 
+  // Validation states
+  const emailValidation = useMemo(() => {
+    if (!touched.email || !emailFormData.email) return { valid: true, message: "" };
+    if (!isValidEmail(emailFormData.email)) return { valid: false, message: "Please enter a valid email address" };
+    return { valid: true, message: "" };
+  }, [emailFormData.email, touched.email]);
+
+  const passwordStrength = useMemo(() => getPasswordStrength(emailFormData.password), [emailFormData.password]);
+  const whatsappPasswordStrength = useMemo(() => getPasswordStrength(whatsappFormData.password), [whatsappFormData.password]);
+
   const validateWhatsAppNumber = (number: string): boolean => {
     return /^\d{10}$/.test(number);
   };
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Pre-validation
+    if (!isValidEmail(emailFormData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -44,8 +104,8 @@ const Login = () => {
     if (error) {
       setLoading(false);
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Login Failed",
+        description: getErrorMessage(error),
         variant: "destructive",
       });
       return;
@@ -53,8 +113,8 @@ const Login = () => {
 
     setLoading(false);
     toast({
-      title: "Success",
-      description: "Logged in successfully!",
+      title: "Welcome Back!",
+      description: "You've logged in successfully.",
     });
     navigate("/student/dashboard");
   };
@@ -64,7 +124,7 @@ const Login = () => {
 
     if (!validateWhatsAppNumber(whatsappFormData.whatsappNumber)) {
       toast({
-        title: "Error",
+        title: "Invalid Number",
         description: "Please enter a valid 10-digit WhatsApp number",
         variant: "destructive",
       });
@@ -83,8 +143,8 @@ const Login = () => {
     if (error) {
       setLoading(false);
       toast({
-        title: "Error",
-        description: "Invalid WhatsApp number or password",
+        title: "Login Failed",
+        description: "Invalid WhatsApp number or password. Please check your credentials.",
         variant: "destructive",
       });
       return;
@@ -92,34 +152,45 @@ const Login = () => {
 
     setLoading(false);
     toast({
-      title: "Success",
-      description: "Logged in successfully!",
+      title: "Welcome Back!",
+      description: "You've logged in successfully.",
     });
     navigate("/student/dashboard");
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-muted/30">
-      {/* Left Side - Illustration (Hidden on mobile, Fixed position) */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] fixed left-0 top-0 h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 items-center justify-center p-8 xl:p-12">
+    <div className="min-h-screen bg-[#f8fafc]">
+      {/* Left Side - Illustration (Fixed position - doesn't scroll) */}
+      <div
+        className="hidden lg:flex items-center justify-center p-8 xl:p-12 overflow-hidden"
+        style={{
+          position: 'fixed',
+          left: 0,
+          top: 0,
+          width: '50%',
+          height: '100vh',
+          backgroundColor: '#f1f8f5',
+          zIndex: 10
+        }}
+      >
         <div className="relative w-full max-w-lg xl:max-w-xl">
           {/* Decorative elements */}
           <div className="absolute -top-8 -left-8 w-24 h-24 bg-emerald-200/40 rounded-full blur-2xl" />
           <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-teal-200/40 rounded-full blur-2xl" />
 
           {/* Main illustration container */}
-          <div className="relative bg-white/60 backdrop-blur-sm rounded-[2.5rem] p-6 xl:p-8 shadow-xl shadow-emerald-100/50 border border-white/80">
+          <div className="relative flex items-center justify-center w-full max-w-[480px]">
             <img
               src={loginIllustration}
               alt="Student studying illustration"
-              className="w-full h-auto rounded-2xl"
+              className="w-full h-auto mix-blend-multiply transition-all duration-700 select-none pointer-events-none"
             />
           </div>
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="flex-1 flex flex-col min-h-screen lg:min-h-0 lg:ml-[50%] xl:ml-[55%]">
+      {/* Right Side - Login Form (offset from fixed left panel) */}
+      <div className="min-h-screen flex flex-col lg:ml-[50%] xl:ml-[55%]">
         {/* Header with Sign Up button */}
         <div className="flex justify-end p-4 sm:p-6 lg:p-8">
           <Button
@@ -136,11 +207,11 @@ const Login = () => {
           <div className="w-full max-w-md space-y-8">
             {/* Mobile Illustration */}
             <div className="lg:hidden flex justify-center mb-6">
-              <div className="w-48 h-48 sm:w-56 sm:h-56 bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 rounded-3xl p-4 shadow-lg shadow-emerald-100/30">
+              <div className="w-48 h-48 sm:w-56 sm:h-56 bg-[#f0fdf4] rounded-[2rem] p-4 border border-emerald-100/30 overflow-hidden">
                 <img
                   src={loginIllustration}
                   alt="Student studying"
-                  className="w-full h-full object-cover rounded-2xl"
+                  className="w-full h-full object-contain rounded-2xl mix-blend-multiply"
                 />
               </div>
             </div>
@@ -192,11 +263,27 @@ const Login = () => {
                         required
                         placeholder="you@example.com"
                         autoComplete="email"
-                        className="h-14 pl-12 pr-4 bg-muted/40 border-border/40 rounded-xl focus:bg-background transition-all text-base"
+                        className={`h-14 pl-12 pr-10 bg-muted/40 border-border/40 rounded-xl focus:bg-background transition-all text-base ${!emailValidation.valid ? 'border-red-500 focus:border-red-500' : ''}`}
                         value={emailFormData.email}
                         onChange={(e) => setEmailFormData({ ...emailFormData, email: e.target.value })}
+                        onBlur={() => setTouched({ ...touched, email: true })}
                       />
+                      {touched.email && emailFormData.email && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          {emailValidation.valid ? (
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-red-500" />
+                          )}
+                        </div>
+                      )}
                     </div>
+                    {!emailValidation.valid && (
+                      <p className="text-xs text-red-500 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {emailValidation.message}
+                      </p>
+                    )}
                   </div>
 
                   {/* Password Field */}
@@ -226,6 +313,19 @@ const Login = () => {
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
+                    {/* Password Strength Indicator */}
+                    {emailFormData.password && (
+                      <div className="space-y-1.5">
+                        <div className="flex gap-1">
+                          <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength.level >= 1 ? passwordStrength.color : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength.level >= 2 ? passwordStrength.color : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength.level >= 3 ? passwordStrength.color : 'bg-gray-200'}`} />
+                        </div>
+                        <p className={`text-xs font-medium ${passwordStrength.color.replace('bg-', 'text-')}`}>
+                          {passwordStrength.label} password
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Remember Me & Forgot Password */}
@@ -324,6 +424,19 @@ const Login = () => {
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
+                    {/* Password Strength Indicator */}
+                    {whatsappFormData.password && (
+                      <div className="space-y-1.5">
+                        <div className="flex gap-1">
+                          <div className={`h-1 flex-1 rounded-full transition-all ${whatsappPasswordStrength.level >= 1 ? whatsappPasswordStrength.color : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-all ${whatsappPasswordStrength.level >= 2 ? whatsappPasswordStrength.color : 'bg-gray-200'}`} />
+                          <div className={`h-1 flex-1 rounded-full transition-all ${whatsappPasswordStrength.level >= 3 ? whatsappPasswordStrength.color : 'bg-gray-200'}`} />
+                        </div>
+                        <p className={`text-xs font-medium ${whatsappPasswordStrength.color.replace('bg-', 'text-')}`}>
+                          {whatsappPasswordStrength.label} password
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Remember Me & Forgot Password */}

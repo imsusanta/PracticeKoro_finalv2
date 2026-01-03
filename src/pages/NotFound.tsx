@@ -20,7 +20,7 @@ const NotFound = () => {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white shadow-2xl shadow-indigo-200/50 mb-6">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white mb-6" style={{ boxShadow: '0 12px 40px rgba(99, 102, 241, 0.25)' }}>
             <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-500 to-violet-600">404</h1>
           </div>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Oops! Page not found</h2>

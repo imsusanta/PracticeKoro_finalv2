@@ -159,7 +159,7 @@ const StudentExams = () => {
             <p className="text-slate-500 mb-8">Complete payment to unlock all tests</p>
             <button
               onClick={() => navigate("/student/dashboard")}
-              className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold shadow-lg active:scale-[0.98] transition-all"
+              className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold active:scale-[0.98] transition-all"
             >
               Back to Dashboard
             </button>
@@ -172,7 +172,7 @@ const StudentExams = () => {
   return (
     <StudentLayout title="Mock Tests" subtitle="Practice & improve">
       <PullIndicator />
-      <div className="w-full max-w-3xl mx-auto space-y-4 pb-24 overflow-x-hidden" {...containerProps}>
+      <div className="w-full mx-auto space-y-3 pb-12 overflow-x-hidden px-1" {...containerProps}>
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM HERO - Matches Dashboard Height
@@ -180,21 +180,21 @@ const StudentExams = () => {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-slate-900 via-indigo-950 to-indigo-900 shadow-xl"
+          className="relative overflow-hidden rounded-3xl p-5 sm:p-6 bg-gradient-to-br from-emerald-500 via-teal-500 to-emerald-600"
         >
           {/* Decorative Background Elements */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl -mr-24 -mt-24" />
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-violet-500/15 rounded-full blur-3xl -ml-20 -mb-20" />
-          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-purple-500/10 rounded-full blur-2xl" />
+          <div className="absolute top-0 right-0 w-48 h-48 bg-white/20 rounded-full blur-3xl -mr-24 -mt-24" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-teal-400/30 rounded-full blur-3xl -ml-20 -mb-20" />
+          <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/10 rounded-full blur-2xl" />
 
           <div className="relative z-10">
             {/* Header - Matches Dashboard style */}
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shadow-lg shrink-0">
-                <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-300" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30 shrink-0">
+                <Trophy className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
               </div>
               <div>
-                <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">📝 Test Repository</p>
+                <p className="text-white/80 text-xs sm:text-sm font-medium mb-1">📝 Test Repository</p>
                 <h1 className="text-xl sm:text-2xl font-bold text-white">Master Your Exams</h1>
               </div>
             </div>
@@ -203,15 +203,15 @@ const StudentExams = () => {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
                 <p className="text-2xl sm:text-3xl font-bold text-white">{completedTests}</p>
-                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Done</p>
+                <p className="text-white/80 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Done</p>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                <p className="text-2xl sm:text-3xl font-bold text-emerald-400">{avgScore}%</p>
-                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Avg Score</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">{avgScore}%</p>
+                <p className="text-white/80 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Avg Score</p>
               </div>
               <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-3 text-center border border-white/20">
-                <p className="text-2xl sm:text-3xl font-bold text-indigo-300">{Object.values(mockTests).flat().length}</p>
-                <p className="text-white/70 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Available</p>
+                <p className="text-2xl sm:text-3xl font-bold text-white">{Object.values(mockTests).flat().length}</p>
+                <p className="text-white/80 text-[10px] sm:text-xs font-semibold uppercase tracking-wide mt-1">Available</p>
               </div>
             </div>
           </div>

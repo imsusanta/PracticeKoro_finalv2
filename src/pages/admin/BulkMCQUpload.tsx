@@ -266,7 +266,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
   return (
     <AdminLayout title="Bulk MCQ Upload" subtitle="Upload multiple questions">
       <div className="flex flex-col gap-6">
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl">
+        <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="w-5 h-5 text-emerald-600" />
@@ -317,7 +317,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl">
+        <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
           <CardHeader>
             <CardTitle>Example Format</CardTitle>
           </CardHeader>
@@ -334,7 +334,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
         </Card>
 
         {showPreview && parsedQuestions.length > 0 && (
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl">
+          <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <CardTitle>Preview ({parsedQuestions.length} questions)</CardTitle>
               <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 h-11">

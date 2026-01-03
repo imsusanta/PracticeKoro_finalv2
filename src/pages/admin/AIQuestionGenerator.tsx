@@ -245,7 +245,7 @@ const AIQuestionGenerator = () => {
   return (
     <AdminLayout title="AI Question Generator" subtitle="Generate questions with AI">
       <div className="flex flex-col gap-6 max-w-4xl mx-auto">
-        <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl">
+        <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-emerald-600" />
@@ -345,7 +345,7 @@ const AIQuestionGenerator = () => {
         </Card>
 
         {generatedQuestions.length > 0 && (
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl">
+          <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl">
             <CardHeader>
               <div className="flex items-center justify-between mb-4">
                 <CardTitle>Generated Questions ({generatedQuestions.length})</CardTitle>

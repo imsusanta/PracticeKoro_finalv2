@@ -1,153 +1,150 @@
-import { Send, Phone, Mail, MapPin, Sparkles, CheckCircle, ArrowUpRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Send, Phone, Mail, MapPin, Zap, CheckCircle, ArrowUpRight, Heart, Instagram, Youtube, Facebook } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Footer = () => {
     return (
-        <footer className="relative overflow-hidden">
-            {/* Gradient Top Border */}
-            <div className="h-1 w-full bg-gradient-to-r from-primary/0 via-primary to-primary/0" />
+        <footer className="relative overflow-hidden bg-slate-900">
+            {/* Top Wave Decoration */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
 
-            {/* Main Footer */}
-            <div className="bg-gradient-to-br from-primary/5 via-white to-blue-50/50 border-t border-primary/10">
-                <div className="container mx-auto px-4 py-10 md:py-16">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-10">
+            {/* Main Footer Content */}
+            <div className="container mx-auto px-5 pt-16 pb-12 md:pt-20 md:pb-16">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
 
-                        {/* Brand Column */}
-                        <div className="space-y-5">
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-blue-600 shadow-lg shadow-primary/25">
-                                    <CheckCircle className="w-6 h-6 text-white" />
+                    {/* Brand Column */}
+                    <div className="sm:col-span-2 lg:col-span-1 space-y-6">
+                        <div className="flex items-center gap-3">
+                            <div
+                                className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500"
+                                style={{ filter: 'drop-shadow(0 4px 12px rgba(16, 185, 129, 0.3))' }}
+                            >
+                                <Zap className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-bold text-white tracking-tight">Practice Koro</h3>
+                                <p className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">Exam Prep Simplified</p>
+                            </div>
+                        </div>
+                        <p className="text-sm text-slate-400 leading-relaxed max-w-sm">
+                            Your ultimate platform for exam preparation. Smart mock tests, detailed analytics, and study materials.
+                        </p>
+                        {/* Social Links */}
+                        <div className="flex items-center gap-4 pt-2">
+                            {[
+                                { icon: Send, href: "https://t.me/parikshanotespdf", color: "hover:bg-[#0088cc]" },
+                                { icon: Instagram, href: "https://www.instagram.com/parikshanotes_in", color: "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500" },
+                                { icon: Youtube, href: "https://www.youtube.com/@parikshanotesofficial", color: "hover:bg-red-600" },
+                                { icon: Facebook, href: "https://www.facebook.com/parikshanotes.official", color: "hover:bg-blue-600" }
+                            ].map((social, i) => (
+                                <a
+                                    key={i}
+                                    href={social.href}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`w-11 h-11 rounded-xl bg-slate-800/80 flex items-center justify-center transition-all duration-300 group ${social.color}`}
+                                >
+                                    <social.icon className="w-5 h-5 text-slate-400 group-hover:text-white transition-colors" />
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Quick Links */}
+                    <div className="space-y-6">
+                        <h4 className="text-white font-bold text-sm uppercase tracking-[0.2em]">
+                            Quick Links
+                        </h4>
+                        <ul className="space-y-4 text-sm">
+                            {[
+                                { label: "Register", to: "/register" },
+                                { label: "Login", to: "/login" },
+                                { label: "Dashboard", to: "/student/dashboard" },
+                                { label: "Browse Exams", to: "/student/exams" },
+                            ].map((link) => (
+                                <li key={link.label}>
+                                    <Link
+                                        to={link.to}
+                                        className="text-slate-400 hover:text-emerald-400 transition-all flex items-center gap-2 group"
+                                    >
+                                        <ArrowUpRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-emerald-400" />
+                                        <span>{link.label}</span>
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Contact Info */}
+                    <div className="space-y-6">
+                        <h4 className="text-white font-bold text-sm uppercase tracking-[0.2em]">
+                            Contact Us
+                        </h4>
+                        <ul className="space-y-5 text-sm">
+                            {[
+                                { icon: Phone, label: "Phone", val: "+91 95477 71118", href: "tel:+919547771118" },
+                                { icon: Mail, label: "Email", val: "contact@practicekoro.online", href: "mailto:contact@practicekoro.online" },
+                                { icon: MapPin, label: "Location", val: "Sarenga, Bankura, WB", href: "#" }
+                            ].map((item, i) => (
+                                <li key={i} className="flex items-start gap-4 group cursor-pointer">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-800/80 flex items-center justify-center shrink-0 group-hover:bg-emerald-500 group-hover:bg-opacity-20 transition-all">
+                                        <item.icon className="w-4 h-4 text-emerald-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mb-0.5">{item.label}</p>
+                                        <a href={item.href} className="text-slate-300 font-medium group-hover:text-emerald-400 transition-colors block">
+                                            {item.val}
+                                        </a>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Telegram CTA */}
+                    <div className="sm:col-span-2 lg:col-span-1">
+                        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900 rounded-3xl p-6 border border-slate-700/50 relative overflow-hidden group">
+                            {/* Animated Background Pulse */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-500" />
+
+                            <div className="flex items-center gap-4 mb-5">
+                                <div
+                                    className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0088cc] to-[#00a8e8] flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/20"
+                                >
+                                    <Send className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">Practice Koro</h3>
-                                    <p className="text-[10px] uppercase tracking-wider text-primary font-semibold">Exam Prep Simplified</p>
+                                    <h4 className="font-bold text-white text-base">Join Telegram</h4>
+                                    <p className="text-xs text-slate-400">Notes & Daily Updates</p>
                                 </div>
                             </div>
-                            <p className="text-sm text-gray-600 leading-relaxed max-w-sm">
-                                Your ultimate platform for exam preparation. Smart mock tests, detailed analytics, and study materials to help you succeed.
+                            <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                                Get exclusive access to free study notes and daily quizzes.
                             </p>
-                            <div className="flex items-center gap-2 text-sm">
-                                <div className="flex -space-x-2">
-                                    {[1, 2, 3, 4].map((i) => (
-                                        <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-white flex items-center justify-center text-[10px] font-bold text-primary">
-                                            {String.fromCharCode(64 + i)}
-                                        </div>
-                                    ))}
-                                </div>
-                                <span className="text-gray-500 ml-1">50K+ students</span>
-                            </div>
+                            <a
+                                href="https://t.me/parikshanotespdf"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 w-full py-4 px-6 rounded-2xl text-white font-bold bg-gradient-to-r from-[#0088cc] to-[#00a8e8] hover:shadow-lg hover:shadow-blue-500/30 hover:scale-[1.02] transition-all active:scale-[0.98]"
+                            >
+                                <Send className="w-5 h-5" />
+                                <span>@parikshanotespdf</span>
+                            </a>
                         </div>
-
-                        {/* Quick Links */}
-                        <div>
-                            <h4 className="text-gray-900 font-semibold mb-5 flex items-center gap-2">
-                                <span className="w-8 h-0.5 bg-primary rounded-full"></span>
-                                Quick Links
-                            </h4>
-                            <ul className="space-y-3 text-sm">
-                                {[
-                                    { label: "Register", to: "/register" },
-                                    { label: "Login", to: "/login" },
-                                    { label: "Dashboard", to: "/student/dashboard" },
-                                    { label: "Browse Exams", to: "/student/exams" },
-                                ].map((link) => (
-                                    <li key={link.label}>
-                                        <Link
-                                            to={link.to}
-                                            className="text-gray-600 hover:text-primary transition-colors flex items-center gap-1.5 group"
-                                        >
-                                            <ArrowUpRight className="w-3.5 h-3.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-primary" />
-                                            <span>{link.label}</span>
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Contact Info */}
-                        <div>
-                            <h4 className="text-gray-900 font-semibold mb-5 flex items-center gap-2">
-                                <span className="w-8 h-0.5 bg-primary rounded-full"></span>
-                                Contact Us
-                            </h4>
-                            <ul className="space-y-4 text-sm">
-                                <li className="flex items-start gap-3 group">
-                                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                                        <Phone className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Phone</p>
-                                        <p className="text-gray-700 font-medium">+91 95477 71118</p>
-                                    </div>
-                                </li>
-                                <li className="flex items-start gap-3 group">
-                                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                                        <Mail className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Email</p>
-                                        <p className="text-gray-700 font-medium">contact@practicekoro.online</p>
-                                    </div>
-                                </li>
-                                <li className="flex items-start gap-3 group">
-                                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                                        <MapPin className="w-4 h-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <p className="text-[11px] text-gray-400 uppercase tracking-wide">Location</p>
-                                        <p className="text-gray-700 font-medium">Sarenga, Bankura, West Bengal</p>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
-
-                        {/* Telegram CTA */}
-                        <div className="relative group">
-                            <div className="absolute -inset-2 bg-gradient-to-br from-primary/20 to-blue-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity" />
-                            <div className="relative bg-white rounded-2xl p-6 border border-primary/20 shadow-xl shadow-primary/5">
-                                <div className="flex items-center gap-3 mb-4">
-                                    <div className="w-10 h-10 rounded-xl bg-[#0088cc] flex items-center justify-center shadow-lg shadow-[#0088cc]/30">
-                                        <Send className="w-5 h-5 text-white" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-900">Join Our Community</h4>
-                                        <p className="text-[10px] text-gray-500">Free notes & daily updates</p>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-                                    Get free study notes, daily quizzes, and exam updates on our official Telegram channel.
-                                </p>
-                                <Button
-                                    className="w-full bg-gradient-to-r from-[#0088cc] to-[#00a8e8] hover:from-[#0077b5] hover:to-[#0088cc] text-white border-none shadow-lg shadow-[#0088cc]/20 rounded-xl"
-                                    onClick={() => window.open('https://t.me/parikshanotespdf', '_blank')}
-                                >
-                                    <Send className="w-4 h-4 mr-2" />
-                                    @parikshanotespdf
-                                </Button>
-                                <div className="flex items-center justify-center gap-2 mt-3">
-                                    <div className="flex -space-x-1">
-                                        {[1, 2, 3].map((i) => (
-                                            <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-primary/30 to-blue-400/30 border border-white" />
-                                        ))}
-                                    </div>
-                                    <p className="text-[10px] text-gray-500">Join 50K+ students</p>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
+
                 </div>
             </div>
 
             {/* Copyright Bar */}
-            <div className="bg-gradient-to-r from-primary to-blue-600 text-white">
-                <div className="container mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4 text-[11px] sm:text-xs">
-                    <p className="font-medium text-center">© 2025 Practice Koro. All rights reserved.</p>
-                    <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
-                        <a href="#" className="hover:underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity">Privacy Policy</a>
-                        <a href="#" className="hover:underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity">Terms of Service</a>
-                        <a href="#" className="hover:underline underline-offset-2 opacity-80 hover:opacity-100 transition-opacity">Cookie Policy</a>
+            <div className="border-t border-slate-800">
+                <div className="container mx-auto px-5 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <p className="text-sm text-slate-500 text-center md:text-left flex items-center gap-1">
+                        © 2026 Practice Koro. Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> in India
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+                        <a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors">Privacy Policy</a>
+                        <a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors">Terms of Service</a>
+                        <a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors">Cookie Policy</a>
                     </div>
                 </div>
             </div>

@@ -338,15 +338,15 @@ const TakeTest = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white/95 backdrop-blur-xl rounded-[32px] p-8 shadow-2xl text-center max-w-sm w-full border border-white/50"
+          className="bg-white/95 backdrop-blur-sm rounded-[32px] p-8 shadow-2xl text-center max-w-sm w-full border border-white/50"
         >
-          <div className="w-20 h-20 rounded-[20px] bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-indigo-500/30">
+          <div className="w-20 h-20 rounded-[20px] bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto mb-6 shadow-indigo-500/30">
             <Zap className="w-10 h-10 text-white" />
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2 font-display">Preparing Your Test</h2>
           <p className="text-slate-500 mb-6">Loading questions...</p>
           <div className="w-12 h-12 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <Button onClick={enterFullscreen} className="mt-6 w-full bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-2xl h-14 font-bold shadow-lg shadow-indigo-500/25 hover:shadow-xl transition-all">
+          <Button onClick={enterFullscreen} className="mt-6 w-full bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-2xl h-14 font-bold shadow-indigo-500/25 hover:transition-all">
             Enter Fullscreen Mode
           </Button>
         </motion.div>
@@ -361,7 +361,7 @@ const TakeTest = () => {
       <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/30 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100">
           <div className="bg-gradient-to-br from-rose-500 to-rose-600 p-8 flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4 shadow-lg">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
               <Lock className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white mb-2 font-display">Account Locked</h1>
@@ -380,7 +380,7 @@ const TakeTest = () => {
 
             <div className="space-y-3">
               <Button
-                className="w-full py-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/25 group transition-all"
+                className="w-full py-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-indigo-500/25 group transition-all"
                 onClick={() => window.open("https://wa.me/919547771118?text=Hi, my account is locked due to payment. I want to make the payment.", "_blank")}
               >
                 <div className="flex items-center gap-3">
@@ -412,10 +412,10 @@ const TakeTest = () => {
   if (!test || questions.length === 0) {
     return (
       <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 via-indigo-50/20 to-violet-50/30 flex items-center justify-center p-4">
-        <div className="bg-white rounded-[28px] p-8 shadow-xl text-center border border-slate-100">
+        <div className="bg-white rounded-[28px] p-8 text-center border border-slate-100">
           <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
           <p className="text-slate-800 text-lg mb-4 font-display font-bold">No questions found</p>
-          <Button onClick={() => navigate("/student/exams")} className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-2xl h-12 px-6 font-bold shadow-lg shadow-indigo-500/25">
+          <Button onClick={() => navigate("/student/exams")} className="bg-gradient-to-r from-indigo-500 to-violet-600 text-white rounded-2xl h-12 px-6 font-bold shadow-indigo-500/25">
             Back to Exams
           </Button>
         </div>
@@ -436,7 +436,7 @@ const TakeTest = () => {
   return (
     <div className="min-h-[100dvh] bg-slate-50 flex flex-col">
       {/* Sleek Header */}
-      <header className={`shrink-0 transition-all duration-300 ${timeCritical
+      <header className={`shrink-0 transition-all duration-150 ${timeCritical
         ? 'bg-gradient-to-r from-rose-500 to-rose-600'
         : timeWarning
           ? 'bg-gradient-to-r from-amber-500 to-orange-500'
@@ -585,7 +585,7 @@ const TakeTest = () => {
       </main>
 
       {/* Bottom Navigation - Clean and Modern */}
-      <nav className="shrink-0 bg-white border-t border-slate-200 shadow-lg safe-area-bottom">
+      <nav className="shrink-0 bg-white border-t border-slate-200 safe-area-bottom">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             {/* Previous */}
@@ -617,7 +617,10 @@ const TakeTest = () => {
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowSubmitDialog(true)}
-                className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30"
+                className={`w-12 h-12 rounded-xl flex items-center justify-center ${currentQuestionIndex === questions.length - 1 && answers[currentQuestion.question_id]
+                  ? 'bg-gradient-to-r from-emerald-500 to-green-600 shadow-lg'
+                  : 'bg-indigo-600 shadow-indigo-500/30'
+                  }`}
               >
                 <Send className="w-5 h-5 text-white" />
               </motion.button>
@@ -628,7 +631,7 @@ const TakeTest = () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => setCurrentQuestionIndex(Math.min(questions.length - 1, currentQuestionIndex + 1))}
               disabled={currentQuestionIndex === questions.length - 1}
-              className="flex-1 h-12 rounded-xl bg-indigo-600 font-bold text-white text-sm flex items-center justify-center gap-1 disabled:opacity-40 shadow-lg shadow-indigo-500/30"
+              className="flex-1 h-12 rounded-xl bg-indigo-600 font-bold text-white text-sm flex items-center justify-center gap-1 disabled:opacity-40 shadow-indigo-500/30"
             >
               Next
               <ChevronRight className="w-5 h-5" />
@@ -685,7 +688,7 @@ const TakeTest = () => {
                           setShowNavigator(false);
                         }}
                         className={`relative h-11 rounded-xl font-black text-[13px] flex items-center justify-center ${isCurrent
-                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg'
+                          ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white'
                           : isAnswered
                             ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                             : 'bg-slate-100 text-slate-500 border border-slate-200'
@@ -711,7 +714,7 @@ const TakeTest = () => {
       <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <AlertDialogContent className="w-[90vw] max-w-sm mx-auto rounded-[24px] p-5 gap-4 border-0 shadow-2xl">
           <AlertDialogHeader className="space-y-3">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto shadow-xl">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center mx-auto">
               <Send className="w-6 h-6 text-white" />
             </div>
             <AlertDialogTitle className="text-lg font-bold text-center">Submit Test?</AlertDialogTitle>
@@ -748,7 +751,7 @@ const TakeTest = () => {
             <AlertDialogAction
               onClick={handleSubmitTest}
               disabled={submitting}
-              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-sm font-bold shadow-lg"
+              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-indigo-500 to-violet-600 text-sm font-bold"
             >
               {submitting ? "..." : "Submit"}
             </AlertDialogAction>

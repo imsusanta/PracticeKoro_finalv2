@@ -7,7 +7,8 @@ import {
   Sparkles,
   Upload,
   MessageCircle,
-  FolderOpen
+  FolderOpen,
+  Bell
 } from "lucide-react";
 
 export const managementTools = [
@@ -19,6 +20,7 @@ export const managementTools = [
   { name: "AI Question Generator", path: "/admin/ai-generator", icon: Sparkles },
   { name: "Notes Management", path: "/admin/notes", icon: NotebookPen },
   { name: "Bulk MCQ Upload", path: "/admin/bulk-upload", icon: Upload },
+  { name: "Send Notifications", path: "/admin/notifications", icon: Bell },
   { name: "Chat Inbox", path: "/admin/chat", icon: MessageCircle },
 ];
 

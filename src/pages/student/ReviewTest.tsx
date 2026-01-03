@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   CheckCircle,
   XCircle,
@@ -67,6 +68,16 @@ const ReviewTest = () => {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
 
+  // Pull-to-refresh
+  const handleRefresh = useCallback(async () => {
+    setLoading(true);
+    await loadTestReview();
+  }, [attemptId]);
+
+  const { containerProps, PullIndicator } = usePullToRefresh({
+    onRefresh: handleRefresh,
+  });
+
   useEffect(() => {
     loadTestReview();
   }, [attemptId]);
@@ -118,7 +129,7 @@ const ReviewTest = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="flex flex-col items-center gap-4"
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-xl shadow-emerald-500/30">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-emerald-500/30">
             <Trophy className="w-8 h-8 text-white" />
           </div>
           <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
@@ -133,7 +144,7 @@ const ReviewTest = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-3xl p-8 shadow-xl text-center max-w-sm"
+          className="bg-white rounded-3xl p-8 text-center max-w-sm"
         >
           <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <BookOpen className="w-7 h-7 text-slate-400" />
@@ -153,11 +164,12 @@ const ReviewTest = () => {
   const skippedAnswers = answers.filter(a => !a.selected_answer).length;
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 pb-8">
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 pb-8" {...containerProps}>
+      <PullIndicator />
       {/* ═══════════════════════════════════════════════════════════════
           COMPACT HERO HEADER - Pass/Fail Gradient
           ═══════════════════════════════════════════════════════════════ */}
-      <header className="relative overflow-hidden"
+      <header className="relative overflow-hidden safe-area-top"
         style={{
           background: attempt.passed
             ? 'linear-gradient(135deg, #10b981 0%, #14b8a6 50%, #0d9488 100%)'
@@ -165,44 +177,44 @@ const ReviewTest = () => {
         }}
       >
         {/* Decorative Elements */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/40 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl" />
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/30 rounded-full translate-y-1/2 -translate-x-1/3 blur-xl" />
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/40 rounded-full -translate-y-1/2 translate-x-1/3 blur-2xl" />
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/30 rounded-full translate-y-1/2 -translate-x-1/3 blur-xl" />
         </div>
 
-        <div className="relative px-5 pt-4 pb-8 md:pt-5 md:pb-10">
+        <div className="relative px-4 pt-2 pb-4 md:px-6 md:pt-3 md:pb-6">
           {/* Navigation */}
-          <div className="flex items-center mb-5">
+          <div className="flex items-center mb-4">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/student/results")}
-              className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"
+              className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30"
             >
-              <ArrowLeft className="w-5 h-5 text-white" />
+              <ArrowLeft className="w-4 h-4 text-white" />
             </motion.button>
           </div>
 
           {/* Result Display - Compact */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-3 border-4 border-white/30"
-              style={{ boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)' }}
+            <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-2 border-2 border-white/30"
+              style={{ boxShadow: '0 6px 24px rgba(0, 0, 0, 0.12)' }}
             >
               {attempt.passed ? (
-                <Trophy className="w-10 h-10 md:w-12 md:h-12 text-yellow-300" />
+                <Trophy className="w-7 h-7 md:w-8 md:h-8 text-yellow-300" />
               ) : (
-                <XCircle className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                <XCircle className="w-7 h-7 md:w-8 md:h-8 text-white" />
               )}
             </div>
-            <h1 className="text-3xl md:text-4xl font-black text-white mb-1 font-mono">{attempt.percentage}%</h1>
-            <p className="text-white/80 text-xs md:text-sm mb-2">{attempt.score} / {attempt.total_marks} marks</p>
-            <Badge className={`${attempt.passed ? 'bg-white/20 text-white' : 'bg-white/20 text-white'} text-[10px] sm:text-xs px-3 py-1 border border-white/30`}>
+            <h1 className="text-2xl md:text-3xl font-black text-white mb-0.5 font-mono">{attempt.percentage}%</h1>
+            <p className="text-white/80 text-[11px] md:text-sm mb-2">{attempt.score} / {attempt.total_marks} marks</p>
+            <Badge className="bg-white/20 text-white text-[10px] px-2.5 py-0.5 border border-white/30">
               {attempt.passed ? '🎉 Passed!' : '📚 Keep Practicing!'}
             </Badge>
-            <p className="text-white/70 text-[10px] md:text-xs mt-3 font-medium px-4 truncate">{attempt.mock_tests.title}</p>
+            <p className="text-white/70 text-[10px] md:text-xs mt-2 font-medium px-4 truncate">{attempt.mock_tests.title}</p>
           </motion.div>
         </div>
       </header>
@@ -444,7 +456,7 @@ const ReviewTest = () => {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => navigate(`/student/take-test/${attempt.mock_tests.id}`)}
-            className="w-full btn-native bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25"
+            className="w-full btn-native bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-emerald-500/25"
           >
             <RotateCw className="w-5 h-5" />
             Retake This Test

@@ -1,173 +1,194 @@
-import { useRef } from "react";
-import { motion, useScroll, useTransform, useSpring, useInView } from "framer-motion";
-import { UserPlus, Library, LineChart, CheckCircle2, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React from 'react';
+import { motion } from 'framer-motion';
+import {
+    Search,
+    Gamepad2,
+    LineChart,
+    Trophy,
+    ArrowRight
+} from 'lucide-react';
 
 const steps = [
     {
-        id: 1,
-        title: "Register & Get Approved",
-        description: "Create your free student account and get quick approval to unlock all Practice Koro features.",
-        icon: UserPlus,
-        color: "from-blue-500 to-indigo-600",
-        shadow: "shadow-blue-500/25",
-        delay: 0.2
+        icon: Search,
+        title: "Find Your Exam",
+        desc: "Browse 1,000+ mock tests for SSC, Railways, Banking & more",
+        color: "bg-blue-500",
+        lightBg: "bg-blue-50",
+        step: "1"
     },
     {
-        id: 2,
-        title: "Choose Your Exam & Materials",
-        description: "Select your exam category, explore available mock tests, and open study PDFs matched to your syllabus.",
-        icon: Library,
-        color: "from-emerald-500 to-teal-600",
-        shadow: "shadow-emerald-500/25",
-        delay: 0.4
+        icon: Gamepad2,
+        title: "Start Practicing",
+        desc: "Take timed tests with real exam interface",
+        color: "bg-emerald-500",
+        lightBg: "bg-emerald-50",
+        step: "2"
     },
     {
-        id: 3,
-        title: "Practice, Analyse & Improve",
-        description: "Take mock tests, review detailed explanations, and track your scores to see steady improvement over time.",
         icon: LineChart,
-        color: "from-orange-500 to-red-600",
-        shadow: "shadow-orange-500/25",
-        delay: 0.6
+        title: "Analyze Results",
+        desc: "Get detailed explanations and track progress",
+        color: "bg-purple-500",
+        lightBg: "bg-purple-50",
+        step: "3"
+    },
+    {
+        icon: Trophy,
+        title: "Crack Your Goal",
+        desc: "Achieve your dream rank with confidence",
+        color: "bg-amber-500",
+        lightBg: "bg-amber-50",
+        step: "4"
     }
 ];
 
-const FloatingBadge = ({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) => (
-    <motion.div
-        initial={{ y: 0 }}
-        animate={{ y: [-10, 10, -10] }}
-        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay }}
-        className={className}
-    >
-        {children}
-    </motion.div>
-);
-
 const HowItWorks = () => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const { scrollYProgress } = useScroll({
-        target: containerRef,
-        offset: ["start end", "end start"],
-    });
-
-    const lineHeight = useTransform(scrollYProgress, [0.1, 0.6], ["0%", "100%"]);
-    const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
-
     return (
-        <section ref={containerRef} className="py-12 sm:py-24 md:py-32 relative overflow-hidden bg-slate-50/50">
-            {/* Background Decor */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl opacity-30">
-                    <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
-                        className="absolute -top-[500px] -right-[500px] w-[1000px] h-[1000px] rounded-full border border-dashed border-slate-300/50"
-                    />
-                    <motion.div
-                        animate={{ rotate: -360 }}
-                        transition={{ duration: 120, repeat: Infinity, ease: "linear" }}
-                        className="absolute top-[200px] -left-[200px] w-[800px] h-[800px] rounded-full border border-dashed border-primary/10"
-                    />
-                </div>
-            </div>
-
-            <div className="container px-4 mx-auto relative z-10">
-                <div className="text-center max-w-3xl mx-auto mb-20">
+        <section id="how-it-works" className="py-20 sm:py-24 bg-white">
+            <div className="container mx-auto px-5">
+                {/* Header */}
+                <div className="text-center mb-12 max-w-2xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
+                        viewport={{ once: true }}
                     >
-                        <Badge className="mb-4 bg-primary/10 text-primary hover:bg-primary/20 transition-colors border-primary/20 uppercase tracking-wider font-medium px-4 py-1.5">
-                            Simple Process
-                        </Badge>
-                        <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-900 mb-4 sm:mb-6 tracking-tight">
-                            Start Your Journey in <span className="text-primary relative inline-block">
-                                3 Steps
-                                <svg className="absolute w-full h-3 -bottom-1 left-0 text-primary/20" viewBox="0 0 100 10" preserveAspectRatio="none">
-                                    <path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" />
-                                </svg>
-                            </span>
+                        <span className="inline-block mb-3 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">
+                            How It Works
+                        </span>
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3">
+                            Your Path to{' '}
+                            <span className="text-emerald-600">Success</span>
                         </h2>
-                        <p className="text-sm sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
-                            We've streamlined everything so you can focus on what matters most—your preparation and success.
+                        <p className="text-slate-500 text-sm sm:text-base">
+                            Simple 4-step process to ace your exams
                         </p>
                     </motion.div>
                 </div>
 
-                <div className="relative max-w-5xl mx-auto">
-                    {/* Animated Connecting Line (Desktop) */}
-                    <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-slate-200 -translate-x-1/2">
-                        <motion.div
-                            style={{ height: lineHeight }}
-                            className="w-full bg-gradient-to-b from-primary via-primary to-primary/0 origin-top shadow-[0_0_8px_rgba(var(--primary),0.5)]"
-                        />
+                {/* Steps - Horizontal Timeline */}
+                <div className="max-w-4xl mx-auto">
+                    {/* Desktop View */}
+                    <div className="hidden md:block">
+                        <div className="flex items-start justify-between relative">
+                            {/* Connecting Line (Desktop) */}
+                            <div className="absolute top-8 left-[12.5%] right-[12.5%] h-[2px] bg-slate-100/50 rounded-full pointer-events-none overflow-hidden">
+                                <motion.div
+                                    initial={{ width: "0%" }}
+                                    whileInView={{ width: "100%" }}
+                                    transition={{ duration: 2, ease: "easeInOut" }}
+                                    viewport={{ once: true }}
+                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-emerald-500 to-amber-500"
+                                >
+                                    {/* Moving Glow Pulse */}
+                                    <motion.div
+                                        animate={{ x: ["-100%", "500%"] }}
+                                        transition={{
+                                            duration: 3,
+                                            repeat: Infinity,
+                                            ease: "linear",
+                                            repeatDelay: 0.5
+                                        }}
+                                        className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12"
+                                    />
+                                </motion.div>
+                            </div>
+
+                            {steps.map((step, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, delay: idx * 0.1 }}
+                                    viewport={{ once: true }}
+                                    className="flex flex-col items-center text-center relative z-10 w-1/4"
+                                >
+                                    {/* Step Number Circle */}
+                                    <div className={`w-16 h-16 rounded-full ${step.color} flex items-center justify-center mb-4`}>
+                                        <step.icon className="w-7 h-7 text-white" />
+                                    </div>
+
+                                    {/* Step Number */}
+                                    <span className="text-xs font-bold text-slate-400 mb-2">Step {step.step}</span>
+
+                                    {/* Title */}
+                                    <h3 className="text-base font-bold text-slate-900 mb-1">
+                                        {step.title}
+                                    </h3>
+
+                                    {/* Description */}
+                                    <p className="text-slate-500 text-xs leading-relaxed px-2">
+                                        {step.desc}
+                                    </p>
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
 
-                    <div className="space-y-24 relative">
-                        {steps.map((step, index) => (
-                            <StepCard key={step.id} step={step} index={index} />
+                    {/* Mobile View - Vertical */}
+                    <div className="md:hidden space-y-4">
+                        {steps.map((step, idx) => (
+                            <motion.div
+                                key={idx}
+                                initial={{ opacity: 0, x: -20 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.3, delay: idx * 0.1 }}
+                                viewport={{ once: true }}
+                                className="flex items-start gap-4"
+                            >
+                                {/* Left Side - Icon & Line */}
+                                <div className="flex flex-col items-center">
+                                    <div className={`w-12 h-12 rounded-xl ${step.color} flex items-center justify-center shrink-0`}>
+                                        <step.icon className="w-6 h-6 text-white" />
+                                    </div>
+                                    {idx < steps.length - 1 && (
+                                        <div className="w-px h-10 bg-slate-100 mt-2 relative overflow-hidden">
+                                            <motion.div
+                                                initial={{ height: 0 }}
+                                                whileInView={{ height: "100%" }}
+                                                transition={{ duration: 0.5, delay: idx * 0.1 }}
+                                                viewport={{ once: true }}
+                                                className="absolute top-0 left-0 w-full bg-gradient-to-b from-blue-500 via-emerald-500 to-amber-500"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Right Side - Content */}
+                                <div className="pt-1 pb-4">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Step {step.step}</span>
+                                    <h3 className="text-base font-bold text-slate-900 mb-1">
+                                        {step.title}
+                                    </h3>
+                                    <p className="text-slate-500 text-sm">
+                                        {step.desc}
+                                    </p>
+                                </div>
+                            </motion.div>
                         ))}
                     </div>
                 </div>
+
+                {/* CTA */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                    viewport={{ once: true }}
+                    className="mt-12 text-center"
+                >
+                    <a
+                        href="/register"
+                        className="inline-flex items-center gap-2 text-emerald-600 font-semibold text-sm hover:text-emerald-700 transition-colors"
+                    >
+                        Get Started Now
+                        <ArrowRight className="w-4 h-4" />
+                    </a>
+                </motion.div>
             </div>
         </section>
-    );
-};
-
-const StepCard = ({ step, index }: { step: typeof steps[0], index: number }) => {
-    const isEven = index % 2 === 0;
-    const ref = useRef(null);
-    const isInView = useInView(ref, { once: true, margin: "-100px" });
-
-    return (
-        <div ref={ref} className={`relative flex flex-col md:flex-row items-center gap-8 md:gap-16 ${isEven ? "" : "md:flex-row-reverse"}`}>
-            {/* Text Content */}
-            <div className={`flex-1 text-center ${isEven ? "md:text-right" : "md:text-left"}`}>
-                <motion.div
-                    initial={{ opacity: 0, x: isEven ? -50 : 50 }}
-                    animate={isInView ? { opacity: 1, x: 0 } : {}}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 font-bold text-slate-900 mb-4 md:hidden ring-4 ring-white shadow-lg`}>
-                        {step.id}
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2 sm:mb-4">{step.title}</h3>
-                    <p className="text-base sm:text-lg text-slate-600 leading-relaxed">{step.description}</p>
-                </motion.div>
-            </div>
-
-            {/* Icon/Visual Centerpiece */}
-            <div className="relative z-10 flex-shrink-0">
-                <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={isInView ? { scale: 1, rotate: 0 } : {}}
-                    transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                    className="relative group"
-                >
-                    {/* Glowing Background Effect */}
-                    <div className={`absolute -inset-4 bg-gradient-to-br ${step.color} opacity-20 blur-xl rounded-full group-hover:opacity-30 transition-opacity duration-500`} />
-
-                    <div className={`w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br ${step.color} shadow-2xl ${step.shadow} flex items-center justify-center transform transition-transform duration-300 md:group-hover:scale-110 md:group-hover:rotate-3 border-4 border-white`}>
-                        <step.icon className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-white" />
-                    </div>
-
-                    {/* Floating Elements decoration */}
-                    <FloatingBadge
-                        className="absolute -top-6 -right-6 bg-white p-2 rounded-xl shadow-lg border border-slate-100 hidden md:block"
-                        delay={0.5}
-                    >
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    </FloatingBadge>
-                </motion.div>
-            </div>
-
-            {/* Empty Space for Grid Alignment */}
-            <div className="flex-1 hidden md:block" />
-        </div>
     );
 };
 

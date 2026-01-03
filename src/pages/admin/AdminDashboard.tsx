@@ -330,7 +330,7 @@ const AdminDashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
             >
-              <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden group">
+              <Card className="border-0 bg-white/80 backdrop-blur-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-150 rounded-2xl overflow-hidden group">
                 <CardContent className="p-4 md:p-5">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1 md:space-y-2">
@@ -345,7 +345,7 @@ const AdminDashboard = () => {
                         <span>{stat.trend}</span>
                       </div>
                     </div>
-                    <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`w-11 h-11 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-150`}>
                       <stat.icon className="w-5 h-5 md:w-6 md:h-6 text-white" />
                     </div>
                   </div>
@@ -361,7 +361,7 @@ const AdminDashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.35 }}
         >
-          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden">
+          <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden">
             <CardHeader className="pb-3 flex flex-row items-center justify-between bg-gradient-to-r from-purple-50/50 to-pink-50/50 border-b border-purple-100/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -505,7 +505,7 @@ const AdminDashboard = () => {
             transition={{ duration: 0.4, delay: 0.4 }}
             className="lg:col-span-2"
           >
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden">
+            <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden">
               <CardHeader className="pb-3 flex flex-row items-center justify-between bg-gradient-to-r from-emerald-50/50 to-teal-50/50 border-b border-emerald-100/50">
                 <div>
                   <CardTitle className="text-base md:text-lg font-bold text-gray-900 flex items-center gap-2">
@@ -591,7 +591,7 @@ const AdminDashboard = () => {
             className="space-y-5"
           >
             {/* Quick Stats */}
-            <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden">
+            <Card className="border-0 bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden">
               <CardHeader className="pb-2 bg-gradient-to-r from-blue-50/50 to-cyan-50/50 border-b border-blue-100/50">
                 <CardTitle className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <BarChart3 className="w-5 h-5 text-blue-600" />
@@ -615,7 +615,7 @@ const AdminDashboard = () => {
             </Card>
 
             {/* Quick Actions Card */}
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-2xl overflow-hidden relative">
+            <Card className="border-0 bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 text-white rounded-2xl overflow-hidden relative">
               {/* Decorative */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl transform translate-x-8 -translate-y-8" />
 
