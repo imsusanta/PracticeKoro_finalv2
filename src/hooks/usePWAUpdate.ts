@@ -58,9 +58,10 @@ export const usePWAUpdate = () => {
         navigator.serviceWorker.ready.then((registration) => {
             setState(prev => ({ ...prev, registration }));
 
-            // Check for waiting SW
+            // Check for waiting SW - Auto Update
             if (registration.waiting) {
-                setState(prev => ({ ...prev, updateAvailable: true }));
+                console.log('[PWA] Waiting update found, applying...');
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
             }
 
             // Listen for new SW installing
@@ -70,8 +71,9 @@ export const usePWAUpdate = () => {
 
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New SW is ready, show update prompt
-                        setState(prev => ({ ...prev, updateAvailable: true }));
+                        // New SW is ready, skip waiting automatically
+                        console.log('[PWA] New update installed, skipping waiting...');
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
                     }
                 });
             });

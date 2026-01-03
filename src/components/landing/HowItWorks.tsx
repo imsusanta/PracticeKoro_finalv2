@@ -127,47 +127,60 @@ const HowItWorks = () => {
                         </div>
                     </div>
 
-                    {/* Mobile View - Vertical */}
-                    <div className="md:hidden space-y-4">
-                        {steps.map((step, idx) => (
-                            <motion.div
-                                key={idx}
-                                initial={{ opacity: 0, x: -20 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                transition={{ duration: 0.3, delay: idx * 0.1 }}
-                                viewport={{ once: true }}
-                                className="flex items-start gap-4"
-                            >
-                                {/* Left Side - Icon & Line */}
-                                <div className="flex flex-col items-center">
-                                    <div className={`w-12 h-12 rounded-xl ${step.color} flex items-center justify-center shrink-0`}>
-                                        <step.icon className="w-6 h-6 text-white" />
-                                    </div>
-                                    {idx < steps.length - 1 && (
-                                        <div className="w-px h-10 bg-slate-100 mt-2 relative overflow-hidden">
-                                            <motion.div
-                                                initial={{ height: 0 }}
-                                                whileInView={{ height: "100%" }}
-                                                transition={{ duration: 0.5, delay: idx * 0.1 }}
-                                                viewport={{ once: true }}
-                                                className="absolute top-0 left-0 w-full bg-gradient-to-b from-blue-500 via-emerald-500 to-amber-500"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
+                    {/* Mobile View - Premium Vertical Timeline */}
+                    <div className="md:hidden relative px-2">
+                        {/* Continuous Vertical Background Line */}
+                        <div className="absolute left-[27px] top-6 bottom-6 w-[2px] bg-slate-100" />
 
-                                {/* Right Side - Content */}
-                                <div className="pt-1 pb-4">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase">Step {step.step}</span>
-                                    <h3 className="text-base font-bold text-slate-900 mb-1">
-                                        {step.title}
-                                    </h3>
-                                    <p className="text-slate-500 text-sm">
-                                        {step.desc}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        ))}
+                        <div className="space-y-8">
+                            {steps.map((step, idx) => (
+                                <motion.div
+                                    key={idx}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    transition={{ duration: 0.5, delay: idx * 0.1 }}
+                                    viewport={{ once: true }}
+                                    className="flex items-start gap-4 relative"
+                                >
+                                    {/* Left Side Icon & Progress Line */}
+                                    <div className="flex flex-col items-center shrink-0 relative z-10">
+                                        <div className={`w-14 h-14 rounded-2xl ${step.color} flex items-center justify-center shadow-lg shadow-${step.color.split('-')[1]}-500/20 ring-4 ring-white`}>
+                                            <step.icon className="w-7 h-7 text-white" />
+                                        </div>
+
+                                        {/* Animated Overlay Line */}
+                                        {idx < steps.length - 1 && (
+                                            <div className="absolute top-14 left-1/2 -translate-x-1/2 w-[2px] h-8 overflow-hidden">
+                                                <motion.div
+                                                    initial={{ height: 0 }}
+                                                    whileInView={{ height: "100%" }}
+                                                    transition={{ duration: 0.8, delay: idx * 0.2 }}
+                                                    viewport={{ once: true }}
+                                                    className="w-full bg-gradient-to-b from-emerald-500 to-teal-500"
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Right Side - Content Card */}
+                                    <div className="flex-1 pt-0.5">
+                                        <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100/80 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+                                            <div className="flex items-center gap-2 mb-1.5">
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${step.lightBg} ${step.color.replace('bg-', 'text-')}`}>
+                                                    Step {step.step}
+                                                </span>
+                                            </div>
+                                            <h3 className="text-base font-bold text-slate-900 mb-1">
+                                                {step.title}
+                                            </h3>
+                                            <p className="text-slate-500 text-sm leading-relaxed">
+                                                {step.desc}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

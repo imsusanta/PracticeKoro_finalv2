@@ -12,6 +12,8 @@ import SplashScreen from "../components/landing/SplashScreen";
 // import PWAInstallPrompt removed to avoid conflict with global App.tsx version
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { toast } from "sonner";
 
 
 interface Exam {
@@ -60,6 +62,22 @@ const Landing = () => {
   const [featuredTests, setFeaturedTests] = useState<MockTest[]>([]);
   const [filterType, setFilterType] = useState<"all" | "full_mock" | "topic_wise">("all");
   const [showSplash, setShowSplash] = useState(true);
+
+  const handleRefresh = async () => {
+    try {
+      await Promise.all([
+        loadExams(),
+        loadFeaturedTests()
+      ]);
+      toast.success("Page refreshed", { icon: <Sparkles className="w-4 h-4 text-emerald-500" /> });
+    } catch (error) {
+      console.error("Refresh error:", error);
+    }
+  };
+
+  const { PullIndicator, containerProps } = usePullToRefresh({
+    onRefresh: handleRefresh
+  });
 
   useEffect(() => {
     checkAuth();
@@ -167,8 +185,10 @@ const Landing = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="min-h-screen bg-[#FAFAFA] relative"
+            className="min-h-screen bg-[#FAFAFA] relative overscroll-y-contain"
+            {...containerProps}
           >
+            <PullIndicator />
             {/* Desktop Header - Premium Floating Style (Non-Sticky) */}
             <header className="hidden md:block absolute top-0 left-0 right-0 z-50">
               <div className="container mx-auto px-4 py-4">
@@ -186,7 +206,7 @@ const Landing = () => {
                       <span className="text-gray-600 font-medium text-sm">
                         Hi, <span className="text-emerald-600">{userProfile.full_name?.split(' ')[0]}</span>
                       </span>
-                      <Button variant="outline" size="sm" onClick={() => navigate(userRole === "admin" ? "/admin/dashboard" : "/student/dashboard")} className="rounded-xl text-emerald-700 border-emerald-200 hover:border-emerald-400 hover:bg-emerald-50 transition-all">
+                      <Button variant="outline" size="sm" onClick={() => navigate(userRole === "admin" ? "/admin/dashboard" : "/student/dashboard")} className="rounded-xl text-emerald-700 border-emerald-200 hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all">
                         <User className="w-4 h-4 mr-2" />
                         {userRole === "admin" ? "Admin Panel" : "Dashboard"}
                       </Button>
@@ -570,7 +590,7 @@ const Landing = () => {
             </section >
 
             {/* Featured Tests Section - Premium Redesign */}
-            <section className="py-14 sm:py-20 md:py-28 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
+            <section className="py-16 sm:py-24 md:py-32 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
               {/* Decorative Background Elements */}
               < div className="absolute inset-0 overflow-hidden pointer-events-none" >
                 <div className="absolute -top-10 -left-10 w-52 sm:w-80 h-52 sm:h-80 bg-gradient-to-br from-emerald-200/40 to-teal-200/30 rounded-full blur-3xl" />
@@ -632,7 +652,7 @@ const Landing = () => {
                     <p className="text-gray-500 font-medium">No tests available</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 max-w-5xl mx-auto">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto pt-4">
                     {filteredTests.map((test, index) => (
                       <motion.div
                         key={test.id}
@@ -733,7 +753,7 @@ const Landing = () => {
             </section >
 
             {/* Features Section - Modern Bento Grid Design */}
-            <section id="features" className="py-20 sm:py-28 bg-slate-50">
+            <section id="features" className="py-24 sm:py-32 bg-slate-50">
               <div className="container mx-auto px-5">
                 {/* Section Header - Clean & Minimal */}
                 <div className="text-center mb-12 sm:mb-16 max-w-2xl mx-auto">
@@ -757,7 +777,7 @@ const Landing = () => {
                 </div>
 
                 {/* Bento Grid Layout */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto pt-4">
                   {/* Card 1 - Large */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

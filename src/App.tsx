@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
-import { PWAUpdateBanner } from "@/components/PWAUpdateBanner";
+import { usePWAUpdate } from "@/hooks/usePWAUpdate";
 import OfflineIndicator from "@/components/OfflineIndicator";
 
 // Critical pages - load immediately
@@ -70,56 +70,60 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <OfflineIndicator />
-      <PWAUpdateBanner />
-      <BrowserRouter>
-        <PWAInstallPrompt />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route path="/" element={<Landing />} />
-            <Route path="/install" element={<Install />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin" element={<AdminIndex />} />
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/exams" element={<StudentExams />} />
-            <Route path="/student/take-test/:testId" element={<TakeTest />} />
-            <Route path="/student/test-review/:attemptId" element={<ReviewTest />} />
-            <Route path="/student/notes" element={<StudentNotes />} />
-            <Route path="/student/results" element={<StudentResults />} />
-            <Route path="/student/profile" element={<StudentProfile />} />
-            <Route path="/student/notifications" element={<StudentNotifications />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/students" element={<StudentManagement />} />
-            <Route path="/admin/exams" element={<ExamManagement />} />
-            <Route path="/admin/subjects" element={<SubjectManagement />} />
-            <Route path="/admin/questions" element={<QuestionBank />} />
-            <Route path="/admin/tests" element={<MockTestCreation />} />
-            <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
-            <Route path="/admin/notes" element={<NotesManagement />} />
-            <Route path="/admin/bulk-upload" element={<BulkMCQUpload />} />
-            <Route path="/admin/add-question" element={<AddQuestion />} />
-            <Route path="/admin/add-note" element={<AddNote />} />
-            <Route path="/admin/courses" element={<CourseManagement />} />
-            <Route path="/admin/profile" element={<AdminProfile />} />
-            <Route path="/admin/chat" element={<AdminChatInbox />} />
-            <Route path="/admin/notifications" element={<SendNotifications />} />
+const App = () => {
+  // Silent PWA update check
+  const { } = usePWAUpdate();
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <OfflineIndicator />
+        <BrowserRouter>
+          <PWAInstallPrompt />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/admin" element={<AdminIndex />} />
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/exams" element={<StudentExams />} />
+              <Route path="/student/take-test/:testId" element={<TakeTest />} />
+              <Route path="/student/test-review/:attemptId" element={<ReviewTest />} />
+              <Route path="/student/notes" element={<StudentNotes />} />
+              <Route path="/student/results" element={<StudentResults />} />
+              <Route path="/student/profile" element={<StudentProfile />} />
+              <Route path="/student/notifications" element={<StudentNotifications />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/students" element={<StudentManagement />} />
+              <Route path="/admin/exams" element={<ExamManagement />} />
+              <Route path="/admin/subjects" element={<SubjectManagement />} />
+              <Route path="/admin/questions" element={<QuestionBank />} />
+              <Route path="/admin/tests" element={<MockTestCreation />} />
+              <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
+              <Route path="/admin/notes" element={<NotesManagement />} />
+              <Route path="/admin/bulk-upload" element={<BulkMCQUpload />} />
+              <Route path="/admin/add-question" element={<AddQuestion />} />
+              <Route path="/admin/add-note" element={<AddNote />} />
+              <Route path="/admin/courses" element={<CourseManagement />} />
+              <Route path="/admin/profile" element={<AdminProfile />} />
+              <Route path="/admin/chat" element={<AdminChatInbox />} />
+              <Route path="/admin/notifications" element={<SendNotifications />} />
+
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
