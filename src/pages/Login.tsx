@@ -7,8 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, Eye, EyeOff, Lock, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import loginIllustration from "@/assets/login-illustration.png";
+import { Mail, Phone, Eye, EyeOff, Lock, Loader2, AlertCircle, CheckCircle2, Zap, Trophy, BookOpen, Target, Sparkles, ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 // Password strength calculation
 const getPasswordStrength = (password: string): { level: number; label: string; color: string } => {
@@ -31,7 +31,7 @@ const isValidEmail = (email: string): boolean => {
 };
 
 // Get user-friendly error message
-const getErrorMessage = (error: any): string => {
+const getErrorMessage = (error: { message?: string } | null): string => {
   const message = error?.message?.toLowerCase() || "";
   if (message.includes("invalid login credentials")) {
     return "Invalid email or password. Please check your credentials and try again.";
@@ -160,32 +160,70 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      {/* Left Side - Illustration (Fixed position - doesn't scroll) */}
+      {/* Left Side - Premium Branding (Fixed position - doesn't scroll) */}
       <div
-        className="hidden lg:flex items-center justify-center p-8 xl:p-12 overflow-hidden"
+        className="hidden lg:flex flex-col items-center justify-center p-8 xl:p-12 overflow-hidden"
         style={{
           position: 'fixed',
           left: 0,
           top: 0,
           width: '50%',
           height: '100vh',
-          backgroundColor: '#f1f8f5',
+          background: 'linear-gradient(135deg, #10b981 0%, #0f766e 100%)',
           zIndex: 10
         }}
       >
-        <div className="relative w-full max-w-lg xl:max-w-xl">
-          {/* Decorative elements */}
-          <div className="absolute -top-8 -left-8 w-24 h-24 bg-emerald-200/40 rounded-full blur-2xl" />
-          <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-teal-200/40 rounded-full blur-2xl" />
+        {/* Background Decorative Elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-teal-400/20 rounded-full blur-[100px]" />
+        </div>
 
-          {/* Main illustration container */}
-          <div className="relative flex items-center justify-center w-full max-w-[480px]">
-            <img
-              src={loginIllustration}
-              alt="Student studying illustration"
-              className="w-full h-auto mix-blend-multiply transition-all duration-700 select-none pointer-events-none"
-            />
-          </div>
+        <div className="relative z-20 w-full max-w-lg flex flex-col items-center text-center">
+          {/* Logo Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-12"
+          >
+            <div className="flex items-center gap-4 mb-6 justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-white shadow-2xl flex items-center justify-center">
+                <Zap className="w-10 h-10 text-emerald-600" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-4xl font-extrabold text-white tracking-tight">Practice Koro</h2>
+                <div className="flex items-center gap-1.5 text-emerald-100/80 text-sm font-medium">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>#1 Mock Test Platform</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-emerald-50 text-lg font-medium opacity-90 max-w-sm mx-auto">
+              Your gateway to excellence. Master your exams with our premium mock tests.
+            </p>
+          </motion.div>
+
+          {/* Bottom Statistics */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 pt-8 border-t border-white/10 w-full flex justify-between"
+          >
+            <div className="text-left">
+              <p className="text-white text-2xl font-bold">50K+</p>
+              <p className="text-emerald-100/60 text-[10px] uppercase font-bold tracking-widest">Active Students</p>
+            </div>
+            <div className="text-center">
+              <p className="text-white text-2xl font-bold">1M+</p>
+              <p className="text-emerald-100/60 text-[10px] uppercase font-bold tracking-widest">Tests Taken</p>
+            </div>
+            <div className="text-right">
+              <p className="text-white text-2xl font-bold">4.9/5</p>
+              <p className="text-emerald-100/60 text-[10px] uppercase font-bold tracking-widest">Avg Rating</p>
+            </div>
+          </motion.div>
         </div>
       </div>
 
@@ -203,55 +241,57 @@ const Login = () => {
         </div>
 
         {/* Form Container */}
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-8 pb-8 lg:pb-0">
-          <div className="w-full max-w-md space-y-8">
-            {/* Mobile Illustration */}
-            <div className="lg:hidden flex justify-center mb-6">
-              <div className="w-48 h-48 sm:w-56 sm:h-56 bg-[#f0fdf4] rounded-[2rem] p-4 border border-emerald-100/30 overflow-hidden">
-                <img
-                  src={loginIllustration}
-                  alt="Student studying"
-                  className="w-full h-full object-contain rounded-2xl mix-blend-multiply"
-                />
-              </div>
+        <div className="flex-1 flex items-center justify-center px-4 sm:px-8 pb-4 lg:pb-0">
+          <div className="w-full max-w-md space-y-4 lg:space-y-8">
+            {/* Mobile Branding */}
+            <div className="lg:hidden flex flex-col items-center mb-4">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg mb-2"
+              >
+                <Zap className="w-8 h-8 text-white" />
+              </motion.div>
+              <h1 className="text-xl font-bold text-gray-900 leading-tight">Practice Koro</h1>
+              <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">#1 Mock Test Platform</p>
             </div>
 
             {/* Welcome Text */}
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                Welcome back!
+            <div className="space-y-0.5 text-center lg:text-left lg:space-y-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
+                Welcome back
               </h1>
-              <p className="text-muted-foreground">
-                Enter your credentials to continue
+              <p className="text-sm text-muted-foreground">
+                Enter your details to access your account
               </p>
             </div>
 
             {/* Login Method Tabs */}
             <Tabs value={loginMethod} onValueChange={(v) => setLoginMethod(v as "email" | "whatsapp")} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/60 rounded-xl p-1 mb-6">
-                <TabsTrigger
-                  value="email"
-                  className="flex items-center gap-2 h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-                >
-                  <Mail className="w-4 h-4" />
-                  Email
-                </TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 h-10 lg:h-12 bg-muted/60 rounded-xl p-1 mb-4 lg:mb-8">
                 <TabsTrigger
                   value="whatsapp"
-                  className="flex items-center gap-2 h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                  className="flex items-center gap-2 h-8 lg:h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs lg:text-sm"
                 >
-                  <Phone className="w-4 h-4" />
+                  <Phone className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
                   WhatsApp
+                </TabsTrigger>
+                <TabsTrigger
+                  value="email"
+                  className="flex items-center gap-2 h-8 lg:h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs lg:text-sm"
+                >
+                  <Mail className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
+                  Email
                 </TabsTrigger>
               </TabsList>
 
               {/* Email Login Form */}
-              <TabsContent value="email" className="mt-0">
+              <TabsContent value="email" className="mt-0 space-y-3 lg:space-y-4">
                 <form onSubmit={handleEmailLogin} className="space-y-5">
                   {/* Email Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-sm font-medium text-muted-foreground">
-                      Email
+                  <div className="space-y-1.5 lg:space-y-2">
+                    <Label htmlFor="email" className="text-[11px] lg:text-sm font-medium text-muted-foreground">
+                      Email address
                     </Label>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -287,10 +327,19 @@ const Login = () => {
                   </div>
 
                   {/* Password Field */}
-                  <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-medium text-muted-foreground">
-                      Password
-                    </Label>
+                  <div className="space-y-1.5 lg:space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-[11px] lg:text-sm font-medium text-muted-foreground">
+                        Password
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => navigate("/forgot-password")}
+                        className="text-[11px] lg:text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                     <div className="relative">
                       <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                         <Lock className="w-5 h-5" />
@@ -341,13 +390,6 @@ const Login = () => {
                         Remember me
                       </Label>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => navigate("/forgot-password")}
-                      className="text-sm font-medium text-emerald-600 hover:text-emerald-700 transition-colors"
-                    >
-                      Forgot Password?
-                    </button>
                   </div>
 
                   {/* Login Button */}

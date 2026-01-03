@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, Lock, User, Loader2 } from "lucide-react";
-import loginIllustration from "@/assets/login-illustration.png";
+import { Mail, Phone, Lock, User, Loader2, Zap, Trophy, BookOpen, Target, Sparkles, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 
 const Register = () => {
     const navigate = useNavigate();
@@ -126,32 +126,60 @@ const Register = () => {
 
     return (
         <div className="min-h-screen bg-[#f8fafc]">
-            {/* Left Side - Illustration (Fixed position - doesn't scroll) */}
+            {/* Left Side - Premium Branding (Fixed position - doesn't scroll) */}
             <div
-                className="hidden lg:flex items-center justify-center p-8 xl:p-12 overflow-hidden"
+                className="hidden lg:flex flex-col items-center justify-center p-8 xl:p-12 overflow-hidden"
                 style={{
                     position: 'fixed',
                     left: 0,
                     top: 0,
                     width: '50%',
                     height: '100vh',
-                    backgroundColor: '#f1f8f5',
+                    background: 'linear-gradient(135deg, #10b981 0%, #0f766e 100%)',
                     zIndex: 10
                 }}
             >
-                <div className="relative w-full max-w-lg xl:max-w-xl">
-                    {/* Decorative elements */}
-                    <div className="absolute -top-8 -left-8 w-24 h-24 bg-emerald-200/40 rounded-full blur-2xl" />
-                    <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-teal-200/40 rounded-full blur-2xl" />
+                {/* Background Decorative Elements */}
+                <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+                    <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-[120px]" />
+                    <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-teal-400/20 rounded-full blur-[100px]" />
+                </div>
 
-                    {/* Main illustration container */}
-                    <div className="relative flex items-center justify-center w-full max-w-[480px]">
-                        <img
-                            src={loginIllustration}
-                            alt="Student studying illustration"
-                            className="w-full h-auto mix-blend-multiply transition-all duration-700 select-none pointer-events-none"
-                        />
-                    </div>
+                <div className="relative z-20 w-full max-w-lg flex flex-col items-center text-center">
+                    {/* Logo Section */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="mb-12"
+                    >
+                        <div className="flex items-center gap-4 mb-6 justify-center">
+                            <div className="w-16 h-16 rounded-2xl bg-white shadow-2xl flex items-center justify-center">
+                                <Zap className="w-10 h-10 text-emerald-600" />
+                            </div>
+                            <div className="text-left">
+                                <h2 className="text-4xl font-extrabold text-white tracking-tight">Practice Koro</h2>
+                                <div className="flex items-center gap-1.5 text-emerald-100/80 text-sm font-medium">
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    <span>#1 Mock Test Platform</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p className="text-emerald-50 text-lg font-medium opacity-90 max-w-sm mx-auto">
+                            Join thousands of students and start your journey towards success today.
+                        </p>
+                    </motion.div>
+
+                    {/* Branding Note */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="mt-8 flex items-center gap-2 text-emerald-100/40 text-sm font-medium"
+                    >
+                        <Shield className="w-4 h-4" />
+                        <span>Secure Learning Environment v2.0</span>
+                    </motion.div>
                 </div>
             </div>
 
@@ -171,42 +199,44 @@ const Register = () => {
                 {/* Form Container */}
                 <div className="flex-1 flex items-center justify-center px-4 sm:px-8 pb-8 lg:pb-0">
                     <div className="w-full max-w-md space-y-6">
-                        {/* Mobile Illustration */}
-                        <div className="lg:hidden flex justify-center mb-6">
-                            <div className="w-40 h-40 sm:w-48 sm:h-48 bg-[#f0fdf4] rounded-[2rem] p-4 shadow-lg shadow-emerald-200/20 border border-emerald-100/30 overflow-hidden">
-                                <img
-                                    src={loginIllustration}
-                                    alt="Student studying"
-                                    className="w-full h-full object-contain rounded-2xl mix-blend-multiply"
-                                />
-                            </div>
+                        {/* Mobile Branding */}
+                        <div className="lg:hidden flex flex-col items-center mb-4">
+                            <motion.div
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg mb-2"
+                            >
+                                <Zap className="w-8 h-8 text-white" />
+                            </motion.div>
+                            <h1 className="text-xl font-bold text-gray-900 leading-tight">Practice Koro</h1>
+                            <p className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Join our community</p>
                         </div>
 
                         {/* Welcome Text */}
-                        <div className="space-y-2">
-                            <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                        <div className="space-y-0.5">
+                            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
                                 Create Account
                             </h1>
-                            <p className="text-muted-foreground">
-                                Register to access mock tests and study materials
+                            <p className="text-sm text-muted-foreground">
+                                Register to access mock tests
                             </p>
                         </div>
 
                         {/* Register Method Tabs */}
                         <Tabs value={registerMethod} onValueChange={(v) => setRegisterMethod(v as "email" | "whatsapp")} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/60 rounded-xl p-1 mb-6">
+                            <TabsList className="grid w-full grid-cols-2 h-10 bg-muted/60 rounded-xl p-1 mb-4">
                                 <TabsTrigger
                                     value="whatsapp"
-                                    className="flex items-center gap-2 h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                                    className="flex items-center gap-2 h-8 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs"
                                 >
-                                    <Phone className="w-4 h-4" />
+                                    <Phone className="w-3.5 h-3.5" />
                                     WhatsApp
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="email"
-                                    className="flex items-center gap-2 h-10 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
+                                    className="flex items-center gap-2 h-8 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all text-xs"
                                 >
-                                    <Mail className="w-4 h-4" />
+                                    <Mail className="w-3.5 h-3.5" />
                                     Email
                                 </TabsTrigger>
                             </TabsList>
@@ -215,8 +245,8 @@ const Register = () => {
                             <TabsContent value="email" className="mt-0">
                                 <form onSubmit={handleEmailRegister} className="space-y-4">
                                     {/* Full Name Field */}
-                                    <div className="space-y-2">
-                                        <Label htmlFor="fullName" className="text-sm font-medium text-muted-foreground">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="fullName" className="text-[11px] font-medium text-muted-foreground">
                                             Full Name
                                         </Label>
                                         <div className="relative">
@@ -236,9 +266,9 @@ const Register = () => {
                                     </div>
 
                                     {/* Email Field */}
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email" className="text-sm font-medium text-muted-foreground">
-                                            Email
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="email" className="text-[11px] font-medium text-muted-foreground">
+                                            Email Address
                                         </Label>
                                         <div className="relative">
                                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -257,8 +287,8 @@ const Register = () => {
                                     </div>
 
                                     {/* Password Field */}
-                                    <div className="space-y-2">
-                                        <Label htmlFor="password" className="text-sm font-medium text-muted-foreground">
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="password" className="text-[11px] font-medium text-muted-foreground">
                                             Password
                                         </Label>
                                         <div className="relative">

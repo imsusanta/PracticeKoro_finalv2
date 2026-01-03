@@ -6,8 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Eye, EyeOff, Lock, Mail, Loader2, Shield } from "lucide-react";
-import loginIllustration from "@/assets/login-illustration.png";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, Loader2, Shield, Zap, LayoutDashboard, Users, FileEdit, BarChart3, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 const AdminLoginPage = () => {
   const navigate = useNavigate();
@@ -24,64 +24,116 @@ const AdminLoginPage = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password,
-    });
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-    if (authError) {
+      if (authError) {
+        toast({
+          title: "Login Failed",
+          description: authError.message,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
+      if (authData.user) {
+        // Check if user is admin
+        const { data: roleData, error: roleError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", authData.user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+
+        if (roleError || !roleData) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Access Denied",
+            description: "You do not have administrative privileges.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        toast({
+          title: "Login Successful",
+          description: "Welcome back, Admin.",
+        });
+        navigate("/admin/dashboard");
+      }
+    } catch (error) {
+      const err = error as { message?: string };
+      toast({
+        title: "An unexpected error occurred",
+        description: err.message || "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-      toast({ title: "Error", description: authError.message, variant: "destructive" });
-      return;
-    }
-
-    // Check if user is admin
-    const { data: roleData, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", authData.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-
-    setLoading(false);
-
-    if (roleError || !roleData) {
-      await supabase.auth.signOut();
-      toast({ title: "Access Denied", description: "You do not have admin privileges", variant: "destructive" });
-    } else {
-      toast({ title: "Success", description: "Admin login successful!" });
-      navigate("/admin/dashboard");
     }
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
-      {/* Left Side - Illustration (Fixed position - doesn't scroll) */}
+      {/* Left Side - Premium Admin Branding (Fixed position - doesn't scroll) */}
       <div
-        className="hidden lg:flex items-center justify-center p-8 xl:p-12 overflow-hidden"
+        className="hidden lg:flex flex-col items-center justify-center p-8 xl:p-12 overflow-hidden"
         style={{
           position: 'fixed',
           left: 0,
           top: 0,
           width: '50%',
           height: '100vh',
-          background: 'linear-gradient(to bottom right, #fff1f2, #ffedd5, #fef3c7)',
+          background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
           zIndex: 10
         }}
       >
-        <div className="relative w-full max-w-lg xl:max-w-xl">
-          {/* Decorative elements */}
-          <div className="absolute -top-8 -left-8 w-24 h-24 bg-rose-200/40 rounded-full blur-2xl" />
-          <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-orange-200/40 rounded-full blur-2xl" />
+        {/* Background Decorative Elements */}
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-indigo-400/20 rounded-full blur-[100px]" />
+        </div>
 
-          {/* Main illustration */}
-          <div className="relative flex items-center justify-center w-full max-w-[480px]">
-            <img
-              src={loginIllustration}
-              alt="Admin portal illustration"
-              className="w-full h-auto mix-blend-multiply transition-all duration-700 select-none pointer-events-none"
-            />
-          </div>
+        <div className="relative z-20 w-full max-w-lg flex flex-col items-center text-center">
+          {/* Logo Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="mb-12"
+          >
+            <div className="flex items-center gap-4 mb-6 justify-center">
+              <div className="w-16 h-16 rounded-2xl bg-white shadow-2xl flex items-center justify-center">
+                <Zap className="w-10 h-10 text-indigo-600" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-4xl font-extrabold text-white tracking-tight">Practice Koro</h2>
+                <div className="flex items-center gap-1.5 text-indigo-100/80 text-sm font-medium">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin Control Center</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-indigo-50 text-lg font-medium opacity-90 max-w-sm mx-auto">
+              Secure administrative access. Manage content, monitor students, and analyze performance.
+            </p>
+          </motion.div>
+
+          {/* Branding Note */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 flex items-center gap-2 text-indigo-100/40 text-sm font-medium"
+          >
+            <Shield className="w-4 h-4" />
+            <span>Secure Admin Control v2.0</span>
+          </motion.div>
         </div>
       </div>
 
@@ -109,32 +161,34 @@ const AdminLoginPage = () => {
         {/* Form Container */}
         <div className="flex-1 flex items-center justify-center px-4 sm:px-8 pb-8 lg:pb-0">
           <div className="w-full max-w-md space-y-8">
-            {/* Mobile Illustration - No shadow */}
-            <div className="lg:hidden flex justify-center mb-6">
-              <div className="w-48 h-48 sm:w-56 sm:h-56 bg-gradient-to-br from-rose-50 via-orange-50 to-amber-50 rounded-[2rem] p-4 border border-rose-100/30 overflow-hidden">
-                <img
-                  src={loginIllustration}
-                  alt="Admin portal"
-                  className="w-full h-full object-contain rounded-2xl mix-blend-multiply"
-                />
-              </div>
+            {/* Mobile Branding */}
+            <div className="lg:hidden flex flex-col items-center mb-4">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg mb-2"
+              >
+                <Zap className="w-7 h-7 text-white" />
+              </motion.div>
+              <h1 className="text-xl font-bold text-gray-900 leading-tight">Admin Portal</h1>
+              <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Practice Koro Management</p>
             </div>
 
             {/* Welcome Text */}
-            <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-                Admin Portal
+            <div className="space-y-0.5">
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+                Secure Access
               </h1>
-              <p className="text-muted-foreground">
-                Secure access for administrators
+              <p className="text-sm text-muted-foreground">
+                Administrative authentication required
               </p>
             </div>
 
             {/* Login Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-muted-foreground">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-[11px] font-medium text-muted-foreground">
                   Admin Email
                 </Label>
                 <div className="relative">
@@ -155,8 +209,8 @@ const AdminLoginPage = () => {
               </div>
 
               {/* Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-muted-foreground">
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-[11px] font-medium text-muted-foreground">
                   Password
                 </Label>
                 <div className="relative">

@@ -485,7 +485,7 @@ const Landing = () => {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="space-y-6"
                   >
-                    <Badge className="bg-emerald-100/80 text-emerald-700 border-emerald-200/50 backdrop-blur-sm py-1.5 px-4 text-xs font-semibold uppercase tracking-wider">
+                    <Badge className="bg-emerald-100/80 text-emerald-700 border-emerald-200/50 backdrop-blur-sm py-1.5 px-4 text-xs font-semibold uppercase tracking-wider pointer-events-none">
                       #1 Mock Test Platform
                     </Badge>
 
