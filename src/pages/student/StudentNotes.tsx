@@ -29,6 +29,7 @@ interface Topic {
   id: string;
   subject_id: string;
   name: string;
+  content?: string;
 }
 
 const subjectColors = [
@@ -89,7 +90,7 @@ const StudentNotes = () => {
     const [notesRes, subjectsRes, topicsRes] = await Promise.all([
       supabase.from("pdfs").select("id, title, content, subject_id, topic_id, created_at").order("created_at", { ascending: false }),
       supabase.from("subjects").select("id, name, description").order("name"),
-      supabase.from("topics").select("id, subject_id, name").order("name")
+      supabase.from("topics").select("id, subject_id, name, content").order("name")
     ]);
 
     if (notesRes.data) setNotes(notesRes.data as Note[]);
