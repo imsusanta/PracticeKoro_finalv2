@@ -165,35 +165,19 @@ const TakeTest = () => {
       return;
     }
 
-    const { data: questionsData, error: questionsError } = await supabase.from("test_questions").select(`*, questions (*)`).eq("test_id", testId).order("question_order");
+    const { data: questionsData, error: questionsError } = await supabase
+      .from("test_questions")
+      .select(`*, questions (*)`)
+      .eq("test_id", testId)
+      .order("question_order", { ascending: true })
+      .order("created_at", { ascending: true });
     if (questionsError) {
       toast({ title: "Error", description: "Failed to load questions", variant: "destructive" });
       return;
     }
 
     let processedQuestions = questionsData as any[];
-    if (testData.shuffle_questions) {
-      processedQuestions = [...processedQuestions].sort(() => Math.random() - 0.5);
-    }
-
-    if (testData.shuffle_options) {
-      processedQuestions = processedQuestions.map(tq => {
-        const options = ['A', 'B', 'C', 'D'];
-        const shuffledOptions = [...options].sort(() => Math.random() - 0.5);
-        const mapping: { [key: string]: string } = {};
-        options.forEach((opt, idx) => { mapping[opt] = shuffledOptions[idx]; });
-        const newQuestion = { ...tq.questions };
-        const tempOptions: { [key: string]: string } = {
-          A: tq.questions.option_a, B: tq.questions.option_b,
-          C: tq.questions.option_c, D: tq.questions.option_d
-        };
-        shuffledOptions.forEach((newOpt, idx) => {
-          newQuestion[`option_${newOpt.toLowerCase()}`] = tempOptions[options[idx]];
-        });
-        newQuestion.correct_answer = mapping[tq.questions.correct_answer];
-        return { ...tq, questions: newQuestion };
-      });
-    }
+    // Shuffling disabled as per user request to maintain upload order
 
     const { data: existingTimer } = await supabase.from("test_timers").select("*").eq("test_id", testId).eq("user_id", session.user.id).maybeSingle();
     let initialTime: number;

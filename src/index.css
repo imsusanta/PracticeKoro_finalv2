@@ -13,6 +13,12 @@ select:focus-visible {
   box-shadow: none !important;
 }
 
+/* Fix for screen spreading/jumping when dialogs/modals open */
+html,
+body {
+  scrollbar-gutter: stable;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    PRACTICEKORO PREMIUM DESIGN SYSTEM v2.0
    $80B Startup Quality · Native App Experience

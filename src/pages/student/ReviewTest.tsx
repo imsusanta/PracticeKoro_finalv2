@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   CheckCircle,
   XCircle,
@@ -68,16 +67,6 @@ const ReviewTest = () => {
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
 
-  // Pull-to-refresh
-  const handleRefresh = useCallback(async () => {
-    setLoading(true);
-    await loadTestReview();
-  }, [attemptId]);
-
-  const { containerProps, PullIndicator } = usePullToRefresh({
-    onRefresh: handleRefresh,
-  });
-
   useEffect(() => {
     loadTestReview();
   }, [attemptId]);
@@ -92,7 +81,7 @@ const ReviewTest = () => {
 
     const [attemptResult, answersResult] = await Promise.all([
       supabase.from("test_attempts").select(`*, mock_tests (id, title, passing_marks)`).eq("id", attemptId).eq("user_id", session.user.id).single(),
-      supabase.from("test_answers").select(`*, questions (*)`).eq("attempt_id", attemptId).order("created_at")
+      supabase.from("test_answers").select(`*, questions (*)`).eq("attempt_id", attemptId).order("created_at", { ascending: true })
     ]);
 
     if (attemptResult.error || !attemptResult.data) {
@@ -164,8 +153,7 @@ const ReviewTest = () => {
   const skippedAnswers = answers.filter(a => !a.selected_answer).length;
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 pb-8" {...containerProps}>
-      <PullIndicator />
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 pb-8">
       {/* ═══════════════════════════════════════════════════════════════
           COMPACT HERO HEADER - Pass/Fail Gradient
           ═══════════════════════════════════════════════════════════════ */}

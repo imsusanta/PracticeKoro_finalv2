@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { FileQuestion, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, CheckSquare, Square, MoreVertical, Plus } from "lucide-react";
+import { FileQuestion, Search, Pencil, Trash2, Eye, ChevronLeft, ChevronRight, CheckSquare, Square, MoreVertical, Plus, Loader2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { SubjectTopicSelectors } from "@/components/admin/SubjectTopicSelectors";
 
 interface Question {
   id: string;
@@ -25,8 +26,12 @@ interface Question {
   correct_answer: string;
   subject: string | null;
   topic: string | null;
+  subject_id: string | null;
+  topic_id: string | null;
   exam_id: string;
   exams?: { name: string };
+  subjects?: { name: string };
+  topics?: { name: string };
 }
 
 interface Exam {
@@ -55,9 +60,13 @@ const QuestionBank = () => {
   const [rangeEnd, setRangeEnd] = useState("");
   const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [hasStructuredColumns, setHasStructuredColumns] = useState<boolean | null>(null);
   const [bulkEditData, setBulkEditData] = useState({
-    subject: "",
-    topic: "",
+    subject_id: "",
+    subject_name: "" as string | null,
+    topic_id: "",
+    topic_name: "" as string | null,
   });
 
   const [formData, setFormData] = useState({
@@ -67,8 +76,10 @@ const QuestionBank = () => {
     option_c: "",
     option_d: "",
     correct_answer: "A",
-    subject: "",
-    topic: "",
+    subject_id: "",
+    subject_name: "" as string | null,
+    topic_id: "",
+    topic_name: "" as string | null,
   });
 
   useEffect(() => {
@@ -93,8 +104,22 @@ const QuestionBank = () => {
       return;
     }
     await loadExams();
+    await checkColumns();
     await loadQuestions();
     setLoading(false);
+  };
+
+  const checkColumns = async () => {
+    const { error } = await supabase.from("questions").select("subject_id").limit(0);
+    if (error) {
+      console.warn("Structured columns check result:", error);
+      // Code 42703 is "undefined_column" in Postgres, PostgREST might map it
+      if (error.message?.includes("subject_id") || error.code === "PGRST100" || error.code === "42703") {
+        setHasStructuredColumns(false);
+        return;
+      }
+    }
+    setHasStructuredColumns(true);
   };
 
   const loadExams = async () => {
@@ -103,12 +128,25 @@ const QuestionBank = () => {
   };
 
   const loadQuestions = async () => {
-    const { data, error } = await supabase.from("questions").select("*, exams(name)").order("created_at", { ascending: false });
+    // Try to load with structured joins first
+    const { data, error } = await supabase.from("questions").select("*, exams(name), subjects(name), topics(name)").order("created_at", { ascending: false });
+
     if (error) {
-      toast({ title: "Error", description: "Failed to load questions", variant: "destructive" });
+      console.error("Load Questions (Structured) Error:", error);
+
+      // Fallback: Load without structured joins if columns don't exist yet
+      const { data: legacyData, error: legacyError } = await supabase.from("questions").select("*, exams(name)").order("created_at", { ascending: false });
+
+      if (legacyError) {
+        console.error("Load Questions (Legacy) Error:", legacyError);
+        toast({ title: "Error", description: "Failed to load questions. Please ensure the database migration has been run.", variant: "destructive" });
+        return;
+      }
+      setQuestions((legacyData as any) || []);
       return;
     }
-    setQuestions(data || []);
+
+    setQuestions((data as any) || []);
   };
 
   const applyFilters = () => {
@@ -117,18 +155,25 @@ const QuestionBank = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((q) =>
         q.question_text.toLowerCase().includes(query) ||
-        (q.subject?.toLowerCase() || "").includes(query) ||
-        (q.topic?.toLowerCase() || "").includes(query)
+        (q.subjects?.name || q.subject || "").toLowerCase().includes(query) ||
+        (q.topics?.name || q.topic || "").toLowerCase().includes(query)
       );
     }
-    if (filterExam !== "all") {
-      filtered = filtered.filter((q) => q.exam_id === filterExam);
-    }
     if (filterSubject !== "all") {
-      filtered = filtered.filter((q) => q.subject === filterSubject);
+      const selectedSubName = subjectOptions.find(o => o.id === filterSubject)?.name;
+      filtered = filtered.filter((q) =>
+        q.subject_id === filterSubject ||
+        q.subject === filterSubject ||
+        (selectedSubName && (q.subjects?.name === selectedSubName || q.subject === selectedSubName))
+      );
     }
     if (filterTopic !== "all") {
-      filtered = filtered.filter((q) => q.topic === filterTopic);
+      const selectedTopName = topicOptions.find(o => o.id === filterTopic)?.name;
+      filtered = filtered.filter((q) =>
+        q.topic_id === filterTopic ||
+        q.topic === filterTopic ||
+        (selectedTopName && (q.topics?.name === selectedTopName || q.topic === selectedTopName))
+      );
     }
     setFilteredQuestions(filtered);
     setCurrentPage(1);
@@ -143,24 +188,98 @@ const QuestionBank = () => {
       option_c: question.option_c,
       option_d: question.option_d,
       correct_answer: question.correct_answer,
-      subject: question.subject || "",
-      topic: question.topic || "",
+      subject_id: question.subject_id || "",
+      subject_name: question.subjects?.name || question.subject || "",
+      topic_id: question.topic_id || "",
+      topic_name: question.topics?.name || question.topic || "",
     });
     setEditOpen(true);
   };
 
+  const ensureSubjectAndTopic = async (subjectId: string, subjectName: string | null, topicId: string, topicName: string | null, userId: string) => {
+    let finalSubjectId = subjectId;
+    let finalTopicId = topicId;
+
+    // 1. Resolve Subject (exam-independent - find by name + category only)
+    if (!finalSubjectId && subjectName) {
+      // Check if it exists first
+      const { data: existingSub } = await supabase
+        .from("subjects")
+        .select("id")
+        .eq("name", subjectName)
+        .eq("category", "questions")
+        .maybeSingle();
+
+      if (existingSub) {
+        finalSubjectId = existingSub.id;
+      } else {
+        // Create it
+        const { data: newSub } = await supabase
+          .from("subjects")
+          .insert({ name: subjectName, created_by: userId, category: "questions" })
+          .select("id")
+          .single();
+        if (newSub) finalSubjectId = newSub.id;
+      }
+    }
+
+    // 2. Resolve Topic
+    if (finalSubjectId && !finalTopicId && topicName) {
+      // Check if it exists first
+      const { data: existingTop } = await supabase
+        .from("topics")
+        .select("id")
+        .eq("subject_id", finalSubjectId)
+        .eq("name", topicName)
+        .eq("category", "questions")
+        .maybeSingle();
+
+      if (existingTop) {
+        finalTopicId = existingTop.id;
+      } else {
+        // Create it
+        const { data: newTop } = await supabase
+          .from("topics")
+          .insert({ subject_id: finalSubjectId, name: topicName, created_by: userId, category: "questions" })
+          .select("id")
+          .single();
+        if (newTop) finalTopicId = newTop.id;
+      }
+    }
+
+    return { finalSubjectId, finalTopicId };
+  };
+
   const handleUpdate = async () => {
     if (!selectedQuestion) return;
-    const { error } = await supabase.from("questions").update({
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { finalSubjectId, finalTopicId } = await ensureSubjectAndTopic(
+      formData.subject_id,
+      formData.subject_name,
+      formData.topic_id,
+      formData.topic_name,
+      session.user.id
+    );
+
+    const updateData: any = {
       question_text: formData.question_text,
       option_a: formData.option_a,
       option_b: formData.option_b,
       option_c: formData.option_c,
       option_d: formData.option_d,
       correct_answer: formData.correct_answer,
-      subject: formData.subject || null,
-      topic: formData.topic || null,
-    }).eq("id", selectedQuestion.id);
+      subject: formData.subject_name || null,
+      topic: formData.topic_name || null,
+    };
+
+    if (hasStructuredColumns) {
+      updateData.subject_id = finalSubjectId || null;
+      updateData.topic_id = finalTopicId || null;
+    }
+
+    const { error } = await supabase.from("questions").update(updateData).eq("id", selectedQuestion.id);
 
     if (error) {
       toast({ title: "Error", description: "Failed to update question", variant: "destructive" });
@@ -188,8 +307,38 @@ const QuestionBank = () => {
     setDetailsOpen(true);
   };
 
-  const subjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
-  const topics = Array.from(new Set(questions.map(q => q.topic).filter(Boolean)));
+  const [subjectOptions, setSubjectOptions] = useState<{ id: string, name: string }[]>([]);
+  const [topicOptions, setTopicOptions] = useState<{ id: string, name: string }[]>([]);
+
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      // Load question subjects - they are exam-independent now, so no exam_id filter
+      const { data: subs } = await supabase
+        .from("subjects")
+        .select("id, name")
+        .eq("category", "questions")
+        .order("order_index", { ascending: true });
+
+      setSubjectOptions((subs || []).map(s => ({ id: s.id, name: s.name })));
+
+      // Load topics - if subject is selected, filter by it; otherwise load all question topics
+      let topQuery = supabase
+        .from("topics")
+        .select("id, name")
+        .eq("category", "questions")
+        .order("order_index", { ascending: true });
+
+      if (filterSubject !== "all" && filterSubject.match(/^[0-9a-f-]{36}$/i)) {
+        topQuery = topQuery.eq("subject_id", filterSubject);
+      }
+
+      const { data: tops } = await topQuery;
+      setTopicOptions((tops || []).map(t => ({ id: t.id, name: t.name })));
+    };
+    loadFilterOptions();
+  }, [filterSubject]);
+
+
 
   const handleSelectAll = () => {
     if (selectedQuestions.length === filteredQuestions.length) {
@@ -244,25 +393,58 @@ const QuestionBank = () => {
 
   const handleBulkEdit = async () => {
     if (selectedQuestions.length === 0) return;
-    if (!bulkEditData.subject && !bulkEditData.topic) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    if (!bulkEditData.subject_name && !bulkEditData.topic_name) {
       toast({ title: "Error", description: "Enter at least Subject or Topic to update", variant: "destructive" });
       return;
     }
 
-    const updateData: { subject?: string; topic?: string } = {};
-    if (bulkEditData.subject) updateData.subject = bulkEditData.subject;
-    if (bulkEditData.topic) updateData.topic = bulkEditData.topic;
+    setSaving(true);
+    try {
+      // 1. Use the exam_id of the first selected question to resolve subject/topic
+      const firstQuestion = questions.find(q => q.id === selectedQuestions[0]);
+      if (!firstQuestion) throw new Error("Question not found");
 
-    const { error } = await supabase.from("questions").update(updateData).in("id", selectedQuestions);
-    if (error) {
-      toast({ title: "Error", description: "Failed to update questions", variant: "destructive" });
-      return;
+      // 2. Resolve Subject and Topic once for this bulk operation
+      const { finalSubjectId, finalTopicId } = await ensureSubjectAndTopic(
+        bulkEditData.subject_id,
+        bulkEditData.subject_name,
+        bulkEditData.topic_id,
+        bulkEditData.topic_name,
+        session.user.id
+      );
+
+      // 3. Update all selected questions in one call
+      const updateData: any = {
+        subject: bulkEditData.subject_name || null,
+        topic: bulkEditData.topic_name || null,
+      };
+
+      if (hasStructuredColumns) {
+        updateData.subject_id = finalSubjectId || null;
+        updateData.topic_id = finalTopicId || null;
+      }
+
+      const { error } = await supabase
+        .from("questions")
+        .update(updateData)
+        .in("id", selectedQuestions);
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: `Successfully updated ${selectedQuestions.length} questions` });
+      setBulkEditOpen(false);
+      setBulkEditData({ subject_id: "", subject_name: "", topic_id: "", topic_name: "" });
+      setSelectedQuestions([]);
+      await loadQuestions();
+    } catch (error: any) {
+      console.error("Bulk Update Error:", error);
+      toast({ title: "Error", description: error.message || "Failed to update questions", variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    toast({ title: "Success", description: `Updated ${selectedQuestions.length} questions` });
-    setBulkEditOpen(false);
-    setBulkEditData({ subject: "", topic: "" });
-    setSelectedQuestions([]);
-    await loadQuestions();
   };
 
   const indexOfLastQuestion = currentPage * questionsPerPage;
@@ -303,12 +485,12 @@ const QuestionBank = () => {
             <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Total Questions</p>
           </div>
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[120px] md:min-w-0">
-            <p className="text-2xl font-bold text-emerald-600">{subjects.length}</p>
+            <p className="text-2xl font-bold text-emerald-600">{subjectOptions.length}</p>
             <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Subjects</p>
           </div>
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm min-w-[120px] md:min-w-0">
-            <p className="text-2xl font-bold text-teal-600">{exams.length}</p>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Exams</p>
+            <p className="text-2xl font-bold text-teal-600">{topicOptions.length}</p>
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Topics</p>
           </div>
         </div>
 
@@ -323,26 +505,15 @@ const QuestionBank = () => {
               className="pl-10 h-12 rounded-xl bg-white border-gray-200"
             />
           </div>
-          <div className="grid grid-cols-3 lg:flex gap-2">
-            <Select value={filterExam} onValueChange={setFilterExam}>
-              <SelectTrigger className="h-12 rounded-xl flex-1 lg:w-[140px]">
-                <SelectValue placeholder="Exam" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Exams</SelectItem>
-                {exams.map((exam) => (
-                  <SelectItem key={exam.id} value={exam.id}>{exam.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 lg:flex gap-2">
             <Select value={filterSubject} onValueChange={setFilterSubject}>
               <SelectTrigger className="h-12 rounded-xl flex-1 lg:w-[140px]">
                 <SelectValue placeholder="Subject" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subjects</SelectItem>
-                {subjects.map((subject) => (
-                  <SelectItem key={subject} value={subject || ""}>{subject}</SelectItem>
+                {subjectOptions.map((subject) => (
+                  <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -352,12 +523,13 @@ const QuestionBank = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Topics</SelectItem>
-                {topics.map((topic) => (
-                  <SelectItem key={topic} value={topic || ""}>{topic}</SelectItem>
+                {topicOptions.map((topic) => (
+                  <SelectItem key={topic.id} value={topic.id}>{topic.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
         </div>
 
         {/* Selection Tools */}
@@ -419,7 +591,12 @@ const QuestionBank = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      setBulkEditData({ subject: "", topic: "" });
+                      setBulkEditData({
+                        subject_id: "",
+                        subject_name: "",
+                        topic_id: "",
+                        topic_name: ""
+                      });
                       setBulkEditOpen(true);
                     }}
                     className="rounded-lg gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50"
@@ -467,11 +644,11 @@ const QuestionBank = () => {
         ) : (
           <Card className="border-0 bg-white rounded-2xl overflow-hidden">
             {/* Table Header */}
-            <div className="hidden md:grid md:grid-cols-[40px_3fr_1fr_1fr_80px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <div className="hidden md:grid md:grid-cols-[40px_2.5fr_1fr_1fr_80px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <span></span>
               <span>Question</span>
-              <span>Subject/Topic</span>
-              <span>Answer</span>
+              <span>Subject</span>
+              <span>Topic</span>
               <span className="text-center">Actions</span>
             </div>
 
@@ -481,7 +658,7 @@ const QuestionBank = () => {
                 return (
                   <div key={question.id} className={`transition-colors ${isSelected ? "bg-emerald-50" : "hover:bg-gray-50/50"}`}>
                     {/* Desktop Row */}
-                    <div className="hidden md:grid md:grid-cols-[40px_3fr_1fr_1fr_80px] gap-4 px-4 py-3 items-start">
+                    <div className="hidden md:grid md:grid-cols-[40px_2.5fr_1fr_1fr_80px] gap-4 px-4 py-3 items-start">
                       {/* Checkbox */}
                       <div className="flex items-center pt-0.5">
                         <Checkbox
@@ -494,25 +671,33 @@ const QuestionBank = () => {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-medium text-gray-400">Q{indexOfFirstQuestion + index + 1}</span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">{question.exams?.name || "Unknown"}</Badge>
                         </div>
                         <p className="text-sm text-gray-800 line-clamp-2">{question.question_text}</p>
                       </div>
 
-                      {/* Subject/Topic */}
-                      <div className="flex flex-col gap-1">
-                        {question.subject && (
-                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 w-fit bg-blue-100 text-blue-700">{question.subject}</Badge>
-                        )}
-                        {question.topic && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 w-fit">{question.topic}</Badge>
+                      {/* Subject */}
+                      <div className="min-w-0">
+                        {question.subjects?.name || question.subject ? (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 w-fit bg-blue-100 text-blue-700 max-w-full truncate">
+                            {question.subjects?.name || question.subject}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-gray-300">-</span>
                         )}
                       </div>
 
-                      {/* Answer */}
-                      <div>
-                        <Badge className="bg-emerald-500 text-white text-[10px] px-2 py-0.5">{question.correct_answer}</Badge>
+                      {/* Topic */}
+                      <div className="min-w-0">
+                        {question.topics?.name || question.topic ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 w-fit max-w-full truncate">
+                            {question.topics?.name || question.topic}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-gray-300">-</span>
+                        )}
                       </div>
+
+                      {/* Answer hidden as per user request */}
 
                       {/* Actions */}
                       <div className="flex justify-center">
@@ -553,9 +738,15 @@ const QuestionBank = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <span className="text-xs font-medium text-gray-400">Q{indexOfFirstQuestion + index + 1}</span>
-                            <Badge variant="outline" className="text-[9px] px-1 py-0">{question.exams?.name}</Badge>
-                            {question.subject && (
-                              <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-blue-100 text-blue-700">{question.subject}</Badge>
+                            {(question.subjects?.name || question.subject) && (
+                              <Badge variant="secondary" className="text-[9px] px-1 py-0 bg-blue-100 text-blue-700">
+                                {question.subjects?.name || question.subject}
+                              </Badge>
+                            )}
+                            {(question.topics?.name || question.topic) && (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 border-gray-200 text-gray-600">
+                                {question.topics?.name || question.topic}
+                              </Badge>
                             )}
                             <Badge className="bg-emerald-500 text-white text-[9px] px-1.5 py-0">{question.correct_answer}</Badge>
                           </div>
@@ -649,7 +840,7 @@ const QuestionBank = () => {
               </div>
               <div className="space-y-2">
                 <Label>Option C *</Label>
-                <Input value={formData.option_a} onChange={(e) => setFormData({ ...formData, option_c: e.target.value })} className="h-12 rounded-xl mt-1" />
+                <Input value={formData.option_c} onChange={(e) => setFormData({ ...formData, option_c: e.target.value })} className="h-12 rounded-xl mt-1" />
               </div>
               <div className="space-y-2">
                 <Label>Option D *</Label>
@@ -670,16 +861,19 @@ const QuestionBank = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Subject</Label>
-                <Input value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })} placeholder="e.g., Mathematics" className="h-12 rounded-xl mt-1" />
-              </div>
-              <div className="space-y-2">
-                <Label>Topic</Label>
-                <Input value={formData.topic} onChange={(e) => setFormData({ ...formData, topic: e.target.value })} placeholder="e.g., Algebra" className="h-12 rounded-xl mt-1" />
-              </div>
-            </div>
+
+            {selectedQuestion && (
+              <SubjectTopicSelectors
+                examId={selectedQuestion.exam_id}
+                category="questions"
+                initialSubjectId={formData.subject_id}
+                initialTopicId={formData.topic_id}
+                initialSubjectName={formData.subject_name}
+                initialTopicName={formData.topic_name}
+                onSubjectChange={(id, name) => setFormData({ ...formData, subject_id: id || "", subject_name: name })}
+                onTopicChange={(id, name) => setFormData({ ...formData, topic_id: id || "", topic_name: name })}
+              />
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setEditOpen(false)} className="rounded-xl h-12 flex-1 sm:flex-none">Cancel</Button>
@@ -728,16 +922,16 @@ const QuestionBank = () => {
                   <Label className="text-gray-500 text-xs">Correct Answer</Label>
                   <Badge className="mt-1 bg-emerald-500">{selectedQuestion.correct_answer}</Badge>
                 </div>
-                {selectedQuestion.subject && (
+                {(selectedQuestion.subjects?.name || selectedQuestion.subject) && (
                   <div>
                     <Label className="text-gray-500 text-xs">Subject</Label>
-                    <p className="text-sm mt-1">{selectedQuestion.subject}</p>
+                    <p className="text-sm mt-1">{selectedQuestion.subjects?.name || selectedQuestion.subject}</p>
                   </div>
                 )}
-                {selectedQuestion.topic && (
+                {(selectedQuestion.topics?.name || selectedQuestion.topic) && (
                   <div>
                     <Label className="text-gray-500 text-xs">Topic</Label>
-                    <p className="text-sm mt-1">{selectedQuestion.topic}</p>
+                    <p className="text-sm mt-1">{selectedQuestion.topics?.name || selectedQuestion.topic}</p>
                   </div>
                 )}
               </div>
@@ -778,35 +972,31 @@ const QuestionBank = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div>
-              <Label>New Subject</Label>
-              <Input
-                value={bulkEditData.subject}
-                onChange={(e) => setBulkEditData({ ...bulkEditData, subject: e.target.value })}
-                placeholder="e.g., Mathematics, History"
-                className="h-12 rounded-xl mt-1"
-              />
-            </div>
-            <div>
-              <Label>New Topic</Label>
-              <Input
-                value={bulkEditData.topic}
-                onChange={(e) => setBulkEditData({ ...bulkEditData, topic: e.target.value })}
-                placeholder="e.g., Algebra, Indian Independence"
-                className="h-12 rounded-xl mt-1"
-              />
-            </div>
-            <p className="text-xs text-gray-500">Enter at least one field to update</p>
+            <SubjectTopicSelectors
+              category="questions"
+              onSubjectChange={(id, name) => setBulkEditData({ ...bulkEditData, subject_id: id || "", subject_name: name })}
+              onTopicChange={(id, name) => setBulkEditData({ ...bulkEditData, topic_id: id || "", topic_name: name })}
+            />
+            <p className="text-xs text-gray-500 italic">Moving {selectedQuestions.length} questions to the selected Subject and Topic.</p>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setBulkEditOpen(false)} className="rounded-xl">Cancel</Button>
             <Button
               onClick={handleBulkEdit}
-              disabled={!bulkEditData.subject && !bulkEditData.topic}
+              disabled={saving || (!bulkEditData.subject_name && !bulkEditData.topic_name)}
               className="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600"
             >
-              <Pencil className="w-4 h-4 mr-2" />
-              Update {selectedQuestions.length} Questions
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Update {selectedQuestions.length} Questions
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

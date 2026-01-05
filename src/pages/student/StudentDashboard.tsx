@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import StudentChat from "@/components/StudentChat";
 import {
   BookOpen,
@@ -166,10 +165,6 @@ const StudentDashboard = () => {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  const { containerProps, PullIndicator } = usePullToRefresh({
-    onRefresh: loadDashboardData
-  });
-
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -243,8 +238,7 @@ const StudentDashboard = () => {
 
   return (
     <StudentLayout title="Dashboard" subtitle="Your learning hub" hideNavbar={showChat}>
-      <PullIndicator />
-      <div className="w-full mx-auto space-y-3 pb-12 overflow-x-hidden px-1" {...containerProps}>
+      <div className="w-full mx-auto space-y-3 pb-12 overflow-x-hidden px-1">
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM HERO CARD - Standardized Size

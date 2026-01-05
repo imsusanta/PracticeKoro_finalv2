@@ -64,12 +64,12 @@ const NotesManagement = () => {
   };
 
   const loadSubjects = async () => {
-    const { data } = await supabase.from("subjects").select("id, name, exam_id").order("name");
+    const { data } = await supabase.from("subjects").select("id, name, exam_id").eq("category", "notes").order("name");
     if (data) setSubjects(data);
   };
 
   const loadTopics = async () => {
-    const { data } = await supabase.from("topics").select("id, subject_id, name").order("name");
+    const { data } = await supabase.from("topics").select("id, subject_id, name").eq("category", "notes").order("name");
     if (data) setTopics(data);
   };
 

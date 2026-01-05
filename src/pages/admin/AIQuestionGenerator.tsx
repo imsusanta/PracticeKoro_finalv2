@@ -11,11 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { SubjectTopicSelectors } from "@/components/admin/SubjectTopicSelectors";
 
-interface Exam {
-  id: string;
-  name: string;
-}
+// Exam interface removed as it is no longer needed
 
 interface GeneratedQuestion {
   question_text: string;
@@ -30,16 +28,17 @@ interface GeneratedQuestion {
 const AIQuestionGenerator = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasStructuredColumns, setHasStructuredColumns] = useState<boolean | null>(null);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState<GeneratedQuestion[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<number[]>([]);
   const [formData, setFormData] = useState({
-    exam_id: "",
-    subject: "",
-    topic: "",
+    subject_id: "",
+    subject_name: "" as string | null,
+    topic_id: "",
+    topic_name: "" as string | null,
     count: 5,
     language: "English",
     systemPrompt: "",
@@ -56,7 +55,6 @@ const AIQuestionGenerator = () => {
       // Run role check and data loading in parallel
       const [roleResult] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
-        loadExams()
       ]);
 
       if (!roleResult.data) {
@@ -69,23 +67,27 @@ const AIQuestionGenerator = () => {
         navigate("/admin/login");
         return;
       }
-
+      await checkColumns();
       setLoading(false);
+    };
+
+    const checkColumns = async () => {
+      const { error } = await supabase.from("questions").select("subject_id").limit(0);
+      if (error) {
+        if (error.message?.includes("subject_id") || error.code === "PGRST100" || error.code === "42703") {
+          setHasStructuredColumns(false);
+          return;
+        }
+      }
+      setHasStructuredColumns(true);
     };
     initPage();
   }, [navigate, toast]);
 
-  const loadExams = async () => {
-    const { data } = await supabase
-      .from("exams")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("name");
-    if (data) setExams(data);
-  };
+  // loadExams removed
 
   const handleGenerate = async () => {
-    if (!formData.subject && !formData.topic) {
+    if (!formData.subject_name && !formData.topic_name) {
       toast({
         title: "Error",
         description: "Please enter at least a Subject or Topic to generate questions",
@@ -100,8 +102,8 @@ const AIQuestionGenerator = () => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-questions', {
         body: {
-          subject: formData.subject,
-          topic: formData.topic,
+          subject: formData.subject_name,
+          topic: formData.topic_name,
           count: formData.count,
           language: formData.language,
           systemPrompt: formData.systemPrompt || undefined,
@@ -150,14 +152,10 @@ const AIQuestionGenerator = () => {
       return;
     }
 
-    const saveExamId = formData.exam_id;
-    const saveSubject = formData.subject;
-    const saveTopic = formData.topic;
-
-    if (!saveExamId && !saveSubject && !saveTopic) {
+    if (!formData.subject_name && !formData.topic_name) {
       toast({
         title: "Error",
-        description: "Please provide at least one of: Exam Category, Subject, or Topic",
+        description: "Please provide at least a Subject or Topic",
         variant: "destructive",
       });
       return;
@@ -168,20 +166,74 @@ const AIQuestionGenerator = () => {
 
     setSaving(true);
 
+    let finalSubjectId = formData.subject_id;
+    let finalTopicId = formData.topic_id;
+
+    // Resolve Subject (exam-independent)
+    if (!finalSubjectId && formData.subject_name) {
+      const { data: existingSub } = await supabase
+        .from("subjects")
+        .select("id")
+        .eq("name", formData.subject_name)
+        .eq("category", "questions")
+        .maybeSingle();
+
+      if (existingSub) {
+        finalSubjectId = existingSub.id;
+      } else {
+        const { data: newSub } = await supabase
+          .from("subjects")
+          .insert({ name: formData.subject_name, created_by: session.user.id, category: "questions" })
+          .select("id")
+          .single();
+        if (newSub) finalSubjectId = newSub.id;
+      }
+    }
+
+    // Resolve Topic
+    if (finalSubjectId && !finalTopicId && formData.topic_name) {
+      const { data: existingTop } = await supabase
+        .from("topics")
+        .select("id")
+        .eq("subject_id", finalSubjectId)
+        .eq("name", formData.topic_name)
+        .eq("category", "questions")
+        .maybeSingle();
+
+      if (existingTop) {
+        finalTopicId = existingTop.id;
+      } else {
+        const { data: newTop } = await supabase
+          .from("topics")
+          .insert({ subject_id: finalSubjectId, name: formData.topic_name, created_by: session.user.id, category: "questions" })
+          .select("id")
+          .single();
+        if (newTop) finalTopicId = newTop.id;
+      }
+    }
+
     const selectedQuestionsData = selectedQuestions.map(index => generatedQuestions[index]);
-    const questionsToInsert = selectedQuestionsData.map(q => ({
-      exam_id: saveExamId || null,
-      question_text: q.question_text,
-      option_a: q.option_a,
-      option_b: q.option_b,
-      option_c: q.option_c,
-      option_d: q.option_d,
-      correct_answer: q.correct_answer,
-      subject: saveSubject || null,
-      topic: saveTopic || null,
-      explanation: q.explanation || null,
-      created_by: session.user.id,
-    }));
+    const questionsToInsert = selectedQuestionsData.map(q => {
+      const row: any = {
+        question_text: q.question_text,
+        option_a: q.option_a,
+        option_b: q.option_b,
+        option_c: q.option_c,
+        option_d: q.option_d,
+        correct_answer: q.correct_answer,
+        subject: formData.subject_name || null,
+        topic: formData.topic_name || null,
+        explanation: q.explanation || null,
+        created_by: session.user.id,
+      };
+
+      if (hasStructuredColumns) {
+        row.subject_id = finalSubjectId || null;
+        row.topic_id = finalTopicId || null;
+      }
+
+      return row;
+    });
 
     const { error } = await supabase.from("questions").insert(questionsToInsert);
 
@@ -204,9 +256,10 @@ const AIQuestionGenerator = () => {
     setGeneratedQuestions([]);
     setSelectedQuestions([]);
     setFormData({
-      exam_id: "",
-      subject: "",
-      topic: "",
+      subject_id: "",
+      subject_name: "",
+      topic_id: "",
+      topic_name: "",
       count: 5,
       language: "English",
       systemPrompt: "",
@@ -264,29 +317,12 @@ const AIQuestionGenerator = () => {
               </ul>
             </div>
             <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">
-                    Subject <span className="text-gray-400 text-xs">(Req. Subj OR Topic)</span>
-                  </Label>
-                  <Input
-                    value={formData.subject}
-                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                    placeholder="e.g., History, Science"
-                    className="rounded-xl h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">
-                    Topic <span className="text-gray-400 text-xs">(Req. Subj OR Topic)</span>
-                  </Label>
-                  <Input
-                    value={formData.topic}
-                    onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                    placeholder="e.g., Indian Independence"
-                    className="rounded-xl h-12"
-                  />
-                </div>
+              <div className="space-y-4">
+                <SubjectTopicSelectors
+                  category="questions"
+                  onSubjectChange={(id, name) => setFormData({ ...formData, subject_id: id || "", subject_name: name })}
+                  onTopicChange={(id, name) => setFormData({ ...formData, topic_id: id || "", topic_name: name })}
+                />
               </div>
 
               <div>
@@ -368,37 +404,13 @@ const AIQuestionGenerator = () => {
                     Save to: (choose at least one)
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Exam Category <span className="text-gray-400 text-xs">(Opt.)</span></Label>
-                      <Select value={formData.exam_id} onValueChange={(value) => setFormData({ ...formData, exam_id: value })}>
-                        <SelectTrigger className="rounded-xl h-12">
-                          <SelectValue placeholder="Select exam" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {exams.map((exam) => (
-                            <SelectItem key={exam.id} value={exam.id}>
-                              {exam.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Subject <span className="text-gray-400 text-xs">(Opt.)</span></Label>
-                      <Input
-                        value={formData.subject}
-                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        placeholder="e.g., History"
-                        className="rounded-xl h-12"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">Topic <span className="text-gray-400 text-xs">(Opt.)</span></Label>
-                      <Input
-                        value={formData.topic}
-                        onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                        placeholder="e.g., Independence"
-                        className="rounded-xl h-12"
+                    <div className="col-span-1 sm:col-span-3">
+                      <SubjectTopicSelectors
+                        category="questions"
+                        initialSubjectId={formData.subject_id}
+                        initialTopicId={formData.topic_id}
+                        onSubjectChange={(id, name) => setFormData({ ...formData, subject_id: id || "", subject_name: name })}
+                        onTopicChange={(id, name) => setFormData({ ...formData, topic_id: id || "", topic_name: name })}
                       />
                     </div>
                   </div>

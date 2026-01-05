@@ -59,12 +59,13 @@ interface Topic {
 }
 
 // Sortable Subject Item Component
-const SortableSubjectItem = ({ subject, isSelected, onClick, onEdit, onDelete }: {
+const SortableSubjectItem = ({ subject, isSelected, onClick, onEdit, onDelete, questionCount }: {
     subject: Subject;
     isSelected: boolean;
     onClick: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    questionCount: number;
 }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subject.id });
     const style = {
@@ -98,6 +99,9 @@ const SortableSubjectItem = ({ subject, isSelected, onClick, onEdit, onDelete }:
                 </div>
             </div>
             <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs font-medium px-2">
+                    {questionCount} Q
+                </Badge>
                 <ChevronRight className="w-4 h-4 text-gray-400" />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
@@ -121,11 +125,12 @@ const SortableSubjectItem = ({ subject, isSelected, onClick, onEdit, onDelete }:
 };
 
 // Sortable Topic Item Component
-const SortableTopicItem = ({ topic, index, onEdit, onDelete }: {
+const SortableTopicItem = ({ topic, index, onEdit, onDelete, questionCount }: {
     topic: Topic;
     index: number;
     onEdit: () => void;
     onDelete: () => void;
+    questionCount: number;
 }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: topic.id });
     const style = {
@@ -150,31 +155,35 @@ const SortableTopicItem = ({ topic, index, onEdit, onDelete }: {
                     )}
                 </div>
             </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="w-8 h-8">
-                        <MoreVertical className="w-4 h-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-xl">
-                    <DropdownMenuItem onClick={() => onEdit()}>
-                        <Pencil className="w-4 h-4 mr-2" /> Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onDelete()} className="text-red-600">
-                        <Trash2 className="w-4 h-4 mr-2" /> Delete
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="bg-blue-100 text-blue-700 text-xs font-medium px-2">
+                    {questionCount} Q
+                </Badge>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="w-8 h-8">
+                            <MoreVertical className="w-4 h-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="rounded-xl">
+                        <DropdownMenuItem onClick={() => onEdit()}>
+                            <Pencil className="w-4 h-4 mr-2" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onDelete()} className="text-red-600">
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
     );
 };
 
-const SubjectManagement = () => {
+const QuestionSubjectManagement = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const [loading, setLoading] = useState(true);
-    const [exams, setExams] = useState<Exam[]>([]);
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [topics, setTopics] = useState<Topic[]>([]);
     const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
@@ -186,8 +195,12 @@ const SubjectManagement = () => {
     const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
 
     // Form data
-    const [subjectForm, setSubjectForm] = useState({ exam_id: "", name: "", description: "" });
+    const [subjectForm, setSubjectForm] = useState({ name: "", description: "" });
     const [topicForm, setTopicForm] = useState({ name: "", description: "" });
+
+    // Question counts per subject/topic
+    const [subjectQuestionCounts, setSubjectQuestionCounts] = useState<Record<string, number>>({});
+    const [topicQuestionCounts, setTopicQuestionCounts] = useState<Record<string, number>>({});
 
     // Drag-drop sensors
     const sensors = useSensors(
@@ -213,7 +226,7 @@ const SubjectManagement = () => {
         }));
 
         for (const update of updates) {
-            await supabase.from("subjects").update({ order_index: update.order_index }).eq("id", update.id);
+            await supabase.from("subjects").update({ order_index: update.order_index } as any).eq("id", update.id);
         }
         toast({ title: "Reordered", description: "Subjects order saved" });
     };
@@ -236,7 +249,7 @@ const SubjectManagement = () => {
         }));
 
         for (const update of updates) {
-            await supabase.from("topics").update({ order_index: update.order_index }).eq("id", update.id);
+            await supabase.from("topics").update({ order_index: update.order_index } as any).eq("id", update.id);
         }
         toast({ title: "Reordered", description: "Topics order saved" });
     };
@@ -263,71 +276,119 @@ const SubjectManagement = () => {
             return;
         }
 
-        await Promise.all([loadExams(), loadSubjects()]);
+        await Promise.all([loadSubjects()]);
         setLoading(false);
     };
 
-    const loadExams = async () => {
-        const { data, error } = await supabase
-            .from("exams")
-            .select("id, name")
-            .eq("is_active", true)
-            .order("name");
-
-        if (error) {
-            toast({ title: "Error", description: "Failed to load exams", variant: "destructive" });
-            return;
-        }
-        setExams(data || []);
-    };
+    // loadExams removed
 
     const loadSubjects = async () => {
-        // Try with category filter first, fall back to all subjects if column doesn't exist
-        let result = await supabase
+        // Try with order_index first, then without if it fails
+        let result: any = await supabase
             .from("subjects")
             .select("id, exam_id, name, description, order_index")
-            .eq("category", "notes")
+            .eq("category", "questions")
             .order("order_index", { ascending: true });
 
         if (result.error) {
-            // Category column might not exist, try without filter
+            // Fallback: Try without order_index
             result = await supabase
                 .from("subjects")
-                .select("id, exam_id, name, description, order_index")
-                .order("order_index", { ascending: true });
+                .select("id, exam_id, name, description")
+                .eq("category", "questions")
+                .order("name");
         }
 
         if (result.error) {
             toast({ title: "Error", description: "Failed to load subjects", variant: "destructive" });
             return;
         }
-        setSubjects(result.data || []);
+
+        const subjectsData = result.data as Subject[] || [];
+        setSubjects(subjectsData);
+        const countMap: Record<string, number> = {};
+
+        if (subjectsData.length > 0) {
+            // Query all questions (get both subject and subject_id if they exist)
+            // We use a safe select to avoid errors if subject_id is missing
+            const { data: allQuestions, error: countError } = await supabase
+                .from("questions")
+                .select("subject");
+
+            if (countError) {
+                console.error("Count Fetch Error:", countError);
+            }
+
+            console.log("All questions fetched for counting:", allQuestions?.length);
+
+            // Count by matching subject name
+            (allQuestions || []).forEach((q: any) => {
+                const questionSubjectName = q.subject;
+                if (questionSubjectName) {
+                    const matchingSubject = subjectsData.find((s: any) =>
+                        s.name.toLowerCase() === questionSubjectName.toLowerCase()
+                    );
+                    if (matchingSubject) {
+                        countMap[matchingSubject.id] = (countMap[matchingSubject.id] || 0) + 1;
+                    }
+                }
+            });
+            console.log("Subject count map:", countMap);
+            setSubjectQuestionCounts(countMap);
+        }
     };
 
+
     const loadTopics = async (subjectId: string) => {
-        // Try with category filter first, fall back if column doesn't exist
-        let result = await supabase
+        let result: any = await supabase
             .from("topics")
             .select("id, subject_id, name, description, order_index")
             .eq("subject_id", subjectId)
-            .eq("category", "notes")
+            .eq("category", "questions")
             .order("order_index", { ascending: true });
 
         if (result.error) {
-            // Category column might not exist, try without filter
+            // Fallback: Try without order_index
             result = await supabase
                 .from("topics")
-                .select("id, subject_id, name, description, order_index")
+                .select("id, subject_id, name, description")
                 .eq("subject_id", subjectId)
-                .order("order_index", { ascending: true });
+                .eq("category", "questions")
+                .order("name");
         }
 
         if (result.error) {
             toast({ title: "Error", description: "Failed to load topics", variant: "destructive" });
             return;
         }
-        setTopics(result.data || []);
+
+        const topicsData = result.data as Topic[] || [];
+        setTopics(topicsData);
+        const countMap: Record<string, number> = {};
+
+        if (topicsData.length > 0) {
+            // Query questions for this subject's topics
+            const { data: allQuestions } = await supabase
+                .from("questions")
+                .select("topic");
+
+            // Count by matching topic name
+            (allQuestions || []).forEach((q: any) => {
+                const questionTopicName = q.topic;
+                if (questionTopicName) {
+                    const matchingTopic = topicsData.find((t: any) =>
+                        t.name.toLowerCase() === questionTopicName.toLowerCase()
+                    );
+                    if (matchingTopic) {
+                        countMap[matchingTopic.id] = (countMap[matchingTopic.id] || 0) + 1;
+                    }
+                }
+            });
+            console.log("Topic count map:", countMap);
+            setTopicQuestionCounts(countMap);
+        }
     };
+
 
     const selectSubject = async (subject: Subject) => {
         setSelectedSubject(subject);
@@ -337,13 +398,13 @@ const SubjectManagement = () => {
     // Subject CRUD
     const openCreateSubject = () => {
         setEditingSubject(null);
-        setSubjectForm({ exam_id: "", name: "", description: "" });
+        setSubjectForm({ name: "", description: "" });
         setSubjectDialogOpen(true);
     };
 
     const openEditSubject = (subject: Subject) => {
         setEditingSubject(subject);
-        setSubjectForm({ exam_id: "", name: subject.name, description: subject.description || "" });
+        setSubjectForm({ name: subject.name, description: subject.description || "" });
         setSubjectDialogOpen(true);
     };
 
@@ -378,7 +439,7 @@ const SubjectManagement = () => {
                         name: subjectForm.name,
                         description: subjectForm.description || null,
                         created_by: session.user.id,
-                        category: "notes"
+                        category: "questions"
                     },
                 ]);
 
@@ -449,7 +510,7 @@ const SubjectManagement = () => {
                         name: topicForm.name,
                         description: topicForm.description || null,
                         created_by: session.user.id,
-                        category: "notes"
+                        category: "questions"
                     },
                 ]);
 
@@ -485,7 +546,7 @@ const SubjectManagement = () => {
 
     if (loading) {
         return (
-            <AdminLayout title="Subject & Topics" subtitle="Manage subjects and topics for notes">
+            <AdminLayout title="Question Subjects" subtitle="Manage subjects and topics for questions">
                 <div className="flex items-center justify-center h-64">
                     <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 </div>
@@ -494,7 +555,7 @@ const SubjectManagement = () => {
     }
 
     return (
-        <AdminLayout title="Subject & Topics" subtitle="Manage subjects and topics for notes" headerActions={CreateSubjectButton}>
+        <AdminLayout title="Question Subjects" subtitle="Manage subjects and topics for questions" headerActions={CreateSubjectButton}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Subjects List */}
                 <Card className="border-0 bg-white rounded-2xl">
@@ -523,6 +584,7 @@ const SubjectManagement = () => {
                                                 onClick={() => selectSubject(subject)}
                                                 onEdit={() => openEditSubject(subject)}
                                                 onDelete={() => handleDeleteSubject(subject)}
+                                                questionCount={subjectQuestionCounts[subject.id] || 0}
                                             />
                                         ))}
                                     </div>
@@ -570,6 +632,7 @@ const SubjectManagement = () => {
                                                 index={idx}
                                                 onEdit={() => openEditTopic(topic)}
                                                 onDelete={() => handleDeleteTopic(topic)}
+                                                questionCount={topicQuestionCounts[topic.id] || 0}
                                             />
                                         ))}
                                     </div>
@@ -587,7 +650,7 @@ const SubjectManagement = () => {
                     <DialogHeader>
                         <DialogTitle>{editingSubject ? "Edit Subject" : "Create Subject"}</DialogTitle>
                         <DialogDescription>
-                            {editingSubject ? "Update subject details" : "Add a new subject for notes"}
+                            {editingSubject ? "Update subject details" : "Add a new subject for questions"}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
@@ -662,4 +725,4 @@ const SubjectManagement = () => {
     );
 };
 
-export default SubjectManagement;
+export default QuestionSubjectManagement;

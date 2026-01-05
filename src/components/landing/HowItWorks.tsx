@@ -128,7 +128,7 @@ const HowItWorks = () => {
                     </div>
 
                     {/* Mobile View - Premium Vertical Timeline */}
-                    <div className="md:hidden relative px-2">
+                    <div className="md:hidden relative px-2 overflow-hidden">
                         {/* Continuous Vertical Background Line */}
                         <div className="absolute left-[27px] top-6 bottom-6 w-[2px] bg-slate-100" />
 
@@ -163,8 +163,8 @@ const HowItWorks = () => {
                                     </div>
 
                                     {/* Right Side - Content Card */}
-                                    <div className="flex-1 pt-0.5">
-                                        <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100/80 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+                                    <div className="flex-1 pt-0.5 min-w-0 overflow-hidden">
+                                        <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100/80 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 overflow-hidden">
                                             <div className="flex items-center gap-2 mb-1.5">
                                                 <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${step.lightBg} ${step.color.replace('bg-', 'text-')}`}>
                                                     Step {step.step}

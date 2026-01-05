@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   Trophy,
   ChevronRight,
@@ -75,10 +74,6 @@ const StudentResults = () => {
     loadResults();
   }, [loadResults]);
 
-  const { containerProps, PullIndicator } = usePullToRefresh({
-    onRefresh: loadResults
-  });
-
   const formatDate = (dateStr: string) => {
     try {
       return format(new Date(dateStr), "MMM d, h:mm a");
@@ -104,8 +99,7 @@ const StudentResults = () => {
 
   return (
     <StudentLayout title="Results" subtitle="Your performance">
-      <PullIndicator />
-      <div className="w-full space-y-3 pb-12 px-1" {...containerProps}>
+      <div className="w-full space-y-3 pb-12 px-1">
 
         {/* Premium Hero Section - Matches Dashboard Height */}
         <motion.div

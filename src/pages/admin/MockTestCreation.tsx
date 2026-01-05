@@ -41,6 +41,10 @@ interface Question {
   question_text: string;
   subject: string | null;
   topic: string | null;
+  subject_id: string | null;
+  topic_id: string | null;
+  subjects?: { name: string };
+  topics?: { name: string };
 }
 
 const MockTestCreation = () => {
@@ -183,19 +187,93 @@ const MockTestCreation = () => {
   };
 
   const loadQuestions = async (examId: string) => {
-    const { data } = await supabase.from("questions").select("id, question_text, subject, topic").eq("exam_id", examId).order("created_at", { ascending: false });
-    if (data) setQuestions(data);
+    // Try to load with structured joins first
+    const { data, error } = await supabase
+      .from("questions")
+      .select("id, question_text, subject, topic, subject_id, topic_id, subjects(name), topics(name)")
+      .eq("exam_id", examId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Load Questions (Structured) Error:", error);
+
+      // Fallback: Load without structured joins
+      const { data: legacyData, error: legacyError } = await supabase
+        .from("questions")
+        .select("id, question_text, subject, topic, subject_id, topic_id")
+        .eq("exam_id", examId)
+        .order("created_at", { ascending: true });
+
+      if (legacyError) {
+        console.error("Load Questions (Legacy) Error:", legacyError);
+        toast({ title: "Error", description: "Failed to load questions. Please ensure the database migration has been run.", variant: "destructive" });
+        return;
+      }
+      setQuestions(legacyData as any as Question[]);
+      return;
+    }
+
+    if (data) setQuestions(data as any as Question[]);
   };
 
   const filteredQuestions = questions.filter(q => {
     const matchesSearch = !searchQuery || q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = filterSubject === "all" || q.subject === filterSubject;
-    const matchesTopic = filterTopic === "all" || q.topic === filterTopic;
+
+    const selectedSubName = subjectOptions.find(o => o.id === filterSubject)?.name;
+    const matchesSubject = filterSubject === "all" ||
+      q.subject_id === filterSubject ||
+      q.subject === filterSubject ||
+      (selectedSubName && (q.subjects?.name === selectedSubName || q.subject === selectedSubName));
+
+    const selectedTopName = topicOptions.find(o => o.id === filterTopic)?.name;
+    const matchesTopic = filterTopic === "all" ||
+      q.topic_id === filterTopic ||
+      q.topic === filterTopic ||
+      (selectedTopName && (q.topics?.name === selectedTopName || q.topic === selectedTopName));
+
     return matchesSearch && matchesSubject && matchesTopic;
   });
 
-  const subjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
-  const topics = Array.from(new Set(questions.map(q => q.topic).filter(Boolean)));
+  const [subjectOptions, setSubjectOptions] = useState<{ id: string, name: string }[]>([]);
+  const [topicOptions, setTopicOptions] = useState<{ id: string, name: string }[]>([]);
+
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      if (!formData.exam_id) {
+        setSubjectOptions([]);
+        setTopicOptions([]);
+        return;
+      }
+
+      let subQuery = supabase.from("subjects").select("id, name").eq("exam_id", formData.exam_id).order("name");
+      const { data: subs } = await subQuery;
+
+      const questionSubjects = Array.from(new Set(questions.map(q => q.subjects?.name || q.subject).filter(Boolean)));
+      const subOpts = (subs || []).map(s => ({ id: s.id, name: s.name }));
+      questionSubjects.forEach(name => {
+        if (!subOpts.find(o => o.name === name)) subOpts.push({ id: name as string, name: name as string });
+      });
+      setSubjectOptions(subOpts);
+
+      if (filterSubject !== "all") {
+        let topQuery = supabase.from("topics").select("id, name").order("name");
+        if (filterSubject.match(/^[0-9a-f-]{36}$/i)) {
+          topQuery = topQuery.eq("subject_id", filterSubject);
+        }
+        const { data: tops } = await topQuery;
+
+        const questionTopics = Array.from(new Set(questions.filter(q => q.subject_id === filterSubject || q.subject === filterSubject).map(q => q.topics?.name || q.topic).filter(Boolean)));
+        const topOpts = (tops || []).map(t => ({ id: t.id, name: t.name }));
+        questionTopics.forEach(name => {
+          if (!topOpts.find(o => o.name === name)) topOpts.push({ id: name as string, name: name as string });
+        });
+        setTopicOptions(topOpts);
+      } else {
+        setTopicOptions([]);
+      }
+    };
+    loadFilterOptions();
+  }, [formData.exam_id, filterSubject, questions]);
 
   // Filter tests list
   const filteredTests = tests.filter(test => {
@@ -323,6 +401,7 @@ const MockTestCreation = () => {
     const { error } = await supabase.from("mock_tests").update({
       title: formData.title,
       description: formData.description || null,
+      exam_id: formData.exam_id,
       test_type: formData.test_type as "full_mock" | "topic_wise",
       duration_minutes: formData.duration_minutes,
       passing_marks: formData.passing_marks
@@ -740,7 +819,7 @@ const MockTestCreation = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Subjects</SelectItem>
-                {subjects.map(subject => <SelectItem key={subject} value={subject || ""}>{subject}</SelectItem>)}
+                {subjectOptions.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterTopic} onValueChange={setFilterTopic}>
@@ -749,7 +828,7 @@ const MockTestCreation = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Topics</SelectItem>
-                {topics.map(topic => <SelectItem key={topic} value={topic || ""}>{topic}</SelectItem>)}
+                {topicOptions.map(topic => <SelectItem key={topic.id} value={topic.id}>{topic.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -782,8 +861,16 @@ const MockTestCreation = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex gap-2 mb-1 flex-wrap">
                       <span className="text-[10px] font-bold text-gray-400">Q{index + 1}</span>
-                      {question.subject && <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{question.subject}</Badge>}
-                      {question.topic && <Badge variant="outline" className="text-[9px] px-1.5 py-0">{question.topic}</Badge>}
+                      {(question.subjects?.name || question.subject) && (
+                        <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                          {question.subjects?.name || question.subject}
+                        </Badge>
+                      )}
+                      {(question.topics?.name || question.topic) && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                          {question.topics?.name || question.topic}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-gray-800 leading-relaxed">{question.question_text}</p>
                   </div>

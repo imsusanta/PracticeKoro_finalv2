@@ -512,9 +512,7 @@ const Landing = () => {
                           Get Started Free
                           <ChevronRight className="w-5 h-5 ml-2" />
                         </Button>
-                        <p className="text-xs text-gray-400 font-medium">
-                          No credit card required
-                        </p>
+
                       </div>
                     ) : (
                       <div className="flex justify-center pt-4">
@@ -539,7 +537,7 @@ const Landing = () => {
               <div className="container mx-auto">
                 {/* Section Header */}
                 <div className="text-center mb-6 md:mb-10 px-4">
-                  <Badge className="mb-3 bg-emerald-100/80 text-emerald-700 border-emerald-200/50 py-1 px-3 text-[10px] font-semibold uppercase tracking-wider">
+                  <Badge className="mb-3 bg-emerald-100/80 text-emerald-700 border-emerald-200/50 py-1 px-3 text-[10px] font-semibold uppercase tracking-wider pointer-events-none hover:bg-emerald-100/80">
                     Exam Categories
                   </Badge>
                   <h3 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-2">
@@ -555,10 +553,10 @@ const Landing = () => {
                     <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  /* Horizontal Scroll Cards - All Screen Sizes - Centered */
-                  <div className="w-full flex justify-center">
-                    <div className="overflow-x-auto pb-4 scrollbar-hide max-w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <div className="flex gap-4 px-4 md:px-8 justify-start md:justify-center" style={{ minWidth: 'min-content' }}>
+                  /* Horizontal Scroll Cards - All Screen Sizes - Force Row */
+                  <div className="w-full">
+                    <div className="overflow-x-auto pb-6 scrollbar-hide w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <div className="flex flex-row flex-nowrap gap-3 px-5 md:px-8 justify-center" style={{ width: 'max-content', minWidth: '100%' }}>
                         {exams.map((exam, index) => (
                           <motion.div
                             key={exam.id}
@@ -568,17 +566,17 @@ const Landing = () => {
                             viewport={{ once: true }}
                             whileTap={{ scale: 0.97 }}
                             onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
-                            className="min-w-[180px] w-[180px] md:min-w-[220px] md:w-[220px] shrink-0 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-3xl p-5 cursor-pointer hover:border-emerald-200 transition-all"
+                            className="w-[calc(50vw-28px)] min-w-[155px] md:w-[220px] md:min-w-[220px] shrink-0 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-3xl p-4 md:p-5 cursor-pointer hover:border-emerald-200 transition-all shadow-sm flex flex-col items-center text-center"
                           >
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-3" style={{ filter: 'drop-shadow(0 3px 10px rgba(16, 185, 129, 0.25))' }}>
-                              <BookOpen className="w-6 h-6 text-white" />
+                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-3" style={{ filter: 'drop-shadow(0 3px 10px rgba(16, 185, 129, 0.25))' }}>
+                              <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-white" />
                             </div>
-                            <h4 className="text-base md:text-lg font-bold text-gray-900 mb-2 leading-tight">
+                            <h4 className="text-sm md:text-lg font-bold text-gray-900 mb-3 leading-tight line-clamp-2">
                               {exam.name}
                             </h4>
-                            <div className="flex items-center text-emerald-600 text-sm font-semibold">
+                            <div className="flex items-center justify-center text-emerald-600 text-[11px] md:text-sm font-semibold mt-auto">
                               <span>Explore Now</span>
-                              <ChevronRight className="w-4 h-4 ml-1" />
+                              <ChevronRight className="w-3.5 h-3.5 ml-1" />
                             </div>
                           </motion.div>
                         ))}
@@ -598,7 +596,7 @@ const Landing = () => {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-gradient-to-br from-blue-100/30 to-cyan-100/20 rounded-full blur-3xl" />
               </div >
 
-              <div className="container mx-auto px-4 relative z-10">
+              <div className="container mx-auto px-5 relative z-10">
                 {/* Section Header */}
                 <div className="text-center mb-6 sm:mb-10">
                   <motion.div
@@ -777,7 +775,7 @@ const Landing = () => {
                 </div>
 
                 {/* Bento Grid Layout */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto pt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto pt-4 overflow-hidden">
                   {/* Card 1 - Large */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}

@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   Trophy,
   ChevronRight,
@@ -70,10 +69,6 @@ const StudentExams = () => {
   useEffect(() => {
     checkAuthAndLoadData();
   }, [checkAuthAndLoadData]);
-
-  const { containerProps, PullIndicator } = usePullToRefresh({
-    onRefresh: checkAuthAndLoadData
-  });
 
   const loadExamsAndTests = async () => {
     const { data: examsData } = await supabase.from("exams").select("id, name").eq("is_active", true).order("name");
@@ -171,8 +166,7 @@ const StudentExams = () => {
 
   return (
     <StudentLayout title="Mock Tests" subtitle="Practice & improve">
-      <PullIndicator />
-      <div className="w-full mx-auto space-y-3 pb-12 overflow-x-hidden px-1" {...containerProps}>
+      <div className="w-full mx-auto space-y-3 pb-12 overflow-x-hidden px-1">
 
         {/* ═══════════════════════════════════════════════════════════════
             PREMIUM HERO - Matches Dashboard Height

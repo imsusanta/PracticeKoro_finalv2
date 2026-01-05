@@ -41,6 +41,7 @@ const MockTestCreation = lazy(() => import("./pages/admin/MockTestCreation"));
 const AIQuestionGenerator = lazy(() => import("./pages/admin/AIQuestionGenerator"));
 const NotesManagement = lazy(() => import("./pages/admin/NotesManagement"));
 const SubjectManagement = lazy(() => import("./pages/admin/SubjectManagement"));
+const QuestionSubjectManagement = lazy(() => import("./pages/admin/QuestionSubjectManagement"));
 const BulkMCQUpload = lazy(() => import("./pages/admin/BulkMCQUpload"));
 const AddQuestion = lazy(() => import("./pages/admin/AddQuestion"));
 const AddNote = lazy(() => import("./pages/admin/AddNote"));
@@ -105,6 +106,7 @@ const App = () => {
               <Route path="/admin/exams" element={<ExamManagement />} />
               <Route path="/admin/subjects" element={<SubjectManagement />} />
               <Route path="/admin/questions" element={<QuestionBank />} />
+              <Route path="/admin/question-subjects" element={<QuestionSubjectManagement />} />
               <Route path="/admin/tests" element={<MockTestCreation />} />
               <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
               <Route path="/admin/notes" element={<NotesManagement />} />

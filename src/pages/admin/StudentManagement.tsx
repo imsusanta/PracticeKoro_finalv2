@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Users, CheckCircle, XCircle, Search, UserX, Key, UserCheck, Trash2, Clock, MoreVertical, Plus, Phone, Mail, User, Calendar, Shield, MessageSquare, Send, CreditCard } from "lucide-react";
+import { Users, CheckCircle, XCircle, Search, UserX, Key, UserCheck, Trash2, Clock, MoreVertical, Plus, Phone, Mail, User, Calendar, Shield, MessageSquare, Send, CreditCard, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -54,6 +54,9 @@ const StudentManagement = () => {
   const [addingStudent, setAddingStudent] = useState(false);
   const [paymentReminderOpen, setPaymentReminderOpen] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState("");
+  const [editActiveTimeDialogOpen, setEditActiveTimeDialogOpen] = useState(false);
+  const [editDuration, setEditDuration] = useState<string>("permanent");
+  const [editCustomDate, setEditCustomDate] = useState<string>("");
 
   useEffect(() => {
     checkAuth();
@@ -394,6 +397,44 @@ const StudentManagement = () => {
     setPaymentMessage("");
   };
 
+  const handleEditActiveTime = async () => {
+    if (!selectedStudent) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    let expiresAt: string | null = null;
+    if (editDuration === "30days") {
+      const date = new Date(); date.setDate(date.getDate() + 30);
+      expiresAt = date.toISOString();
+    } else if (editDuration === "60days") {
+      const date = new Date(); date.setDate(date.getDate() + 60);
+      expiresAt = date.toISOString();
+    } else if (editDuration === "90days") {
+      const date = new Date(); date.setDate(date.getDate() + 90);
+      expiresAt = date.toISOString();
+    } else if (editDuration === "custom" && editCustomDate) {
+      expiresAt = new Date(editCustomDate).toISOString();
+    }
+    // permanent means null (no expiry)
+
+    const { error } = await supabase.from("approval_status").update({
+      expires_at: expiresAt,
+      reviewed_by: session.user.id,
+      reviewed_at: new Date().toISOString()
+    }).eq("user_id", selectedStudent.id);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to update active time", variant: "destructive" });
+      return;
+    }
+
+    toast({ title: "Success", description: "Active time updated successfully" });
+    setEditActiveTimeDialogOpen(false);
+    setEditDuration("permanent");
+    setEditCustomDate("");
+    await loadStudents();
+  };
+
   const getStatusColor = (status?: string) => {
     switch (status) {
       case "approved": return "bg-emerald-100 text-emerald-700 border-emerald-200";
@@ -581,6 +622,20 @@ const StudentManagement = () => {
                             )}
                             {status === "approved" && (
                               <>
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedStudent(student);
+                                  // Pre-fill with current expiry if exists
+                                  if (student.approval_status?.expires_at) {
+                                    setEditDuration("custom");
+                                    setEditCustomDate(student.approval_status.expires_at.split("T")[0]);
+                                  } else {
+                                    setEditDuration("permanent");
+                                    setEditCustomDate("");
+                                  }
+                                  setEditActiveTimeDialogOpen(true);
+                                }} className="gap-2 text-indigo-600">
+                                  <Edit className="w-4 h-4" /> Edit Active Time
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => { setSelectedStudent(student); setPasswordResetOpen(true); }} className="gap-2">
                                   <Key className="w-4 h-4" /> Reset Password
                                 </DropdownMenuItem>
@@ -680,6 +735,20 @@ const StudentManagement = () => {
                             )}
                             {status === "approved" && (
                               <>
+                                <DropdownMenuItem onClick={() => {
+                                  setSelectedStudent(student);
+                                  // Pre-fill with current expiry if exists
+                                  if (student.approval_status?.expires_at) {
+                                    setEditDuration("custom");
+                                    setEditCustomDate(student.approval_status.expires_at.split("T")[0]);
+                                  } else {
+                                    setEditDuration("permanent");
+                                    setEditCustomDate("");
+                                  }
+                                  setEditActiveTimeDialogOpen(true);
+                                }} className="gap-2 text-indigo-600">
+                                  <Edit className="w-4 h-4" /> Edit Active Time
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => { setSelectedStudent(student); setPasswordResetOpen(true); }} className="gap-2">
                                   <Key className="w-4 h-4" /> Reset Password
                                 </DropdownMenuItem>
@@ -966,6 +1035,59 @@ const StudentManagement = () => {
             >
               <Send className="w-4 h-4 mr-2" />
               Send via WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Active Time Dialog */}
+      <Dialog open={editActiveTimeDialogOpen} onOpenChange={setEditActiveTimeDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="w-5 h-5 text-indigo-500" />
+              Edit Active Time
+            </DialogTitle>
+            <DialogDescription>Change access duration for {selectedStudent?.full_name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            {selectedStudent?.approval_status?.expires_at && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                <p className="text-sm text-amber-700 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Current expiry: <strong>{new Date(selectedStudent.approval_status.expires_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+                </p>
+              </div>
+            )}
+            {!selectedStudent?.approval_status?.expires_at && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
+                <p className="text-sm text-emerald-700 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Current: <strong>Permanent (No expiry)</strong>
+                </p>
+              </div>
+            )}
+            {[
+              { value: "permanent", label: "Permanent (No expiry)" },
+              { value: "30days", label: "30 Days from today" },
+              { value: "60days", label: "60 Days from today" },
+              { value: "90days", label: "90 Days from today" },
+              { value: "custom", label: "Custom Date" },
+            ].map((opt) => (
+              <label key={opt.value} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${editDuration === opt.value ? "bg-indigo-100 ring-2 ring-indigo-500" : "bg-gray-50 hover:bg-gray-100"
+                }`}>
+                <input type="radio" name="editDuration" value={opt.value} checked={editDuration === opt.value} onChange={(e) => setEditDuration(e.target.value)} className="w-4 h-4 text-indigo-600" />
+                <span className="font-medium">{opt.label}</span>
+              </label>
+            ))}
+            {editDuration === "custom" && (
+              <Input type="date" value={editCustomDate} onChange={(e) => setEditCustomDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="ml-7 rounded-xl" />
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditActiveTimeDialogOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button onClick={handleEditActiveTime} disabled={editDuration === "custom" && !editCustomDate} className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600">
+              <Edit className="w-4 h-4 mr-2" /> Update
             </Button>
           </DialogFooter>
         </DialogContent>

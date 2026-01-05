@@ -40,28 +40,23 @@ export const usePWAUpdate = () => {
 
         let refreshing = false;
 
-        // Handle controller change (new SW took over)
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            if (refreshing) return;
-            refreshing = true;
-            window.location.reload();
-        });
-
-        // Listen for messages from SW
-        navigator.serviceWorker.addEventListener('message', (event) => {
+        // Message listener (already handles SW_UPDATED)
+        const handleMessage = (event: MessageEvent) => {
             if (event.data?.type === 'SW_UPDATED') {
                 console.log('[PWA] Service worker updated to:', event.data.version);
             }
-        });
+        };
+
+        navigator.serviceWorker.addEventListener('message', handleMessage);
 
         // Get registration
         navigator.serviceWorker.ready.then((registration) => {
             setState(prev => ({ ...prev, registration }));
 
-            // Check for waiting SW - Auto Update
+            // Check for waiting SW - Just set updateAvailable
             if (registration.waiting) {
-                console.log('[PWA] Waiting update found, applying...');
-                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+                console.log('[PWA] Waiting update found.');
+                setState(prev => ({ ...prev, updateAvailable: true }));
             }
 
             // Listen for new SW installing
@@ -71,9 +66,9 @@ export const usePWAUpdate = () => {
 
                 newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New SW is ready, skip waiting automatically
-                        console.log('[PWA] New update installed, skipping waiting...');
-                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                        // New SW is ready, let the user decide when to update
+                        console.log('[PWA] New update installed and waiting.');
+                        setState(prev => ({ ...prev, updateAvailable: true }));
                     }
                 });
             });

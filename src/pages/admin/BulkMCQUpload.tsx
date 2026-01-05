@@ -5,11 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Eye, Save } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { SubjectTopicSelectors } from "@/components/admin/SubjectTopicSelectors";
+
+interface Exam {
+  id: string;
+  name: string;
+}
 
 interface ParsedQuestion {
   question_text: string;
@@ -28,11 +34,14 @@ const BulkMCQUpload = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [selectedExamId, setSelectedExamId] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [parsedQuestions, setParsedQuestions] = useState<ParsedQuestion[]>([]);
   const [showPreview, setShowPreview] = useState(false);
-  const [defaultSubject, setDefaultSubject] = useState("");
-  const [defaultTopic, setDefaultTopic] = useState("");
+
+  const [defaultSubject, setDefaultSubject] = useState({ id: "" as string | null, name: "" as string | null });
+  const [defaultTopic, setDefaultTopic] = useState({ id: "" as string | null, name: "" as string | null });
 
   const exampleFormat = `1. What is the capital of India?
 (a) Mumbai
@@ -80,7 +89,21 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
       return;
     }
 
+    await loadExams();
     setLoading(false);
+  };
+
+  const loadExams = async () => {
+    const { data } = await supabase
+      .from("exams")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+
+    if (data && data.length > 0) {
+      setExams(data);
+      setSelectedExamId(data[0].id);
+    }
   };
 
   const parseQuestions = () => {
@@ -157,8 +180,8 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
           option_c: optionC,
           option_d: optionD,
           correct_answer: answer,
-          subject: subject || defaultSubject || "Non-Category",
-          topic: topic || defaultTopic || "Non-Category",
+          subject: subject || undefined,
+          topic: topic || undefined,
           explanation: explanation || undefined,
         });
       }
@@ -191,16 +214,10 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
       return;
     }
 
-    const { data: availableExams } = await supabase
-      .from("exams")
-      .select("id")
-      .eq("is_active", true)
-      .limit(1);
-
-    if (!availableExams || availableExams.length === 0) {
+    if (!selectedExamId) {
       toast({
         title: "Error",
-        description: "No active exams found. Please create an exam first.",
+        description: "Please select an exam",
         variant: "destructive",
       });
       return;
@@ -211,43 +228,141 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
 
     setSaving(true);
 
-    const questionsToInsert = parsedQuestions.map(q => ({
-      exam_id: availableExams[0].id,
-      question_text: q.question_text,
-      option_a: q.option_a,
-      option_b: q.option_b,
-      option_c: q.option_c,
-      option_d: q.option_d,
-      correct_answer: q.correct_answer,
-      subject: q.subject || "Non-Category",
-      topic: q.topic || "Non-Category",
-      explanation: q.explanation || null,
-      created_by: session.user.id,
-    }));
+    try {
+      // 1. Collect all unique subjects and topics needed
+      const subjectsToEnsure = new Set<string>();
+      const topicsToEnsure = new Map<string, Set<string>>(); // subject name -> set of topic names
 
-    const { error } = await supabase.from("questions").insert(questionsToInsert);
+      // Add default subject/topic if they are names (to be created)
+      if (!defaultSubject.id && defaultSubject.name) {
+        subjectsToEnsure.add(defaultSubject.name);
+        if (!defaultTopic.id && defaultTopic.name) {
+          if (!topicsToEnsure.has(defaultSubject.name)) topicsToEnsure.set(defaultSubject.name, new Set());
+          topicsToEnsure.get(defaultSubject.name)!.add(defaultTopic.name);
+        }
+      }
 
-    setSaving(false);
+      // Add subjects/topics from parsed questions
+      parsedQuestions.forEach(q => {
+        const subName = q.subject || defaultSubject.name || "Non-Category";
+        subjectsToEnsure.add(subName);
 
-    if (error) {
+        if (q.topic || (subName === defaultSubject.name && defaultTopic.name)) {
+          const topName = q.topic || defaultTopic.name;
+          if (topName) {
+            if (!topicsToEnsure.has(subName)) topicsToEnsure.set(subName, new Set());
+            topicsToEnsure.get(subName)!.add(topName);
+          }
+        }
+      });
+
+      // 2. Ensure subjects exist and get their IDs
+      const subjectMap = new Map<string, string>();
+
+      // Load existing subjects for this exam to avoid unnecessary inserts
+      const { data: existingSubjects } = await supabase
+        .from("subjects")
+        .select("id, name")
+        .eq("exam_id", selectedExamId)
+        .eq("category", "questions");
+
+      existingSubjects?.forEach(s => subjectMap.set(s.name, s.id));
+
+      // Create missing subjects
+      const missingSubjects = Array.from(subjectsToEnsure).filter(name => !subjectMap.has(name));
+      if (missingSubjects.length > 0) {
+        const { data: newSubjects, error: subError } = await supabase
+          .from("subjects")
+          .insert(missingSubjects.map(name => ({
+            exam_id: selectedExamId,
+            name,
+            created_by: session.user.id,
+            category: "questions"
+          })))
+          .select("id, name");
+
+        if (subError) throw subError;
+        newSubjects?.forEach(s => subjectMap.set(s.name, s.id));
+      }
+
+      // 3. Ensure topics exist and get their IDs
+      const topicMap = new Map<string, string>(); // "subjectId:topicName" -> topicId
+
+      for (const [subName, topNames] of topicsToEnsure.entries()) {
+        const subjectId = subjectMap.get(subName);
+        if (!subjectId) continue;
+
+        // Load existing topics for this subject
+        const { data: existingTopics } = await supabase
+          .from("topics")
+          .select("id, name")
+          .eq("subject_id", subjectId);
+
+        existingTopics?.forEach(t => topicMap.set(`${subjectId}:${t.name}`, t.id));
+
+        // Create missing topics
+        const missingTopics = Array.from(topNames).filter(name => !topicMap.has(`${subjectId}:${name}`));
+        if (missingTopics.length > 0) {
+          const { data: newTopics, error: topError } = await supabase
+            .from("topics")
+            .insert(missingTopics.map(name => ({
+              subject_id: subjectId,
+              name,
+              created_by: session.user.id,
+              category: "questions"
+            })))
+            .select("id, name");
+
+          if (topError) throw topError;
+          newTopics?.forEach(t => topicMap.set(`${subjectId}:${t.name}`, t.id));
+        }
+      }
+
+      // 4. Map questions to IDs and insert
+      const questionsToInsert = parsedQuestions.map(q => {
+        const subName = q.subject || defaultSubject.name || "Non-Category";
+        const subjectId = subjectMap.get(subName);
+
+        const topName = q.topic || (subName === defaultSubject.name ? defaultTopic.name : undefined);
+        const topicId = (subjectId && topName) ? topicMap.get(`${subjectId}:${topName}`) : undefined;
+
+        return {
+          exam_id: selectedExamId,
+          question_text: q.question_text,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          correct_answer: q.correct_answer,
+          subject_id: subjectId || null,
+          topic_id: topicId || null,
+          subject: subName, // Keep name for compatibility
+          topic: topName || null, // Keep name for compatibility
+          explanation: q.explanation || null,
+          created_by: session.user.id,
+        };
+      });
+
+      const { error } = await supabase.from("questions").insert(questionsToInsert);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Successfully added ${parsedQuestions.length} questions to Question Bank`,
+      });
+
+      setBulkText("");
+      setParsedQuestions([]);
+      setShowPreview(false);
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to save questions",
+        description: error.message || "Failed to save questions",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setSaving(false);
     }
-
-    toast({
-      title: "Success",
-      description: `Successfully added ${parsedQuestions.length} questions to Question Bank`,
-    });
-
-    setBulkText("");
-    setParsedQuestions([]);
-    setShowPreview(false);
-    setDefaultSubject("");
-    setDefaultTopic("");
   };
 
   if (loading) {
@@ -274,26 +389,31 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Default Subject (Optional)</Label>
-                <Input
-                  value={defaultSubject}
-                  onChange={(e) => setDefaultSubject(e.target.value)}
-                  placeholder="e.g., Mathematics"
-                  className="h-12 rounded-xl"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Will be used if not specified in questions</p>
+                <Label className="text-sm font-medium">Exam Category *</Label>
+                <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder="Select exam" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {exams.map((exam) => (
+                      <SelectItem key={exam.id} value={exam.id}>
+                        {exam.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Default Topic (Optional)</Label>
-                <Input
-                  value={defaultTopic}
-                  onChange={(e) => setDefaultTopic(e.target.value)}
-                  placeholder="e.g., Algebra"
-                  className="h-12 rounded-xl"
-                />
-                <p className="text-[10px] text-gray-400 mt-1">Will be used if not specified in questions</p>
+              <div className="md:col-span-2">
+                {selectedExamId && (
+                  <SubjectTopicSelectors
+                    examId={selectedExamId}
+                    category="questions"
+                    onSubjectChange={(id, name) => setDefaultSubject({ id, name })}
+                    onTopicChange={(id, name) => setDefaultTopic({ id, name })}
+                  />
+                )}
               </div>
             </div>
 
@@ -304,7 +424,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
                 onChange={(e) => setBulkText(e.target.value)}
                 placeholder="Paste your questions here..."
                 rows={15}
-                className="font-mono text-sm rounded-xl"
+                className="font-mono text-sm rounded-xl shadow-none focus-visible:ring-emerald-500"
               />
             </div>
 
@@ -345,23 +465,29 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
             <CardContent>
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
                 {parsedQuestions.map((q, index) => (
-                  <Card key={index} className="p-4 rounded-xl">
-                    <div className="flex gap-2 mb-2">
+                  <Card key={index} className="p-4 rounded-xl border-gray-100 bg-gray-50/30">
+                    <div className="flex flex-wrap gap-2 mb-2">
                       <Badge className="bg-emerald-100 text-emerald-700">Q{index + 1}</Badge>
-                      {q.subject && <Badge variant="secondary">{q.subject}</Badge>}
-                      {q.topic && <Badge variant="outline">{q.topic}</Badge>}
-                      <Badge className="bg-emerald-600">Answer: {q.correct_answer}</Badge>
+                      <Badge variant="secondary" className="bg-blue-50 text-blue-600">
+                        Subject: {q.subject || defaultSubject.name || "Non-Category"}
+                      </Badge>
+                      {(q.topic || (q.subject ? undefined : defaultTopic.name)) && (
+                        <Badge variant="secondary" className="bg-violet-50 text-violet-600">
+                          Topic: {q.topic || (q.subject ? "" : defaultTopic.name)}
+                        </Badge>
+                      )}
+                      <Badge className="bg-emerald-600">Ans: {q.correct_answer}</Badge>
                     </div>
-                    <p className="font-medium mb-2">{q.question_text}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mb-2">
-                      <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">A. {q.option_a}</div>
-                      <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">B. {q.option_b}</div>
-                      <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">C. {q.option_c}</div>
-                      <div className="bg-gray-50/50 p-2 rounded-lg border border-gray-100">D. {q.option_d}</div>
+                    <p className="font-medium mb-3 text-gray-900">{q.question_text}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-3">
+                      <div className="bg-white p-3 rounded-lg border border-gray-200">A. {q.option_a}</div>
+                      <div className="bg-white p-3 rounded-lg border border-gray-200">B. {q.option_b}</div>
+                      <div className="bg-white p-3 rounded-lg border border-gray-200">C. {q.option_c}</div>
+                      <div className="bg-white p-3 rounded-lg border border-gray-200">D. {q.option_d}</div>
                     </div>
                     {q.explanation && (
-                      <div className="mt-2 p-2 bg-gray-50 rounded-xl text-sm">
-                        <span className="font-semibold">Short Notes: </span>
+                      <div className="mt-3 p-3 bg-white border border-gray-200 rounded-xl text-sm italic text-gray-600">
+                        <span className="font-bold not-italic text-gray-900">Short Notes: </span>
                         {q.explanation}
                       </div>
                     )}

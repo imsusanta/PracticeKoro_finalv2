@@ -12,7 +12,7 @@ const Footer = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
 
                     {/* Brand Column */}
-                    <div className="sm:col-span-2 lg:col-span-1 space-y-6">
+                    <div className="sm:col-span-2 lg:col-span-1 space-y-6 flex flex-col items-center sm:items-start text-center sm:text-left">
                         <div className="flex items-center gap-3">
                             <div
                                 className="flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500"
@@ -29,7 +29,7 @@ const Footer = () => {
                             Your ultimate platform for exam preparation. Smart mock tests, detailed analytics, and study materials.
                         </p>
                         {/* Social Links */}
-                        <div className="flex items-center gap-4 pt-2">
+                        <div className="flex items-center justify-center sm:justify-start gap-4 pt-2 mb-[3px]">
                             {[
                                 { icon: Send, href: "https://t.me/parikshanotespdf", color: "hover:bg-[#0088cc]" },
                                 { icon: Instagram, href: "https://www.instagram.com/parikshanotes_in", color: "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500" },
@@ -50,7 +50,7 @@ const Footer = () => {
                     </div>
 
                     {/* Quick Links */}
-                    <div className="space-y-6">
+                    <div className="hidden sm:block space-y-6">
                         <h4 className="text-white font-bold text-sm uppercase tracking-[0.2em]">
                             Quick Links
                         </h4>
@@ -75,7 +75,7 @@ const Footer = () => {
                     </div>
 
                     {/* Contact Info */}
-                    <div className="space-y-6">
+                    <div className="hidden sm:block space-y-6">
                         <h4 className="text-white font-bold text-sm uppercase tracking-[0.2em]">
                             Contact Us
                         </h4>
@@ -101,8 +101,8 @@ const Footer = () => {
                     </div>
 
                     {/* Telegram CTA */}
-                    <div className="sm:col-span-2 lg:col-span-1">
-                        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900 rounded-3xl p-6 border border-slate-700/50 relative overflow-hidden group">
+                    <div className="sm:col-span-2 lg:col-span-1 flex justify-center sm:justify-start">
+                        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900 rounded-3xl p-6 border border-slate-700/50 relative overflow-hidden group w-full max-w-sm">
                             {/* Animated Background Pulse */}
                             <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl group-hover:bg-emerald-500/10 transition-all duration-500" />
 
@@ -112,12 +112,12 @@ const Footer = () => {
                                 >
                                     <Send className="w-6 h-6 text-white" />
                                 </div>
-                                <div>
+                                <div className="text-left">
                                     <h4 className="font-bold text-white text-base">Join Telegram</h4>
                                     <p className="text-xs text-slate-400">Notes & Daily Updates</p>
                                 </div>
                             </div>
-                            <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                            <p className="text-sm text-slate-400 mb-6 leading-relaxed text-left">
                                 Get exclusive access to free study notes and daily quizzes.
                             </p>
                             <a
@@ -138,7 +138,7 @@ const Footer = () => {
             {/* Copyright Bar */}
             <div className="border-t border-slate-800">
                 <div className="container mx-auto px-5 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <p className="text-sm text-slate-500 text-center md:text-left flex items-center gap-1">
+                    <p className="text-sm text-slate-500 text-center md:text-left flex items-center justify-center md:justify-start gap-1">
                         © 2026 Practice Koro. Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> in India
                     </p>
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">

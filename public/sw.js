@@ -20,8 +20,8 @@ self.addEventListener('install', (event) => {
             return cache.addAll(STATIC_ASSETS);
         })
     );
-    // Skip waiting to activate immediately
-    self.skipWaiting();
+    // Skip waiting to activate immediately - DISABLED FOR AUTO-REFRESH FIX
+    // self.skipWaiting();
 });
 
 // Activate event - clean old caches and notify clients
@@ -46,8 +46,8 @@ self.addEventListener('activate', (event) => {
             });
         })
     );
-    // Take control of all clients immediately
-    self.clients.claim();
+    // Take control of all clients immediately - DISABLED FOR AUTO-REFRESH FIX
+    // self.clients.claim();
 });
 
 // Message handler for manual update check
