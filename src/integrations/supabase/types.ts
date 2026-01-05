@@ -578,6 +578,7 @@ export type Database = {
       }
       subjects: {
         Row: {
+          category: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -587,6 +588,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -596,6 +598,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
@@ -871,6 +874,7 @@ export type Database = {
       }
       topics: {
         Row: {
+          category: string | null
           content: string | null
           created_at: string
           created_by: string
@@ -881,6 +885,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
           content?: string | null
           created_at?: string
           created_by: string
@@ -891,6 +896,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
           content?: string | null
           created_at?: string
           created_by?: string
