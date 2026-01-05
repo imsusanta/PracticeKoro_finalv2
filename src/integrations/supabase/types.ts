@@ -585,6 +585,7 @@ export type Database = {
           exam_id: string | null
           id: string
           name: string
+          order_index: number | null
           updated_at: string
         }
         Insert: {
@@ -595,6 +596,7 @@ export type Database = {
           exam_id?: string | null
           id?: string
           name: string
+          order_index?: number | null
           updated_at?: string
         }
         Update: {
@@ -605,6 +607,7 @@ export type Database = {
           exam_id?: string | null
           id?: string
           name?: string
+          order_index?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -881,6 +884,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          order_index: number | null
           subject_id: string
           updated_at: string
         }
@@ -892,6 +896,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          order_index?: number | null
           subject_id: string
           updated_at?: string
         }
@@ -903,6 +908,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          order_index?: number | null
           subject_id?: string
           updated_at?: string
         }
