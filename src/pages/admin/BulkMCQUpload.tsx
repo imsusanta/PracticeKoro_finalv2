@@ -229,102 +229,10 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
     setSaving(true);
 
     try {
-      // 1. Collect all unique subjects and topics needed
-      const subjectsToEnsure = new Set<string>();
-      const topicsToEnsure = new Map<string, Set<string>>(); // subject name -> set of topic names
-
-      // Add default subject/topic if they are names (to be created)
-      if (!defaultSubject.id && defaultSubject.name) {
-        subjectsToEnsure.add(defaultSubject.name);
-        if (!defaultTopic.id && defaultTopic.name) {
-          if (!topicsToEnsure.has(defaultSubject.name)) topicsToEnsure.set(defaultSubject.name, new Set());
-          topicsToEnsure.get(defaultSubject.name)!.add(defaultTopic.name);
-        }
-      }
-
-      // Add subjects/topics from parsed questions
-      parsedQuestions.forEach(q => {
-        const subName = q.subject || defaultSubject.name || "Non-Category";
-        subjectsToEnsure.add(subName);
-
-        if (q.topic || (subName === defaultSubject.name && defaultTopic.name)) {
-          const topName = q.topic || defaultTopic.name;
-          if (topName) {
-            if (!topicsToEnsure.has(subName)) topicsToEnsure.set(subName, new Set());
-            topicsToEnsure.get(subName)!.add(topName);
-          }
-        }
-      });
-
-      // 2. Ensure subjects exist and get their IDs
-      const subjectMap = new Map<string, string>();
-
-      // Load existing subjects for this exam to avoid unnecessary inserts
-      const { data: existingSubjects } = await supabase
-        .from("subjects")
-        .select("id, name")
-        .eq("exam_id", selectedExamId)
-        .eq("category", "questions");
-
-      existingSubjects?.forEach(s => subjectMap.set(s.name, s.id));
-
-      // Create missing subjects
-      const missingSubjects = Array.from(subjectsToEnsure).filter(name => !subjectMap.has(name));
-      if (missingSubjects.length > 0) {
-        const { data: newSubjects, error: subError } = await supabase
-          .from("subjects")
-          .insert(missingSubjects.map(name => ({
-            exam_id: selectedExamId,
-            name,
-            created_by: session.user.id,
-            category: "questions"
-          })))
-          .select("id, name");
-
-        if (subError) throw subError;
-        newSubjects?.forEach(s => subjectMap.set(s.name, s.id));
-      }
-
-      // 3. Ensure topics exist and get their IDs
-      const topicMap = new Map<string, string>(); // "subjectId:topicName" -> topicId
-
-      for (const [subName, topNames] of topicsToEnsure.entries()) {
-        const subjectId = subjectMap.get(subName);
-        if (!subjectId) continue;
-
-        // Load existing topics for this subject
-        const { data: existingTopics } = await supabase
-          .from("topics")
-          .select("id, name")
-          .eq("subject_id", subjectId);
-
-        existingTopics?.forEach(t => topicMap.set(`${subjectId}:${t.name}`, t.id));
-
-        // Create missing topics
-        const missingTopics = Array.from(topNames).filter(name => !topicMap.has(`${subjectId}:${name}`));
-        if (missingTopics.length > 0) {
-          const { data: newTopics, error: topError } = await supabase
-            .from("topics")
-            .insert(missingTopics.map(name => ({
-              subject_id: subjectId,
-              name,
-              created_by: session.user.id,
-              category: "questions"
-            })))
-            .select("id, name");
-
-          if (topError) throw topError;
-          newTopics?.forEach(t => topicMap.set(`${subjectId}:${t.name}`, t.id));
-        }
-      }
-
-      // 4. Map questions to IDs and insert
+      // Simply insert questions with text-based subject/topic fields
       const questionsToInsert = parsedQuestions.map(q => {
         const subName = q.subject || defaultSubject.name || "Non-Category";
-        const subjectId = subjectMap.get(subName);
-
-        const topName = q.topic || (subName === defaultSubject.name ? defaultTopic.name : undefined);
-        const topicId = (subjectId && topName) ? topicMap.get(`${subjectId}:${topName}`) : undefined;
+        const topName = q.topic || (q.subject ? undefined : defaultTopic.name);
 
         return {
           exam_id: selectedExamId,
