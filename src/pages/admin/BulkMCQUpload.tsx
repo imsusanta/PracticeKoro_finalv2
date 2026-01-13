@@ -334,10 +334,8 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
           option_c: q.option_c,
           option_d: q.option_d,
           correct_answer: q.correct_answer,
-          subject_id: subjectId || null,
-          topic_id: topicId || null,
-          subject: subName, // Keep name for compatibility
-          topic: topName || null, // Keep name for compatibility
+          subject: subName,
+          topic: topName || null,
           explanation: q.explanation || null,
           created_by: session.user.id,
         };
