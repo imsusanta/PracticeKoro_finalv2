@@ -39,12 +39,14 @@ interface Exam {
 interface Question {
   id: string;
   question_text: string;
+  // Legacy schema uses plain text fields
   subject: string | null;
   topic: string | null;
-  subject_id: string | null;
-  topic_id: string | null;
-  subjects?: { name: string };
-  topics?: { name: string };
+  // Some deployments may have FK columns; keep optional for compatibility
+  subject_id?: string | null;
+  topic_id?: string | null;
+  subjects?: { name: string } | null;
+  topics?: { name: string } | null;
 }
 
 const MockTestCreation = () => {
@@ -187,49 +189,44 @@ const MockTestCreation = () => {
   };
 
   const loadQuestions = async (examId: string) => {
-    // Try to load with structured joins first
+    // The current database schema stores subject/topic as plain text (subject/topic).
+    // Avoid selecting non-existent FK columns (subject_id/topic_id) which breaks loading.
     const { data, error } = await supabase
       .from("questions")
-      .select("id, question_text, subject, topic, subject_id, topic_id, subjects(name), topics(name)")
+      .select("id, question_text, subject, topic")
       .eq("exam_id", examId)
       .order("created_at", { ascending: true });
 
     if (error) {
-      console.error("Load Questions (Structured) Error:", error);
-
-      // Fallback: Load without structured joins
-      const { data: legacyData, error: legacyError } = await supabase
-        .from("questions")
-        .select("id, question_text, subject, topic, subject_id, topic_id")
-        .eq("exam_id", examId)
-        .order("created_at", { ascending: true });
-
-      if (legacyError) {
-        console.error("Load Questions (Legacy) Error:", legacyError);
-        toast({ title: "Error", description: "Failed to load questions. Please ensure the database migration has been run.", variant: "destructive" });
-        return;
-      }
-      setQuestions(legacyData as any as Question[]);
+      console.error("Load Questions Error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load questions.",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (data) setQuestions(data as any as Question[]);
+    setQuestions((data || []) as any as Question[]);
   };
 
-  const filteredQuestions = questions.filter(q => {
-    const matchesSearch = !searchQuery || q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredQuestions = questions.filter((q) => {
+    const matchesSearch =
+      !searchQuery || q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const selectedSubName = subjectOptions.find(o => o.id === filterSubject)?.name;
-    const matchesSubject = filterSubject === "all" ||
-      q.subject_id === filterSubject ||
-      q.subject === filterSubject ||
-      (selectedSubName && (q.subjects?.name === selectedSubName || q.subject === selectedSubName));
+    const selectedSubName = subjectOptions.find((o) => o.id === filterSubject)?.name;
+    const matchesSubject =
+      filterSubject === "all" ||
+      (selectedSubName
+        ? q.subject === selectedSubName || q.subjects?.name === selectedSubName
+        : q.subject === filterSubject);
 
-    const selectedTopName = topicOptions.find(o => o.id === filterTopic)?.name;
-    const matchesTopic = filterTopic === "all" ||
-      q.topic_id === filterTopic ||
-      q.topic === filterTopic ||
-      (selectedTopName && (q.topics?.name === selectedTopName || q.topic === selectedTopName));
+    const selectedTopName = topicOptions.find((o) => o.id === filterTopic)?.name;
+    const matchesTopic =
+      filterTopic === "all" ||
+      (selectedTopName
+        ? q.topic === selectedTopName || q.topics?.name === selectedTopName
+        : q.topic === filterTopic);
 
     return matchesSearch && matchesSubject && matchesTopic;
   });
@@ -245,32 +242,59 @@ const MockTestCreation = () => {
         return;
       }
 
-      let subQuery = supabase.from("subjects").select("id, name").eq("exam_id", formData.exam_id).order("name");
-      const { data: subs } = await subQuery;
+       let subQuery = supabase
+          .from("subjects")
+          .select("id, name")
+          .eq("exam_id", formData.exam_id)
+          .eq("category", "questions")
+          .order("order_index", { ascending: true });
+        const { data: subs } = await subQuery;
 
-      const questionSubjects = Array.from(new Set(questions.map(q => q.subjects?.name || q.subject).filter(Boolean)));
-      const subOpts = (subs || []).map(s => ({ id: s.id, name: s.name }));
-      questionSubjects.forEach(name => {
-        if (!subOpts.find(o => o.name === name)) subOpts.push({ id: name as string, name: name as string });
-      });
-      setSubjectOptions(subOpts);
-
-      if (filterSubject !== "all") {
-        let topQuery = supabase.from("topics").select("id, name").order("name");
-        if (filterSubject.match(/^[0-9a-f-]{36}$/i)) {
-          topQuery = topQuery.eq("subject_id", filterSubject);
-        }
-        const { data: tops } = await topQuery;
-
-        const questionTopics = Array.from(new Set(questions.filter(q => q.subject_id === filterSubject || q.subject === filterSubject).map(q => q.topics?.name || q.topic).filter(Boolean)));
-        const topOpts = (tops || []).map(t => ({ id: t.id, name: t.name }));
-        questionTopics.forEach(name => {
-          if (!topOpts.find(o => o.name === name)) topOpts.push({ id: name as string, name: name as string });
+        const questionSubjects = Array.from(
+          new Set(questions.map((q) => q.subjects?.name || q.subject).filter(Boolean))
+        );
+        const subOpts = (subs || []).map((s) => ({ id: s.id, name: s.name }));
+        questionSubjects.forEach((name) => {
+          if (!subOpts.find((o) => o.name === name)) {
+            subOpts.push({ id: name as string, name: name as string });
+          }
         });
-        setTopicOptions(topOpts);
-      } else {
-        setTopicOptions([]);
-      }
+        setSubjectOptions(subOpts);
+
+        if (filterSubject !== "all") {
+          const selectedSubName = subOpts.find((o) => o.id === filterSubject)?.name;
+
+          let topQuery = supabase
+            .from("topics")
+            .select("id, name")
+            .eq("category", "questions")
+            .order("order_index", { ascending: true });
+
+          if (filterSubject.match(/^[0-9a-f-]{36}$/i)) {
+            topQuery = topQuery.eq("subject_id", filterSubject);
+          }
+
+          const { data: tops } = await topQuery;
+
+          const questionTopics = Array.from(
+            new Set(
+              questions
+                .filter((q) => !selectedSubName || q.subject === selectedSubName)
+                .map((q) => q.topics?.name || q.topic)
+                .filter(Boolean)
+            )
+          );
+
+          const topOpts = (tops || []).map((t) => ({ id: t.id, name: t.name }));
+          questionTopics.forEach((name) => {
+            if (!topOpts.find((o) => o.name === name)) {
+              topOpts.push({ id: name as string, name: name as string });
+            }
+          });
+          setTopicOptions(topOpts);
+        } else {
+          setTopicOptions([]);
+        }
     };
     loadFilterOptions();
   }, [formData.exam_id, filterSubject, questions]);
