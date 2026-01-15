@@ -10,7 +10,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { SubjectTopicSelectors } from "@/components/admin/SubjectTopicSelectors";
+
+interface Subject {
+  id: string;
+  name: string;
+}
+
+interface Topic {
+  id: string;
+  name: string;
+  subject_id: string;
+}
 
 interface Exam {
   id: string;
@@ -42,6 +52,8 @@ const BulkMCQUpload = () => {
 
   const [defaultSubject, setDefaultSubject] = useState({ id: "" as string | null, name: "" as string | null });
   const [defaultTopic, setDefaultTopic] = useState({ id: "" as string | null, name: "" as string | null });
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
 
   const exampleFormat = `1. What is the capital of India?
 (a) Mumbai
@@ -104,6 +116,43 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
       setExams(data);
       setSelectedExamId(data[0].id);
     }
+    // Load subjects for questions category
+    await loadSubjects();
+  };
+
+  const loadSubjects = async () => {
+    const { data } = await supabase
+      .from("subjects")
+      .select("id, name")
+      .eq("category", "questions")
+      .order("order_index", { ascending: true });
+    setSubjects(data || []);
+  };
+
+  const loadTopics = async (subjectId: string) => {
+    const { data } = await supabase
+      .from("topics")
+      .select("id, name, subject_id")
+      .eq("subject_id", subjectId)
+      .eq("category", "questions")
+      .order("order_index", { ascending: true });
+    setTopics(data || []);
+  };
+
+  const handleSubjectChange = (subjectId: string) => {
+    const subject = subjects.find(s => s.id === subjectId);
+    setDefaultSubject({ id: subjectId, name: subject?.name || null });
+    setDefaultTopic({ id: null, name: null }); // Reset topic when subject changes
+    if (subjectId) {
+      loadTopics(subjectId);
+    } else {
+      setTopics([]);
+    }
+  };
+
+  const handleTopicChange = (topicId: string) => {
+    const topic = topics.find(t => t.id === topicId);
+    setDefaultTopic({ id: topicId, name: topic?.name || null });
   };
 
   const parseQuestions = () => {
@@ -215,27 +264,41 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
     }
 
     if (!selectedExamId) {
-      toast({
-        title: "Error",
-        description: "Please select an exam",
-        variant: "destructive",
-      });
-      return;
+      // Auto-select first exam silently for database compatibility
+      if (exams.length > 0) {
+        setSelectedExamId(exams[0].id);
+      } else {
+        toast({
+          title: "Error",
+          description: "No exam categories available. Please create one first.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    if (!defaultSubject.id || !defaultTopic.id) {
+      toast({
+        title: "Error",
+        description: "Please select both a Default Subject and a Default Topic",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
 
     try {
-      // Simply insert questions with text-based subject/topic fields
+      // Map questions for insert - only use text-based subject/topic (no subject_id/topic_id)
       const questionsToInsert = parsedQuestions.map(q => {
-        const subName = q.subject || defaultSubject.name || "Non-Category";
-        const topName = q.topic || (q.subject ? undefined : defaultTopic.name);
+        const subName = q.subject || defaultSubject.name || "General";
+        const topName = q.topic || (subName === defaultSubject.name ? defaultTopic.name : null);
 
         return {
-          exam_id: selectedExamId,
+          exam_id: selectedExamId || exams[0]?.id,
           question_text: q.question_text,
           option_a: q.option_a,
           option_b: q.option_b,
@@ -243,7 +306,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
           option_d: q.option_d,
           correct_answer: q.correct_answer,
           subject: subName,
-          topic: topName || null,
+          topic: topName,
           explanation: q.explanation || null,
           created_by: session.user.id,
         };
@@ -295,31 +358,42 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Exam Category *</Label>
-                <Select value={selectedExamId} onValueChange={setSelectedExamId}>
+                <Label className="text-sm font-medium">Default Subject</Label>
+                <Select value={defaultSubject.id || ""} onValueChange={handleSubjectChange}>
                   <SelectTrigger className="h-12 rounded-xl">
-                    <SelectValue placeholder="Select exam" />
+                    <SelectValue placeholder="Select subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    {exams.map((exam) => (
-                      <SelectItem key={exam.id} value={exam.id}>
-                        {exam.name}
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-gray-500">Applied to questions without explicit subject</p>
               </div>
-              <div className="md:col-span-2">
-                {selectedExamId && (
-                  <SubjectTopicSelectors
-                    examId={selectedExamId}
-                    category="questions"
-                    onSubjectChange={(id, name) => setDefaultSubject({ id, name })}
-                    onTopicChange={(id, name) => setDefaultTopic({ id, name })}
-                  />
-                )}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Default Topic</Label>
+                <Select
+                  value={defaultTopic.id || ""}
+                  onValueChange={handleTopicChange}
+                  disabled={!defaultSubject.id}
+                >
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder={defaultSubject.id ? "Select topic" : "Select subject first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {topics.map((topic) => (
+                      <SelectItem key={topic.id} value={topic.id}>
+                        {topic.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-500">Applied to questions without explicit topic</p>
               </div>
             </div>
 

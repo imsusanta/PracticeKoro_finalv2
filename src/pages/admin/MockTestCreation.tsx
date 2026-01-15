@@ -63,6 +63,8 @@ const MockTestCreation = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterTopic, setFilterTopic] = useState<string>("all");
+  const [subjectOptions, setSubjectOptions] = useState<{ id: string, name: string }[]>([]);
+  const [topicOptions, setTopicOptions] = useState<{ id: string, name: string }[]>([]);
   // Filters for tests list
   const [testSearchQuery, setTestSearchQuery] = useState("");
   const [testFilterExam, setTestFilterExam] = useState<string>("all");
@@ -188,113 +190,74 @@ const MockTestCreation = () => {
     setTests(data || []);
   };
 
-  const loadQuestions = async (examId: string) => {
-    // The current database schema stores subject/topic as plain text (subject/topic).
-    // Avoid selecting non-existent FK columns (subject_id/topic_id) which breaks loading.
+  const loadQuestions = async () => {
+    // Load all questions - no exam filter (questions are now exam-independent)
     const { data, error } = await supabase
       .from("questions")
       .select("id, question_text, subject, topic")
-      .eq("exam_id", examId)
       .order("created_at", { ascending: true });
 
     if (error) {
       console.error("Load Questions Error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load questions.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load questions.", variant: "destructive" });
       return;
     }
 
-    setQuestions((data || []) as any as Question[]);
+    // Map data to match expected interface structure
+    const mappedQuestions = (data || []).map(q => ({
+      ...q,
+      subject_id: null,
+      topic_id: null,
+      subjects: q.subject ? { name: q.subject } : undefined,
+      topics: q.topic ? { name: q.topic } : undefined
+    }));
+
+    setQuestions(mappedQuestions as Question[]);
   };
 
   const filteredQuestions = questions.filter((q) => {
     const matchesSearch =
       !searchQuery || q.question_text.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const selectedSubName = subjectOptions.find((o) => o.id === filterSubject)?.name;
-    const matchesSubject =
-      filterSubject === "all" ||
-      (selectedSubName
-        ? q.subject === selectedSubName || q.subjects?.name === selectedSubName
-        : q.subject === filterSubject);
+    // Get the selected subject name - since questions store subject as plain text
+    const selectedSubOpt = subjectOptions.find(o => o.id === filterSubject);
+    const matchesSubject = filterSubject === "all" ||
+      q.subject === filterSubject ||
+      (selectedSubOpt && q.subject === selectedSubOpt.name);
 
-    const selectedTopName = topicOptions.find((o) => o.id === filterTopic)?.name;
-    const matchesTopic =
-      filterTopic === "all" ||
-      (selectedTopName
-        ? q.topic === selectedTopName || q.topics?.name === selectedTopName
-        : q.topic === filterTopic);
+    // Get the selected topic name - since questions store topic as plain text
+    const selectedTopOpt = topicOptions.find(o => o.id === filterTopic);
+    const matchesTopic = filterTopic === "all" ||
+      q.topic === filterTopic ||
+      (selectedTopOpt && q.topic === selectedTopOpt.name);
 
-    return matchesSearch && matchesSubject && matchesTopic;
+    return matchesSearch && matchesTopic && matchesSubject;
   });
 
-  const [subjectOptions, setSubjectOptions] = useState<{ id: string, name: string }[]>([]);
-  const [topicOptions, setTopicOptions] = useState<{ id: string, name: string }[]>([]);
+  // subjectOptions and topicOptions are declared at the top of the component
 
   useEffect(() => {
     const loadFilterOptions = async () => {
-      if (!formData.exam_id) {
+      if (!formData.exam_id || questions.length === 0) {
         setSubjectOptions([]);
         setTopicOptions([]);
         return;
       }
 
-       let subQuery = supabase
-          .from("subjects")
-          .select("id, name")
-          .eq("exam_id", formData.exam_id)
-          .eq("category", "questions")
-          .order("order_index", { ascending: true });
-        const { data: subs } = await subQuery;
+      // Build subject options from actual question subjects (text-based)
+      const uniqueSubjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
+      const subOpts = uniqueSubjects.map(name => ({ id: name as string, name: name as string }));
+      setSubjectOptions(subOpts);
 
-        const questionSubjects = Array.from(
-          new Set(questions.map((q) => q.subjects?.name || q.subject).filter(Boolean))
-        );
-        const subOpts = (subs || []).map((s) => ({ id: s.id, name: s.name }));
-        questionSubjects.forEach((name) => {
-          if (!subOpts.find((o) => o.name === name)) {
-            subOpts.push({ id: name as string, name: name as string });
-          }
-        });
-        setSubjectOptions(subOpts);
-
-        if (filterSubject !== "all") {
-          const selectedSubName = subOpts.find((o) => o.id === filterSubject)?.name;
-
-          let topQuery = supabase
-            .from("topics")
-            .select("id, name")
-            .eq("category", "questions")
-            .order("order_index", { ascending: true });
-
-          if (filterSubject.match(/^[0-9a-f-]{36}$/i)) {
-            topQuery = topQuery.eq("subject_id", filterSubject);
-          }
-
-          const { data: tops } = await topQuery;
-
-          const questionTopics = Array.from(
-            new Set(
-              questions
-                .filter((q) => !selectedSubName || q.subject === selectedSubName)
-                .map((q) => q.topics?.name || q.topic)
-                .filter(Boolean)
-            )
-          );
-
-          const topOpts = (tops || []).map((t) => ({ id: t.id, name: t.name }));
-          questionTopics.forEach((name) => {
-            if (!topOpts.find((o) => o.name === name)) {
-              topOpts.push({ id: name as string, name: name as string });
-            }
-          });
-          setTopicOptions(topOpts);
-        } else {
-          setTopicOptions([]);
-        }
+      // Build topic options from questions matching selected subject
+      if (filterSubject !== "all") {
+        const matchingQuestions = questions.filter(q => q.subject === filterSubject);
+        const uniqueTopics = Array.from(new Set(matchingQuestions.map(q => q.topic).filter(Boolean)));
+        const topOpts = uniqueTopics.map(name => ({ id: name as string, name: name as string }));
+        setTopicOptions(topOpts);
+      } else {
+        setTopicOptions([]);
+      }
     };
     loadFilterOptions();
   }, [formData.exam_id, filterSubject, questions]);
@@ -386,7 +349,7 @@ const MockTestCreation = () => {
       toast({ title: "Error", description: "Please select an exam", variant: "destructive" });
       return;
     }
-    await loadQuestions(formData.exam_id);
+    await loadQuestions();
     setSearchQuery("");
     setFilterSubject("all");
     setFilterTopic("all");

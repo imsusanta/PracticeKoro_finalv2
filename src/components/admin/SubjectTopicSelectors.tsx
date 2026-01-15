@@ -47,6 +47,8 @@ export const SubjectTopicSelectors = ({
     const [newTopicName, setNewTopicName] = useState(initialTopicName || "");
     const [isNewSubjectMode, setIsNewSubjectMode] = useState(!!initialSubjectName && !initialSubjectId);
     const [isNewTopicMode, setIsNewTopicMode] = useState(!!initialTopicName && !initialTopicId);
+    const [subjectDuplicateWarning, setSubjectDuplicateWarning] = useState("");
+    const [topicDuplicateWarning, setTopicDuplicateWarning] = useState("");
 
     useEffect(() => {
         // For questions category, load subjects regardless of exam since they're exam-independent
@@ -145,11 +147,25 @@ export const SubjectTopicSelectors = ({
 
     const handleNewSubjectNameChange = (name: string) => {
         setNewSubjectName(name);
+        // Check for duplicate
+        const duplicate = subjects.find(s => s.name.toLowerCase() === name.toLowerCase());
+        if (duplicate) {
+            setSubjectDuplicateWarning(`Subject "${name}" already exists. Select it from the dropdown instead.`);
+        } else {
+            setSubjectDuplicateWarning("");
+        }
         onSubjectChange(null, name);
     };
 
     const handleNewTopicNameChange = (name: string) => {
         setNewTopicName(name);
+        // Check for duplicate
+        const duplicate = topics.find(t => t.name.toLowerCase() === name.toLowerCase());
+        if (duplicate) {
+            setTopicDuplicateWarning(`Topic "${name}" already exists. Select it from the dropdown instead.`);
+        } else {
+            setTopicDuplicateWarning("");
+        }
         onTopicChange(null, name);
     };
 
@@ -171,22 +187,27 @@ export const SubjectTopicSelectors = ({
             <div className="space-y-2">
                 <Label className="text-sm font-medium">Subject *</Label>
                 {isNewSubjectMode ? (
-                    <div className="flex gap-2">
-                        <Input
-                            value={newSubjectName}
-                            onChange={(e) => handleNewSubjectNameChange(e.target.value)}
-                            placeholder="Enter new subject name"
-                            className="h-12 rounded-xl"
-                        />
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={cancelNewSubject}
-                            className="h-12 w-12 rounded-xl shrink-0"
-                        >
-                            <X className="w-4 h-4" />
-                        </Button>
-                    </div>
+                    <>
+                        <div className="flex gap-2">
+                            <Input
+                                value={newSubjectName}
+                                onChange={(e) => handleNewSubjectNameChange(e.target.value)}
+                                placeholder="Enter new subject name"
+                                className="h-12 rounded-xl"
+                            />
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={cancelNewSubject}
+                                className="h-12 w-12 rounded-xl shrink-0"
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        {subjectDuplicateWarning && (
+                            <p className="text-xs text-amber-600 font-medium">{subjectDuplicateWarning}</p>
+                        )}
+                    </>
                 ) : (
                     <Select value={selectedSubjectId} onValueChange={handleSubjectChange}>
                         <SelectTrigger className="h-12 rounded-xl">
@@ -210,22 +231,27 @@ export const SubjectTopicSelectors = ({
             <div className="space-y-2">
                 <Label className="text-sm font-medium">Topic (Optional)</Label>
                 {isNewTopicMode ? (
-                    <div className="flex gap-2">
-                        <Input
-                            value={newTopicName}
-                            onChange={(e) => handleNewTopicNameChange(e.target.value)}
-                            placeholder="Enter new topic name"
-                            className="h-12 rounded-xl"
-                        />
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={cancelNewTopic}
-                            className="h-12 w-12 rounded-xl shrink-0"
-                        >
-                            <X className="w-4 h-4" />
-                        </Button>
-                    </div>
+                    <>
+                        <div className="flex gap-2">
+                            <Input
+                                value={newTopicName}
+                                onChange={(e) => handleNewTopicNameChange(e.target.value)}
+                                placeholder="Enter new topic name"
+                                className="h-12 rounded-xl"
+                            />
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={cancelNewTopic}
+                                className="h-12 w-12 rounded-xl shrink-0"
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </div>
+                        {topicDuplicateWarning && (
+                            <p className="text-xs text-amber-600 font-medium">{topicDuplicateWarning}</p>
+                        )}
+                    </>
                 ) : (
                     <Select
                         value={selectedTopicId}
@@ -248,6 +274,6 @@ export const SubjectTopicSelectors = ({
                     </Select>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

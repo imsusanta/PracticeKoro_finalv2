@@ -89,8 +89,8 @@ const StudentNotes = () => {
 
     const [notesRes, subjectsRes, topicsRes] = await Promise.all([
       supabase.from("pdfs").select("id, title, content, subject_id, topic_id, created_at").order("created_at", { ascending: false }),
-      supabase.from("subjects").select("id, name, description").order("name"),
-      supabase.from("topics").select("id, subject_id, name, content").order("name")
+      supabase.from("subjects").select("id, name, description").eq("category", "notes").order("order_index", { ascending: true }),
+      supabase.from("topics").select("id, subject_id, name, content").eq("category", "notes").order("order_index", { ascending: true })
     ]);
 
     if (notesRes.data) setNotes(notesRes.data as Note[]);

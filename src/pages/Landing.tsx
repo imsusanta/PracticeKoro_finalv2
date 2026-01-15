@@ -555,8 +555,8 @@ const Landing = () => {
                 ) : (
                   /* Horizontal Scroll Cards - All Screen Sizes - Force Row */
                   <div className="w-full">
-                    <div className="overflow-x-auto pb-6 scrollbar-hide w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <div className="flex flex-row flex-nowrap gap-3 px-5 md:px-8 justify-center" style={{ width: 'max-content', minWidth: '100%' }}>
+                    <div className="overflow-x-auto pb-6 scrollbar-hide w-full -mx-5 px-5 md:mx-0 md:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <div className="flex flex-row flex-nowrap gap-3 md:justify-center" style={{ width: 'max-content', minWidth: 'auto' }}>
                         {exams.map((exam, index) => (
                           <motion.div
                             key={exam.id}

@@ -128,25 +128,28 @@ const QuestionBank = () => {
   };
 
   const loadQuestions = async () => {
-    // Try to load with structured joins first
-    const { data, error } = await supabase.from("questions").select("*, exams(name), subjects(name), topics(name)").order("created_at", { ascending: false });
+    // Load questions with only the columns that exist and relationships that are valid
+    const { data, error } = await supabase
+      .from("questions")
+      .select("*, exams(name)")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Load Questions (Structured) Error:", error);
-
-      // Fallback: Load without structured joins if columns don't exist yet
-      const { data: legacyData, error: legacyError } = await supabase.from("questions").select("*, exams(name)").order("created_at", { ascending: false });
-
-      if (legacyError) {
-        console.error("Load Questions (Legacy) Error:", legacyError);
-        toast({ title: "Error", description: "Failed to load questions. Please ensure the database migration has been run.", variant: "destructive" });
-        return;
-      }
-      setQuestions((legacyData as any) || []);
+      console.error("Load Questions Error:", error);
+      toast({ title: "Error", description: "Failed to load questions.", variant: "destructive" });
       return;
     }
 
-    setQuestions((data as any) || []);
+    // Map data to include subjects/topics from text fields for display compatibility
+    const mappedQuestions = (data || []).map(q => ({
+      ...q,
+      subject_id: null,
+      topic_id: null,
+      subjects: q.subject ? { name: q.subject } : undefined,
+      topics: q.topic ? { name: q.topic } : undefined
+    }));
+
+    setQuestions(mappedQuestions as Question[]);
   };
 
   const applyFilters = () => {
@@ -155,24 +158,24 @@ const QuestionBank = () => {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((q) =>
         q.question_text.toLowerCase().includes(query) ||
-        (q.subjects?.name || q.subject || "").toLowerCase().includes(query) ||
-        (q.topics?.name || q.topic || "").toLowerCase().includes(query)
+        (q.subject || "").toLowerCase().includes(query) ||
+        (q.topic || "").toLowerCase().includes(query)
       );
     }
     if (filterSubject !== "all") {
+      // Match against text-based subject field
       const selectedSubName = subjectOptions.find(o => o.id === filterSubject)?.name;
       filtered = filtered.filter((q) =>
-        q.subject_id === filterSubject ||
         q.subject === filterSubject ||
-        (selectedSubName && (q.subjects?.name === selectedSubName || q.subject === selectedSubName))
+        (selectedSubName && q.subject === selectedSubName)
       );
     }
     if (filterTopic !== "all") {
+      // Match against text-based topic field
       const selectedTopName = topicOptions.find(o => o.id === filterTopic)?.name;
       filtered = filtered.filter((q) =>
-        q.topic_id === filterTopic ||
         q.topic === filterTopic ||
-        (selectedTopName && (q.topics?.name === selectedTopName || q.topic === selectedTopName))
+        (selectedTopName && q.topic === selectedTopName)
       );
     }
     setFilteredQuestions(filtered);
@@ -311,32 +314,27 @@ const QuestionBank = () => {
   const [topicOptions, setTopicOptions] = useState<{ id: string, name: string }[]>([]);
 
   useEffect(() => {
-    const loadFilterOptions = async () => {
-      // Load question subjects - they are exam-independent now, so no exam_id filter
-      const { data: subs } = await supabase
-        .from("subjects")
-        .select("id, name")
-        .eq("category", "questions")
-        .order("order_index", { ascending: true });
+    // Build filter options from actual question data
+    if (questions.length === 0) {
+      setSubjectOptions([]);
+      setTopicOptions([]);
+      return;
+    }
 
-      setSubjectOptions((subs || []).map(s => ({ id: s.id, name: s.name })));
+    // Get unique subjects from questions
+    const uniqueSubjects = Array.from(new Set(questions.map(q => q.subject).filter(Boolean)));
+    setSubjectOptions(uniqueSubjects.map(name => ({ id: name as string, name: name as string })));
 
-      // Load topics - if subject is selected, filter by it; otherwise load all question topics
-      let topQuery = supabase
-        .from("topics")
-        .select("id, name")
-        .eq("category", "questions")
-        .order("order_index", { ascending: true });
-
-      if (filterSubject !== "all" && filterSubject.match(/^[0-9a-f-]{36}$/i)) {
-        topQuery = topQuery.eq("subject_id", filterSubject);
-      }
-
-      const { data: tops } = await topQuery;
-      setTopicOptions((tops || []).map(t => ({ id: t.id, name: t.name })));
-    };
-    loadFilterOptions();
-  }, [filterSubject]);
+    // Get unique topics from questions (filtered by selected subject if any)
+    if (filterSubject !== "all") {
+      const matchingQuestions = questions.filter(q => q.subject === filterSubject);
+      const uniqueTopics = Array.from(new Set(matchingQuestions.map(q => q.topic).filter(Boolean)));
+      setTopicOptions(uniqueTopics.map(name => ({ id: name as string, name: name as string })));
+    } else {
+      const uniqueTopics = Array.from(new Set(questions.map(q => q.topic).filter(Boolean)));
+      setTopicOptions(uniqueTopics.map(name => ({ id: name as string, name: name as string })));
+    }
+  }, [questions, filterSubject]);
 
 
 
@@ -864,7 +862,6 @@ const QuestionBank = () => {
 
             {selectedQuestion && (
               <SubjectTopicSelectors
-                examId={selectedQuestion.exam_id}
                 category="questions"
                 initialSubjectId={formData.subject_id}
                 initialTopicId={formData.topic_id}
