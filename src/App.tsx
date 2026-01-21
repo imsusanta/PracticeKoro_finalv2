@@ -71,58 +71,67 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => {
-  // Silent PWA update check
-  const { } = usePWAUpdate();
+// Inner component that uses hooks requiring React context
+const AppContent = () => {
+  // Silent PWA update check - now inside React tree
+  usePWAUpdate();
 
+  return (
+    <>
+      <Toaster />
+      <Sonner />
+      <OfflineIndicator />
+      <BrowserRouter>
+        <PWAInstallPrompt />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/admin/login" element={<AdminLoginPage />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/install" element={<Install />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/admin" element={<AdminIndex />} />
+            <Route path="/student/dashboard" element={<StudentDashboard />} />
+            <Route path="/student/exams" element={<StudentExams />} />
+            <Route path="/student/take-test/:testId" element={<TakeTest />} />
+            <Route path="/student/test-review/:attemptId" element={<ReviewTest />} />
+            <Route path="/student/notes" element={<StudentNotes />} />
+            <Route path="/student/results" element={<StudentResults />} />
+            <Route path="/student/profile" element={<StudentProfile />} />
+            <Route path="/student/notifications" element={<StudentNotifications />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/students" element={<StudentManagement />} />
+            <Route path="/admin/exams" element={<ExamManagement />} />
+            <Route path="/admin/subjects" element={<SubjectManagement />} />
+            <Route path="/admin/questions" element={<QuestionBank />} />
+            <Route path="/admin/question-subjects" element={<QuestionSubjectManagement />} />
+            <Route path="/admin/tests" element={<MockTestCreation />} />
+            <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
+            <Route path="/admin/notes" element={<NotesManagement />} />
+            <Route path="/admin/bulk-upload" element={<BulkMCQUpload />} />
+            <Route path="/admin/add-question" element={<AddQuestion />} />
+            <Route path="/admin/add-note" element={<AddNote />} />
+            <Route path="/admin/courses" element={<CourseManagement />} />
+            <Route path="/admin/profile" element={<AdminProfile />} />
+            <Route path="/admin/chat" element={<AdminChatInbox />} />
+            <Route path="/admin/notifications" element={<SendNotifications />} />
+
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </>
+  );
+};
+
+const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <OfflineIndicator />
-        <BrowserRouter>
-          <PWAInstallPrompt />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/admin/login" element={<AdminLoginPage />} />
-              <Route path="/" element={<Landing />} />
-              <Route path="/install" element={<Install />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/admin" element={<AdminIndex />} />
-              <Route path="/student/dashboard" element={<StudentDashboard />} />
-              <Route path="/student/exams" element={<StudentExams />} />
-              <Route path="/student/take-test/:testId" element={<TakeTest />} />
-              <Route path="/student/test-review/:attemptId" element={<ReviewTest />} />
-              <Route path="/student/notes" element={<StudentNotes />} />
-              <Route path="/student/results" element={<StudentResults />} />
-              <Route path="/student/profile" element={<StudentProfile />} />
-              <Route path="/student/notifications" element={<StudentNotifications />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/students" element={<StudentManagement />} />
-              <Route path="/admin/exams" element={<ExamManagement />} />
-              <Route path="/admin/subjects" element={<SubjectManagement />} />
-              <Route path="/admin/questions" element={<QuestionBank />} />
-              <Route path="/admin/question-subjects" element={<QuestionSubjectManagement />} />
-              <Route path="/admin/tests" element={<MockTestCreation />} />
-              <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
-              <Route path="/admin/notes" element={<NotesManagement />} />
-              <Route path="/admin/bulk-upload" element={<BulkMCQUpload />} />
-              <Route path="/admin/add-question" element={<AddQuestion />} />
-              <Route path="/admin/add-note" element={<AddNote />} />
-              <Route path="/admin/courses" element={<CourseManagement />} />
-              <Route path="/admin/profile" element={<AdminProfile />} />
-              <Route path="/admin/chat" element={<AdminChatInbox />} />
-              <Route path="/admin/notifications" element={<SendNotifications />} />
-
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
+        <AppContent />
       </TooltipProvider>
     </QueryClientProvider>
   );
