@@ -127,10 +127,23 @@ const AIQuestionGenerator = () => {
         arrayBuffer = await file.arrayBuffer();
       }
 
-      const pdfjsLib = await import('pdfjs-dist');
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.mjs`;
+      // Load PDF.js from CDN to avoid build issues with top-level await
+      const pdfjsLib = (window as any).pdfjsLib;
+      if (!pdfjsLib) {
+        // Dynamically load the script if not already loaded
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load PDF.js'));
+          document.head.appendChild(script);
+        });
+      }
+      
+      const pdfjs = (window as any).pdfjsLib;
+      pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
       let fullText = "";
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
