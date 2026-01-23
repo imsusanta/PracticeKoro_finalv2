@@ -13,6 +13,7 @@ import { BookOpen, Plus, Pencil, Trash2, Upload, FileText, MoreVertical, FolderO
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 
 interface Course {
   id: string;
@@ -49,6 +50,8 @@ export default function CourseManagement() {
   const [materials, setMaterials] = useState<CourseMaterial[]>([]);
   const [showMaterialDialog, setShowMaterialDialog] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -187,18 +190,23 @@ export default function CourseManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this course?")) return;
+    setCourseToDelete(id);
+  };
 
-    const { error } = await supabase
-      .from("courses")
-      .delete()
-      .eq("id", id);
-
-    if (error) {
-      toast({ title: "Error", description: "Failed to delete course", variant: "destructive" });
-    } else {
+  const confirmDelete = async () => {
+    if (!courseToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("courses").delete().eq("id", courseToDelete);
+      if (error) throw error;
       toast({ title: "Success", description: "Course deleted successfully" });
       loadCourses();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Failed to delete course", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+      setCourseToDelete(null);
     }
   };
 
@@ -557,6 +565,13 @@ export default function CourseManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DeleteAlertDialog
+        isOpen={!!courseToDelete}
+        onClose={() => setCourseToDelete(null)}
+        onConfirm={confirmDelete}
+        itemName={courses.find(c => c.id === courseToDelete)?.title}
+        isDeleting={isDeleting}
+      />
     </AdminLayout>
   );
 }

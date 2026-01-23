@@ -185,7 +185,7 @@ const Landing = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="min-h-screen bg-[#FAFAFA] relative overscroll-y-contain"
+            className="min-h-screen bg-[#FAFAFA] relative overflow-y-auto"
             {...containerProps}
           >
             <PullIndicator />
@@ -329,7 +329,7 @@ const Landing = () => {
                         </span>
                       </div>
                     </div>
-                    <h2 className="text-2xl font-extrabold text-white mb-2 leading-tight">Ready to Ace Your Exams?</h2>
+                    <h2 className="text-2xl font-extrabold text-white mb-2 leading-tight">আজই শুরু করো, সাফল্য তোমার হাতে!</h2>
                     <p className="text-emerald-100 text-sm mb-5 leading-relaxed max-w-[260px]">
                       Start practicing with our curated mock tests and study materials.
                     </p>
@@ -553,34 +553,47 @@ const Landing = () => {
                     <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  /* Horizontal Scroll Cards - All Screen Sizes - Force Row */
-                  <div className="w-full">
-                    <div className="overflow-x-auto pb-6 scrollbar-hide w-full -mx-5 px-5 md:mx-0 md:px-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <div className="flex flex-row flex-nowrap gap-3 md:justify-center" style={{ width: 'max-content', minWidth: 'auto' }}>
-                        {exams.map((exam, index) => (
-                          <motion.div
-                            key={exam.id}
-                            initial={{ opacity: 0, x: 20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.3, delay: index * 0.05 }}
-                            viewport={{ once: true }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
-                            className="w-[calc(50vw-28px)] min-w-[155px] md:w-[220px] md:min-w-[220px] shrink-0 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-3xl p-4 md:p-5 cursor-pointer hover:border-emerald-200 transition-all shadow-sm flex flex-col items-center text-center"
-                          >
-                            <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-3" style={{ filter: 'drop-shadow(0 3px 10px rgba(16, 185, 129, 0.25))' }}>
-                              <BookOpen className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                            </div>
-                            <h4 className="text-sm md:text-lg font-bold text-gray-900 mb-3 leading-tight line-clamp-2">
-                              {exam.name}
-                            </h4>
-                            <div className="flex items-center justify-center text-emerald-600 text-[11px] md:text-sm font-semibold mt-auto">
-                              <span>Explore Now</span>
-                              <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
+                  /* Horizontal Scroll Container - Force Single Row and Snap to Middle */
+                  <div className="w-full relative px-0 overflow-visible">
+                    <div
+                      className="overflow-x-auto pb-12 scrollbar-hide snap-x snap-mandatory flex flex-row flex-nowrap gap-4 px-6 md:gap-6 md:px-12 lg:justify-center lg:px-0 lg:mx-auto min-w-full"
+                      style={{
+                        WebkitOverflowScrolling: 'touch',
+                        scrollbarWidth: 'none',
+                        msOverflowStyle: 'none',
+                        scrollPaddingLeft: '24px',
+                        scrollPaddingRight: '24px'
+                      }}
+                    >
+                      {exams.map((exam, index) => (
+                        <motion.div
+                          key={exam.id}
+                          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                          whileInView={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: index * 0.1 }}
+                          viewport={{ once: true, margin: "-100px" }}
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
+                          className="w-[240px] sm:w-[260px] shrink-0 bg-white border border-gray-100 rounded-[28px] p-5 sm:p-6 cursor-pointer hover:border-emerald-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-2 flex flex-col items-center text-center snap-center group relative overflow-hidden"
+                          style={{
+                            boxShadow: '0 20px 40px -15px rgba(0,0,0,0.06)',
+                            background: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)'
+                          }}
+                        >
+                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[20px] sm:rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 sm:mb-5 shadow-xl shadow-emerald-200 group-hover:scale-110 transition-transform duration-300">
+                            <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+                          </div>
+
+                          <h4 className="text-base sm:text-lg font-extrabold text-gray-900 mb-4 sm:mb-5 leading-tight min-h-[3rem] sm:min-h-[3.5rem] flex items-center justify-center">
+                            {exam.name}
+                          </h4>
+
+                          <div className="flex items-center justify-center text-emerald-600 text-xs sm:text-sm font-bold mt-auto bg-emerald-50/80 backdrop-blur-sm w-full py-2.5 sm:py-3 rounded-[18px] sm:rounded-[22px] group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
+                            <span>Explore Now</span>
+                            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 group-hover:translate-x-1.5 transition-transform" />
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
                   </div>
                 )}

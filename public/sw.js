@@ -78,6 +78,28 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
+    // For navigation requests, use Network-First strategy
+    if (request.mode === 'navigate') {
+        event.respondWith(
+            fetch(request)
+                .then((networkResponse) => {
+                    // Update cache with the fresh index.html
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, responseToCache);
+                    });
+                    return networkResponse;
+                })
+                .catch(() => {
+                    // If network fails, return cached version
+                    return caches.match(request).then((cachedResponse) => {
+                        return cachedResponse || caches.match(OFFLINE_URL);
+                    });
+                })
+        );
+        return;
+    }
+
     event.respondWith(
         caches.match(request).then((cachedResponse) => {
             if (cachedResponse) {
@@ -90,18 +112,25 @@ self.addEventListener('fetch', (event) => {
                     return networkResponse;
                 }
 
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(request, responseToCache);
-                });
+                // Only cache GET requests for static assets
+                const url = new URL(request.url);
+                const isStaticAsset = url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff2?|ttf|eot)$/) ||
+                    STATIC_ASSETS.includes(url.pathname);
+
+                if (isStaticAsset) {
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(request, responseToCache);
+                    });
+                }
 
                 return networkResponse;
             }).catch(error => {
                 console.error('[SW] Fetch failed:', error);
-                // Fail silently for non-navigation requests
-                if (request.mode === 'navigate') {
-                    return caches.match(OFFLINE_URL);
-                }
+                return new Response('Network error occurred', {
+                    status: 408,
+                    headers: { 'Content-Type': 'text/plain' }
+                });
             });
         })
     );

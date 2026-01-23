@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 import { isTestVisibleOnLanding, toggleTestLandingVisibility } from "@/config/landingVisibility";
 import { addNotification, sendBrowserNotification } from "@/config/notifications";
 
@@ -79,6 +80,10 @@ const MockTestCreation = () => {
     marks_per_question: 1
   });
   const [landingVisibility, setLandingVisibility] = useState<{ [key: string]: boolean }>({});
+
+  // Delete dialog states
+  const [testToDelete, setTestToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Refresh landing visibility state
   const refreshLandingVisibility = () => {
@@ -317,14 +322,24 @@ const MockTestCreation = () => {
   };
 
   const handleDeleteTest = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this test?")) return;
-    const { error } = await supabase.from("mock_tests").delete().eq("id", id);
-    if (error) {
+    setTestToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!testToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("mock_tests").delete().eq("id", testToDelete);
+      if (error) throw error;
+      toast({ title: "Success", description: "Test deleted successfully" });
+      await loadTests();
+    } catch (error) {
+      console.error(error);
       toast({ title: "Error", description: "Failed to delete test", variant: "destructive" });
-      return;
+    } finally {
+      setIsDeleting(false);
+      setTestToDelete(null);
     }
-    toast({ title: "Success", description: "Test deleted successfully" });
-    await loadTests();
   };
 
   const handleTogglePublish = async (test: MockTest) => {
@@ -874,6 +889,13 @@ const MockTestCreation = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DeleteAlertDialog
+        isOpen={!!testToDelete}
+        onClose={() => setTestToDelete(null)}
+        onConfirm={confirmDelete}
+        itemName={tests.find(t => t.id === testToDelete)?.title}
+        isDeleting={isDeleting}
+      />
     </AdminLayout>
   );
 };

@@ -73,26 +73,56 @@ const ReviewTest = () => {
 
   const loadTestReview = async () => {
     if (!attemptId) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/login");
-      return;
-    }
+    setLoading(true);
 
-    const [attemptResult, answersResult] = await Promise.all([
-      supabase.from("test_attempts").select(`*, mock_tests (id, title, passing_marks)`).eq("id", attemptId).eq("user_id", session.user.id).single(),
-      supabase.from("test_answers").select(`*, questions (*)`).eq("attempt_id", attemptId).order("created_at", { ascending: true })
-    ]);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        return;
+      }
 
-    if (attemptResult.error || !attemptResult.data) {
-      toast({ title: "Error", description: "Test attempt not found", variant: "destructive" });
+      const [attemptResult, answersResult] = await Promise.all([
+        supabase.from("test_attempts").select(`*, mock_tests (id, title, passing_marks)`).eq("id", attemptId).eq("user_id", session.user.id).single(),
+        supabase.from("test_answers").select(`*, questions (*)`).eq("attempt_id", attemptId).order("created_at", { ascending: true })
+      ]);
+
+      if (attemptResult.error || !attemptResult.data) {
+        toast({ title: "Error", description: "Test attempt not found", variant: "destructive" });
+        navigate("/student/results");
+        return;
+      }
+
+      // Handle both object and array for mock_tests join
+      const rawAttempt = attemptResult.data as any;
+      if (Array.isArray(rawAttempt.mock_tests)) {
+        rawAttempt.mock_tests = rawAttempt.mock_tests[0];
+      }
+      setAttempt(rawAttempt);
+
+      console.log("[ReviewTest] Fetched answers with questions:", answersResult.data);
+
+      const rawAnswers = answersResult.data || [];
+      // Ensure questions is always an object, not an array
+      const processedAnswers = rawAnswers.map((a: any) => {
+        if (Array.isArray(a.questions)) {
+          a.questions = a.questions[0];
+        }
+        return a;
+      });
+
+      setAnswers(processedAnswers);
+    } catch (error) {
+      console.error("[ReviewTest] Error loading test review:", error);
+      toast({
+        title: "Error",
+        description: "Something went wrong while loading the test review",
+        variant: "destructive"
+      });
       navigate("/student/results");
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    setAttempt(attemptResult.data as any);
-    setAnswers(answersResult.data as any || []);
-    setLoading(false);
   };
 
   const toggleQuestion = (id: string) => {
@@ -122,12 +152,13 @@ const ReviewTest = () => {
             <Trophy className="w-8 h-8 text-white" />
           </div>
           <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500 text-sm font-medium">Loading Review...</p>
         </motion.div>
       </div>
     );
   }
 
-  if (!attempt || !answers.length) {
+  if (!attempt || !answers || answers.length === 0) {
     return (
       <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 to-indigo-50/30 flex items-center justify-center p-6">
         <motion.div
@@ -197,12 +228,12 @@ const ReviewTest = () => {
                 <XCircle className="w-7 h-7 md:w-8 md:h-8 text-white" />
               )}
             </div>
-            <h1 className="text-2xl md:text-3xl font-black text-white mb-0.5 font-mono">{attempt.percentage}%</h1>
-            <p className="text-white/80 text-[11px] md:text-sm mb-2">{attempt.score} / {attempt.total_marks} marks</p>
+            <h1 className="text-2xl md:text-3xl font-black text-white mb-0.5 font-mono">{attempt?.percentage || 0}%</h1>
+            <p className="text-white/80 text-[11px] md:text-sm mb-2">{attempt?.score || 0} / {attempt?.total_marks || 0} marks</p>
             <Badge className="bg-white/20 text-white text-[10px] px-2.5 py-0.5 border border-white/30">
-              {attempt.passed ? '🎉 Passed!' : '📚 Keep Practicing!'}
+              {attempt?.passed ? '🎉 Passed!' : '📚 Keep Practicing!'}
             </Badge>
-            <p className="text-white/70 text-[10px] md:text-xs mt-2 font-medium px-4 truncate">{attempt.mock_tests.title}</p>
+            <p className="text-white/70 text-[10px] md:text-xs mt-2 font-medium px-4 truncate">{attempt?.mock_tests?.title || 'Unknown Test'}</p>
           </motion.div>
         </div>
       </header>
@@ -329,9 +360,14 @@ const ReviewTest = () => {
                           {answer.is_correct ? 'Correct' : answer.selected_answer ? 'Wrong' : 'Skipped'}
                         </Badge>
                       </div>
-                      <p className={`text-slate-900 text-sm md:text-base leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
-                        {answer.questions.question_text}
-                      </p>
+                      {(() => {
+                        const q = answer.questions;
+                        return (
+                          <p className={`text-slate-900 text-sm md:text-base leading-relaxed ${isExpanded ? '' : 'line-clamp-2'}`}>
+                            {q?.question_text || "Question text not available"}
+                          </p>
+                        );
+                      })()}
                     </div>
 
                     {/* Expand Icon */}
@@ -357,79 +393,87 @@ const ReviewTest = () => {
                     >
                       <div className="p-4 space-y-3">
                         {/* Options */}
-                        {['A', 'B', 'C', 'D'].map(option => {
-                          const isCorrect = option === answer.questions.correct_answer;
-                          const isSelected = option === answer.selected_answer;
-                          const optionText = answer.questions[`option_${option.toLowerCase()}` as keyof Question];
+                        {(() => {
+                          const q = answer.questions;
+                          return ['A', 'B', 'C', 'D'].map(option => {
+                            const isCorrect = option === q?.correct_answer;
+                            const isSelected = option === answer?.selected_answer;
+                            const optionText = q ? (q[`option_${option.toLowerCase()}` as keyof Question] as string) : "Option not available";
+
+                            return (
+                              <div
+                                key={option}
+                                className={`p-3.5 rounded-xl border-2 ${isCorrect
+                                  ? 'bg-emerald-50 border-emerald-400'
+                                  : isSelected
+                                    ? 'bg-red-50 border-red-400'
+                                    : 'bg-slate-50 border-slate-200'
+                                  }`}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${isCorrect
+                                    ? 'bg-emerald-500 text-white'
+                                    : isSelected
+                                      ? 'bg-red-500 text-white'
+                                      : 'bg-slate-200 text-slate-600'
+                                    }`}>
+                                    {option}
+                                  </span>
+                                  <div className="flex-1">
+                                    <p className={`text-sm ${isCorrect ? 'text-emerald-800' : isSelected ? 'text-red-800' : 'text-slate-700'
+                                      }`}>
+                                      {optionText}
+                                    </p>
+                                    {isCorrect && (
+                                      <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">
+                                        ✓ Correct Answer
+                                      </span>
+                                    )}
+                                    {isSelected && !isCorrect && (
+                                      <span className="text-[10px] text-red-600 font-semibold mt-1 inline-block">
+                                        ✗ Your Answer
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          });
+                        })()}
+
+                        {/* Explanation - Premium Glassmorphism Style */}
+                        {(() => {
+                          const q = answer.questions;
+                          if (!q?.explanation) return null;
 
                           return (
-                            <div
-                              key={option}
-                              className={`p-3.5 rounded-xl border-2 ${isCorrect
-                                ? 'bg-emerald-50 border-emerald-400'
-                                : isSelected
-                                  ? 'bg-red-50 border-red-400'
-                                  : 'bg-slate-50 border-slate-200'
-                                }`}
+                            <div className="relative overflow-hidden rounded-2xl border border-indigo-200/50"
+                              style={{
+                                background: 'linear-gradient(135deg, rgba(238, 242, 255, 0.9) 0%, rgba(224, 231, 255, 0.7) 100%)',
+                                boxShadow: '0 4px 16px rgba(99, 102, 241, 0.1)'
+                              }}
                             >
-                              <div className="flex items-start gap-3">
-                                <span className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 ${isCorrect
-                                  ? 'bg-emerald-500 text-white'
-                                  : isSelected
-                                    ? 'bg-red-500 text-white'
-                                    : 'bg-slate-200 text-slate-600'
-                                  }`}>
-                                  {option}
-                                </span>
-                                <div className="flex-1">
-                                  <p className={`text-sm ${isCorrect ? 'text-emerald-800' : isSelected ? 'text-red-800' : 'text-slate-700'
-                                    }`}>
-                                    {optionText}
-                                  </p>
-                                  {isCorrect && (
-                                    <span className="text-[10px] text-emerald-600 font-semibold mt-1 inline-block">
-                                      ✓ Correct Answer
-                                    </span>
-                                  )}
-                                  {isSelected && !isCorrect && (
-                                    <span className="text-[10px] text-red-600 font-semibold mt-1 inline-block">
-                                      ✗ Your Answer
-                                    </span>
-                                  )}
+                              <div className="absolute inset-0 opacity-30">
+                                <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-400/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+                              </div>
+                              <div className="relative p-4">
+                                <div className="flex items-start gap-3">
+                                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0"
+                                    style={{ boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}
+                                  >
+                                    <Lightbulb className="w-5 h-5 text-white" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="font-bold text-indigo-900 text-sm mb-1.5">Short Notes</h4>
+                                    <p className="text-indigo-800/90 text-sm whitespace-pre-line leading-relaxed">
+                                      {q.explanation}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           );
-                        })}
-
-                        {/* Explanation - Premium Glassmorphism Style */}
-                        {answer.questions.explanation && (
-                          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/50"
-                            style={{
-                              background: 'linear-gradient(135deg, rgba(238, 242, 255, 0.9) 0%, rgba(224, 231, 255, 0.7) 100%)',
-                              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.1)'
-                            }}
-                          >
-                            <div className="absolute inset-0 opacity-30">
-                              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-400/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-                            </div>
-                            <div className="relative p-4">
-                              <div className="flex items-start gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shrink-0"
-                                  style={{ boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)' }}
-                                >
-                                  <Lightbulb className="w-5 h-5 text-white" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-bold text-indigo-900 text-sm mb-1.5">Explanation</h4>
-                                  <p className="text-indigo-800/90 text-sm whitespace-pre-line leading-relaxed">
-                                    {answer.questions.explanation}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        })()}
                       </div>
                     </motion.div>
                   )}
@@ -443,7 +487,7 @@ const ReviewTest = () => {
         <div className="pt-4 space-y-3 pb-8">
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => navigate(`/student/take-test/${attempt.mock_tests.id}`)}
+            onClick={() => attempt?.mock_tests?.id && navigate(`/student/take-test/${attempt.mock_tests.id}`)}
             className="w-full btn-native bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-emerald-500/25"
           >
             <RotateCw className="w-5 h-5" />

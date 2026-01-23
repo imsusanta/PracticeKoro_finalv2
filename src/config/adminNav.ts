@@ -8,7 +8,8 @@ import {
   Upload,
   MessageCircle,
   FolderOpen,
-  Bell
+  Bell,
+  Settings
 } from "lucide-react";
 
 export const managementTools = [
@@ -24,6 +25,7 @@ export const managementTools = [
   { name: "Bulk MCQ Upload", path: "/admin/bulk-upload", icon: Upload },
   { name: "Send Notifications", path: "/admin/notifications", icon: Bell },
   { name: "Chat Inbox", path: "/admin/chat", icon: MessageCircle },
+  { name: "AI Settings", path: "/admin/ai-settings", icon: Settings },
 ];
 
 

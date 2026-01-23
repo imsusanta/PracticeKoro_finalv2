@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { MessageCircle, Send, ArrowLeft, User, Trash2, Search, Users } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 import {
     getAllConversations,
     getConversation,
@@ -40,6 +41,8 @@ const AdminChatInbox = () => {
     const [showAllStudents, setShowAllStudents] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const [adminId, setAdminId] = useState<string>("");
+    const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         checkAuth();
@@ -166,11 +169,23 @@ const AdminChatInbox = () => {
     };
 
     const handleDelete = async (studentId: string) => {
-        if (confirm("Delete this conversation?")) {
-            await deleteConversation(studentId);
+        setStudentToDelete(studentId);
+    };
+
+    const confirmDelete = async () => {
+        if (!studentToDelete) return;
+        setIsDeleting(true);
+        try {
+            await deleteConversation(studentToDelete);
             setSelectedStudent(null);
             await loadConversations();
             toast({ title: "Conversation deleted" });
+        } catch (error) {
+            console.error(error);
+            toast({ title: "Error deleting conversation", variant: "destructive" });
+        } finally {
+            setIsDeleting(false);
+            setStudentToDelete(null);
         }
     };
 
@@ -446,6 +461,13 @@ const AdminChatInbox = () => {
                     )}
                 </Card>
             </div>
+            <DeleteAlertDialog
+                isOpen={!!studentToDelete}
+                onClose={() => setStudentToDelete(null)}
+                onConfirm={confirmDelete}
+                itemName="this conversation"
+                isDeleting={isDeleting}
+            />
         </AdminLayout>
     );
 };

@@ -23,6 +23,7 @@ import {
     Sparkles
 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 import { motion, AnimatePresence } from "framer-motion";
 
 type NotificationType = "new_test" | "reminder" | "announcement";
@@ -59,6 +60,11 @@ const SendNotifications = () => {
 
     // Diagnostic state
     const [studentCount, setStudentCount] = useState<number | null>(null);
+
+    // Delete dialog states
+    const [notifToDelete, setNotifToDelete] = useState<any | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showClearAllDialog, setShowClearAllDialog] = useState(false);
 
     useEffect(() => {
         checkAuth();
@@ -314,36 +320,47 @@ const SendNotifications = () => {
     };
 
     const handleDeleteNotification = async (notif: any) => {
-        if (!confirm("Are you sure you want to delete this notification for all students?")) return;
+        setNotifToDelete(notif);
+    };
 
+    const confirmDeleteNotification = async () => {
+        if (!notifToDelete) return;
+        setIsDeleting(true);
         try {
             const { error } = await supabase
                 .from("notifications")
                 .delete()
-                .eq("title", notif.title)
-                .eq("message", notif.message)
-                .eq("type", notif.type)
-                .eq("link", notif.link);
+                .eq("title", notifToDelete.title)
+                .eq("message", notifToDelete.message)
+                .eq("type", notifToDelete.type)
+                .eq("link", notifToDelete.link);
 
             if (error) throw error;
 
             // Also remove from local history
             const localHistory = JSON.parse(localStorage.getItem("admin_notif_history") || "[]");
             const updatedHistory = localHistory.filter((n: any) =>
-                n.title !== notif.title || n.message !== notif.message
+                n.title !== notifToDelete.title || n.message !== notifToDelete.message
             );
             localStorage.setItem("admin_notif_history", JSON.stringify(updatedHistory));
 
             toast({ title: "Notification deleted globally" });
             loadNotifications();
         } catch (error: any) {
+            console.error(error);
             toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setIsDeleting(false);
+            setNotifToDelete(null);
         }
     };
 
     const handleClearAll = async () => {
-        if (!confirm("CRITICAL: This will delete ALL notifications for ALL students. This cannot be undone. Proceed?")) return;
+        setShowClearAllDialog(true);
+    };
 
+    const confirmClearAll = async () => {
+        setIsDeleting(true);
         try {
             const { error } = await supabase
                 .from("notifications")
@@ -358,7 +375,11 @@ const SendNotifications = () => {
             toast({ title: "All notifications cleared from database" });
             loadNotifications();
         } catch (error: any) {
+            console.error(error);
             toast({ title: "Error", description: error.message, variant: "destructive" });
+        } finally {
+            setIsDeleting(false);
+            setShowClearAllDialog(false);
         }
     };
 
@@ -704,6 +725,28 @@ const SendNotifications = () => {
                     </CardContent>
                 </Card>
             </div>
+
+            <DeleteAlertDialog
+                isOpen={!!notifToDelete}
+                onClose={() => setNotifToDelete(null)}
+                onConfirm={confirmDeleteNotification}
+                title="Delete Notification"
+                description="Are you sure you want to delete this notification for all students? This action cannot be undone."
+                isDeleting={isDeleting}
+            />
+
+            <DeleteAlertDialog
+                isOpen={showClearAllDialog}
+                onClose={() => setShowClearAllDialog(false)}
+                onConfirm={confirmClearAll}
+                title="Clear All Notifications"
+                description={
+                    <>
+                        <span className="font-bold text-red-600">CRITICAL:</span> This will delete <span className="font-bold text-slate-900">ALL</span> notifications for <span className="font-bold text-slate-900">ALL</span> students. This action <span className="font-bold text-slate-900">cannot be undone</span>.
+                    </>
+                }
+                isDeleting={isDeleting}
+            />
         </AdminLayout>
     );
 };

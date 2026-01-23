@@ -147,7 +147,7 @@ const StudentNotes = () => {
               <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">Subjects</span>
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-2xl px-4 py-2 border border-white/20">
-              <span className="text-2xl font-bold block">{notes.length}</span>
+              <span className="text-2xl font-bold block">{notes.filter(n => subjects.some(s => s.id === n.subject_id)).length}</span>
               <span className="text-[10px] uppercase font-bold tracking-wider opacity-60">Articles</span>
             </div>
           </div>

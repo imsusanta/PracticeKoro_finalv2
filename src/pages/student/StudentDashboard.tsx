@@ -447,9 +447,11 @@ const StudentDashboard = () => {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + idx * 0.05 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors"
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(`/student/test-review/${activity.id}`)}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer border border-transparent hover:border-indigo-100 group"
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activity.passed ? 'bg-emerald-100' : 'bg-red-100'
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${activity.passed ? 'bg-emerald-100' : 'bg-red-100'
                       }`}>
                       {activity.passed ? (
                         <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -458,7 +460,7 @@ const StudentDashboard = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-900 text-sm truncate">{activity.testName}</p>
+                      <p className="font-semibold text-slate-900 text-sm truncate group-hover:text-indigo-600 transition-colors">{activity.testName}</p>
                       <p className="text-xs text-slate-500">{timeAgo}</p>
                     </div>
                     <div className={`px-3 py-1 rounded-lg font-bold text-sm ${activity.passed
@@ -467,6 +469,7 @@ const StudentDashboard = () => {
                       }`}>
                       {activity.score}%
                     </div>
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
                   </motion.div>
                 );
               })}

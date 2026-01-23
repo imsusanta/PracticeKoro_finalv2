@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 import {
     DndContext,
     closestCenter,
@@ -188,6 +189,11 @@ const SubjectManagement = () => {
     // Form data
     const [subjectForm, setSubjectForm] = useState({ exam_id: "", name: "", description: "" });
     const [topicForm, setTopicForm] = useState({ name: "", description: "" });
+
+    // Delete dialog states
+    const [subjectToDelete, setSubjectToDelete] = useState<Subject | null>(null);
+    const [topicToDelete, setTopicToDelete] = useState<Topic | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Drag-drop sensors
     const sensors = useSensors(
@@ -394,20 +400,28 @@ const SubjectManagement = () => {
     };
 
     const handleDeleteSubject = async (subject: Subject) => {
-        if (!confirm(`Delete "${subject.name}"? This will also delete all topics and notes under it.`)) return;
+        setSubjectToDelete(subject);
+    };
 
-        const { error } = await supabase.from("subjects").delete().eq("id", subject.id);
-        if (error) {
+    const confirmDeleteSubject = async () => {
+        if (!subjectToDelete) return;
+        setIsDeleting(true);
+        try {
+            const { error } = await supabase.from("subjects").delete().eq("id", subjectToDelete.id);
+            if (error) throw error;
+            toast({ title: "Success", description: "Subject deleted" });
+            if (selectedSubject?.id === subjectToDelete.id) {
+                setSelectedSubject(null);
+                setTopics([]);
+            }
+            await loadSubjects();
+        } catch (error) {
+            console.error(error);
             toast({ title: "Error", description: "Failed to delete subject", variant: "destructive" });
-            return;
+        } finally {
+            setIsDeleting(false);
+            setSubjectToDelete(null);
         }
-
-        toast({ title: "Success", description: "Subject deleted" });
-        if (selectedSubject?.id === subject.id) {
-            setSelectedSubject(null);
-            setTopics([]);
-        }
-        await loadSubjects();
     };
 
     // Topic CRUD
@@ -465,16 +479,24 @@ const SubjectManagement = () => {
     };
 
     const handleDeleteTopic = async (topic: Topic) => {
-        if (!confirm(`Delete topic "${topic.name}"?`)) return;
+        setTopicToDelete(topic);
+    };
 
-        const { error } = await supabase.from("topics").delete().eq("id", topic.id);
-        if (error) {
+    const confirmDeleteTopic = async () => {
+        if (!topicToDelete) return;
+        setIsDeleting(true);
+        try {
+            const { error } = await supabase.from("topics").delete().eq("id", topicToDelete.id);
+            if (error) throw error;
+            toast({ title: "Success", description: "Topic deleted" });
+            if (selectedSubject) await loadTopics(selectedSubject.id);
+        } catch (error) {
+            console.error(error);
             toast({ title: "Error", description: "Failed to delete topic", variant: "destructive" });
-            return;
+        } finally {
+            setIsDeleting(false);
+            setTopicToDelete(null);
         }
-
-        toast({ title: "Success", description: "Topic deleted" });
-        if (selectedSubject) await loadTopics(selectedSubject.id);
     };
 
     const CreateSubjectButton = (
@@ -658,7 +680,30 @@ const SubjectManagement = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </AdminLayout>
+
+            <DeleteAlertDialog
+                isOpen={!!subjectToDelete}
+                onClose={() => setSubjectToDelete(null)}
+                onConfirm={confirmDeleteSubject}
+                title="Delete Subject"
+                description={
+                    <>
+                        Are you sure you want to delete <span className="font-bold text-slate-900">"{subjectToDelete?.name}"</span>?
+                        This will also delete all topics and notes under it. This action cannot be undone.
+                    </>
+                }
+                isDeleting={isDeleting}
+            />
+
+            <DeleteAlertDialog
+                isOpen={!!topicToDelete}
+                onClose={() => setTopicToDelete(null)}
+                onConfirm={confirmDeleteTopic}
+                title="Delete Topic"
+                itemName={topicToDelete?.name}
+                isDeleting={isDeleting}
+            />
+        </AdminLayout >
     );
 };
 

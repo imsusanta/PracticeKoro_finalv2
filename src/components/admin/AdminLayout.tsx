@@ -1,4 +1,4 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -71,12 +71,57 @@ const getInitialSidebarState = (): boolean => {
     return true; // Default open
 };
 
+// Store sidebar scroll position globally to persist across route changes
+let sidebarScrollPosition = 0;
+
 const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutProps) => {
     const navigate = useNavigate();
     const location = useLocation();
 
     // Controlled sidebar state - persists across navigation
     const [sidebarOpen, setSidebarOpen] = useState(getInitialSidebarState);
+    const sidebarContentRef = useRef<HTMLDivElement>(null);
+
+    // Helper to save scroll position - called before navigation
+    const saveScrollPosition = () => {
+        const sidebar = sidebarContentRef.current;
+        if (sidebar) {
+            sidebarScrollPosition = sidebar.scrollTop;
+        }
+    };
+
+    // Save scroll position continuously on scroll
+    useEffect(() => {
+        const sidebar = sidebarContentRef.current;
+        if (!sidebar) return;
+
+        const handleScroll = () => {
+            sidebarScrollPosition = sidebar.scrollTop;
+        };
+
+        sidebar.addEventListener("scroll", handleScroll, { passive: true });
+        return () => sidebar.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    // Scroll active menu item into view when route changes
+    useLayoutEffect(() => {
+        const sidebar = sidebarContentRef.current;
+        if (!sidebar) return;
+
+        // Find the active menu item and scroll it into view
+        const activeItem = sidebar.querySelector('[data-active-menu="true"]');
+        if (activeItem) {
+            // Use a longer delay to allow page transition to complete first
+            const timer = setTimeout(() => {
+                (activeItem as HTMLElement).scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'nearest'
+                });
+            }, 300); // Delay after page transition animation
+            return () => clearTimeout(timer);
+        }
+    }, [location.pathname]);
 
     const handleLogout = async () => {
         try {
@@ -133,7 +178,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                         </div>
                     </SidebarHeader>
 
-                    <SidebarContent className="py-4 px-2 flex flex-col h-full group-data-[collapsible=icon]:px-2 overflow-y-auto">
+                    <SidebarContent ref={sidebarContentRef} className="py-4 px-2 flex flex-col h-full group-data-[collapsible=icon]:px-2 overflow-y-auto scroll-smooth">
                         {/* Navigation Menu */}
                         <div className="flex-1">
                             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3 group-data-[collapsible=icon]:hidden">Management</p>
@@ -144,7 +189,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                     const colorSet = iconColors[index % iconColors.length];
 
                                     return (
-                                        <SidebarMenuItem key={tool.path}>
+                                        <SidebarMenuItem key={tool.path} data-active-menu={isActive}>
                                             <SidebarMenuButton
                                                 asChild
                                                 isActive={isActive}
@@ -156,6 +201,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                                 <Link
                                                     to={tool.path}
                                                     title={tool.name}
+                                                    onClick={saveScrollPosition}
                                                     className="flex items-center gap-3 px-3 py-2.5 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
                                                 >
                                                     <motion.div

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 import { isExamVisibleOnLanding, toggleExamLandingVisibility } from "@/config/landingVisibility";
 
 interface Exam {
@@ -36,6 +37,8 @@ const ExamManagement = () => {
     is_active: true
   });
   const [landingVisibility, setLandingVisibility] = useState<{ [key: string]: boolean }>({});
+  const [examToDelete, setExamToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Refresh landing visibility state
   const refreshLandingVisibility = () => {
@@ -154,17 +157,24 @@ const ExamManagement = () => {
   };
 
   const handleDeleteExam = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this exam?")) return;
+    setExamToDelete(id);
+  };
 
-    const { error } = await supabase.from("exams").delete().eq("id", id);
-
-    if (error) {
+  const confirmDelete = async () => {
+    if (!examToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("exams").delete().eq("id", examToDelete);
+      if (error) throw error;
+      toast({ title: "Success", description: "Exam deleted successfully" });
+      await loadExams();
+    } catch (error) {
+      console.error(error);
       toast({ title: "Error", description: "Failed to delete exam", variant: "destructive" });
-      return;
+    } finally {
+      setIsDeleting(false);
+      setExamToDelete(null);
     }
-
-    toast({ title: "Success", description: "Exam deleted successfully" });
-    await loadExams();
   };
 
   const handleToggleActive = async (exam: Exam) => {
@@ -499,6 +509,13 @@ const ExamManagement = () => {
           </Card>
         )}
       </div>
+      <DeleteAlertDialog
+        isOpen={!!examToDelete}
+        onClose={() => setExamToDelete(null)}
+        onConfirm={confirmDelete}
+        itemName={exams.find(e => e.id === examToDelete)?.name}
+        isDeleting={isDeleting}
+      />
     </AdminLayout>
   );
 };

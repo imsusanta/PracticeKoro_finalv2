@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { usePWAUpdate } from "@/hooks/usePWAUpdate";
 import OfflineIndicator from "@/components/OfflineIndicator";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Critical pages - load immediately
 import Landing from "./pages/Landing";
@@ -15,8 +16,7 @@ import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
 // Lazy load other pages for faster initial load
-// const AdminLogin = lazy(() => import("./pages/AdminLogin")); // Commented out for debugging
-import AdminLoginPage from "./pages/AdminLoginPage";
+const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Install = lazy(() => import("./pages/Install"));
@@ -49,6 +49,7 @@ const AdminProfile = lazy(() => import("./pages/admin/AdminProfile"));
 const CourseManagement = lazy(() => import("./pages/admin/CourseManagement"));
 const AdminChatInbox = lazy(() => import("./pages/admin/AdminChatInbox"));
 const SendNotifications = lazy(() => import("./pages/admin/SendNotifications"));
+const AIConfigSettings = lazy(() => import("./pages/admin/AIConfigSettings"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -83,45 +84,48 @@ const AppContent = () => {
       <OfflineIndicator />
       <BrowserRouter>
         <PWAInstallPrompt />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route path="/" element={<Landing />} />
-            <Route path="/install" element={<Install />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/admin" element={<AdminIndex />} />
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/student/exams" element={<StudentExams />} />
-            <Route path="/student/take-test/:testId" element={<TakeTest />} />
-            <Route path="/student/test-review/:attemptId" element={<ReviewTest />} />
-            <Route path="/student/notes" element={<StudentNotes />} />
-            <Route path="/student/results" element={<StudentResults />} />
-            <Route path="/student/profile" element={<StudentProfile />} />
-            <Route path="/student/notifications" element={<StudentNotifications />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/students" element={<StudentManagement />} />
-            <Route path="/admin/exams" element={<ExamManagement />} />
-            <Route path="/admin/subjects" element={<SubjectManagement />} />
-            <Route path="/admin/questions" element={<QuestionBank />} />
-            <Route path="/admin/question-subjects" element={<QuestionSubjectManagement />} />
-            <Route path="/admin/tests" element={<MockTestCreation />} />
-            <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
-            <Route path="/admin/notes" element={<NotesManagement />} />
-            <Route path="/admin/bulk-upload" element={<BulkMCQUpload />} />
-            <Route path="/admin/add-question" element={<AddQuestion />} />
-            <Route path="/admin/add-note" element={<AddNote />} />
-            <Route path="/admin/courses" element={<CourseManagement />} />
-            <Route path="/admin/profile" element={<AdminProfile />} />
-            <Route path="/admin/chat" element={<AdminChatInbox />} />
-            <Route path="/admin/notifications" element={<SendNotifications />} />
+        <ErrorBoundary>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/admin" element={<AdminIndex />} />
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+              <Route path="/" element={<Landing />} />
+              <Route path="/install" element={<Install />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/student/exams" element={<StudentExams />} />
+              <Route path="/student/take-test/:testId" element={<TakeTest />} />
+              <Route path="/student/test-review/:attemptId" element={<ReviewTest />} />
+              <Route path="/student/notes" element={<StudentNotes />} />
+              <Route path="/student/results" element={<StudentResults />} />
+              <Route path="/student/profile" element={<StudentProfile />} />
+              <Route path="/student/notifications" element={<StudentNotifications />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/students" element={<StudentManagement />} />
+              <Route path="/admin/exams" element={<ExamManagement />} />
+              <Route path="/admin/subjects" element={<SubjectManagement />} />
+              <Route path="/admin/questions" element={<QuestionBank />} />
+              <Route path="/admin/question-subjects" element={<QuestionSubjectManagement />} />
+              <Route path="/admin/tests" element={<MockTestCreation />} />
+              <Route path="/admin/ai-generator" element={<AIQuestionGenerator />} />
+              <Route path="/admin/notes" element={<NotesManagement />} />
+              <Route path="/admin/bulk-upload" element={<BulkMCQUpload />} />
+              <Route path="/admin/add-question" element={<AddQuestion />} />
+              <Route path="/admin/add-note" element={<AddNote />} />
+              <Route path="/admin/courses" element={<CourseManagement />} />
+              <Route path="/admin/profile" element={<AdminProfile />} />
+              <Route path="/admin/chat" element={<AdminChatInbox />} />
+              <Route path="/admin/notifications" element={<SendNotifications />} />
+              <Route path="/admin/ai-settings" element={<AIConfigSettings />} />
 
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </>
   );

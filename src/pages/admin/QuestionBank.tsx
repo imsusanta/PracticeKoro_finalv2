@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 import { SubjectTopicSelectors } from "@/components/admin/SubjectTopicSelectors";
 
 interface Question {
@@ -62,6 +63,8 @@ const QuestionBank = () => {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hasStructuredColumns, setHasStructuredColumns] = useState<boolean | null>(null);
+  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [bulkEditData, setBulkEditData] = useState({
     subject_id: "",
     subject_name: "" as string | null,
@@ -295,14 +298,24 @@ const QuestionBank = () => {
   };
 
   const handleDelete = async (questionId: string) => {
-    if (!confirm("Are you sure you want to delete this question?")) return;
-    const { error } = await supabase.from("questions").delete().eq("id", questionId);
-    if (error) {
+    setQuestionToDelete(questionId);
+  };
+
+  const confirmDelete = async () => {
+    if (!questionToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("questions").delete().eq("id", questionToDelete);
+      if (error) throw error;
+      toast({ title: "Success", description: "Question deleted successfully" });
+      await loadQuestions();
+    } catch (error) {
+      console.error(error);
       toast({ title: "Error", description: "Failed to delete question", variant: "destructive" });
-      return;
+    } finally {
+      setIsDeleting(false);
+      setQuestionToDelete(null);
     }
-    toast({ title: "Success", description: "Question deleted successfully" });
-    await loadQuestions();
   };
 
   const viewDetails = (question: Question) => {
@@ -377,16 +390,25 @@ const QuestionBank = () => {
 
   const handleBulkDelete = async () => {
     if (selectedQuestions.length === 0) return;
+    setBulkDeleteOpen(true);
+  };
 
-    const { error } = await supabase.from("questions").delete().in("id", selectedQuestions);
-    if (error) {
+  const confirmBulkDelete = async () => {
+    if (selectedQuestions.length === 0) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("questions").delete().in("id", selectedQuestions);
+      if (error) throw error;
+      toast({ title: "Success", description: `Deleted ${selectedQuestions.length} questions` });
+      setBulkDeleteOpen(false);
+      setSelectedQuestions([]);
+      await loadQuestions();
+    } catch (error) {
+      console.error(error);
       toast({ title: "Error", description: "Failed to delete questions", variant: "destructive" });
-      return;
+    } finally {
+      setIsDeleting(false);
     }
-    toast({ title: "Success", description: `Deleted ${selectedQuestions.length} questions` });
-    setBulkDeleteOpen(false);
-    setSelectedQuestions([]);
-    await loadQuestions();
   };
 
   const handleBulkEdit = async () => {
@@ -940,24 +962,22 @@ const QuestionBank = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Bulk Delete Dialog */}
-      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-        <DialogContent className="sm:max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-red-600">Delete {selectedQuestions.length} Questions</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete {selectedQuestions.length} selected questions? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setBulkDeleteOpen(false)} className="rounded-xl">Cancel</Button>
-            <Button variant="destructive" onClick={handleBulkDelete} className="rounded-xl">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete All
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteAlertDialog
+        isOpen={!!questionToDelete}
+        onClose={() => setQuestionToDelete(null)}
+        onConfirm={confirmDelete}
+        itemName="this question"
+        isDeleting={isDeleting}
+      />
+
+      <DeleteAlertDialog
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={confirmBulkDelete}
+        title="Bulk Delete Questions"
+        description={`Are you sure you want to delete ${selectedQuestions.length} selected questions? This action cannot be undone.`}
+        isDeleting={isDeleting}
+      />
 
       {/* Bulk Edit Subject/Topic Dialog */}
       <Dialog open={bulkEditOpen} onOpenChange={setBulkEditOpen}>

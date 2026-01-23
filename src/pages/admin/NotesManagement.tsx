@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 
 interface Note {
   id: string;
@@ -42,6 +43,8 @@ const NotesManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSubject, setFilterSubject] = useState("all");
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -87,14 +90,24 @@ const NotesManagement = () => {
   };
 
   const handleDelete = async (note: Note) => {
-    if (!confirm(`Delete "${note.title}"?`)) return;
-    const { error } = await supabase.from("pdfs").delete().eq("id", note.id);
-    if (error) {
+    setNoteToDelete(note);
+  };
+
+  const confirmDelete = async () => {
+    if (!noteToDelete) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("pdfs").delete().eq("id", noteToDelete.id);
+      if (error) throw error;
+      toast({ title: "Success", description: "Note deleted" });
+      await loadNotes();
+    } catch (error) {
+      console.error(error);
       toast({ title: "Error", description: "Failed to delete", variant: "destructive" });
-      return;
+    } finally {
+      setIsDeleting(false);
+      setNoteToDelete(null);
     }
-    toast({ title: "Success", description: "Note deleted" });
-    await loadNotes();
   };
 
   const getSubjectName = (subjectId: string | null) => subjects.find(s => s.id === subjectId)?.name || "Unknown Subject";
@@ -244,6 +257,13 @@ const NotesManagement = () => {
           </Accordion>
         )}
       </div>
+      <DeleteAlertDialog
+        isOpen={!!noteToDelete}
+        onClose={() => setNoteToDelete(null)}
+        onConfirm={confirmDelete}
+        itemName={noteToDelete?.title}
+        isDeleting={isDeleting}
+      />
     </AdminLayout>
   );
 };

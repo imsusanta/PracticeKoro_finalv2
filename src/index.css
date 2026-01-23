@@ -211,8 +211,14 @@ body {
     max-width: 100%;
   }
 
-  /* Root level overflow protection */
-  html,
+  /* Root level overflow protection - allow Y scroll but prevent X overflow */
+  html {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    width: 100% !important;
+  }
+
   body,
   #root,
   #__next {

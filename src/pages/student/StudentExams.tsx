@@ -239,10 +239,21 @@ const StudentExams = () => {
           </div>
 
           {exams.length > 0 && (
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <div
+              className="scrollbar-hide pb-1 -mx-1 px-1"
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                flexWrap: 'nowrap',
+                overflowX: 'auto',
+                gap: '0.5rem',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
               <button
                 onClick={() => setSelectedExam("all")}
                 className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all tap-highlight ${selectedExam === "all" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
+                style={{ flexShrink: 0 }}
               >
                 All
               </button>
@@ -251,6 +262,7 @@ const StudentExams = () => {
                   key={e.id}
                   onClick={() => setSelectedExam(e.id)}
                   className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap tap-highlight ${selectedExam === e.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
+                  style={{ flexShrink: 0 }}
                 >
                   {e.name}
                 </button>
