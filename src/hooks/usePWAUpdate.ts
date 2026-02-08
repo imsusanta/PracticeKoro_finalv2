@@ -16,7 +16,7 @@ export const usePWAUpdate = () => {
     // Check for updates periodically
     const checkForUpdates = useCallback(() => {
         if (state.registration) {
-            state.registration.update();
+            state.registration.update().catch(err => console.error('[PWA] Update check failed:', err));
         }
     }, [state.registration]);
 
@@ -38,50 +38,54 @@ export const usePWAUpdate = () => {
     useEffect(() => {
         if (!('serviceWorker' in navigator)) return;
 
-        let refreshing = false;
+        const setupSW = async () => {
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                setState(prev => ({ ...prev, registration }));
 
-        // Message listener (already handles SW_UPDATED)
-        const handleMessage = (event: MessageEvent) => {
-            if (event.data?.type === 'SW_UPDATED') {
-                console.log('[PWA] Service worker updated to:', event.data.version);
+                // Check for waiting SW
+                if (registration.waiting) {
+                    console.log('[PWA] Waiting update found.');
+                    setState(prev => ({ ...prev, updateAvailable: true }));
+                }
+
+                // Listen for new SW installing
+                const onUpdateFound = () => {
+                    const newWorker = registration.installing;
+                    if (!newWorker) return;
+
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('[PWA] New update installed and waiting.');
+                            setState(prev => ({ ...prev, updateAvailable: true }));
+                        }
+                    });
+                };
+
+                registration.addEventListener('updatefound', onUpdateFound);
+
+                // Cleanup
+                return () => {
+                    registration.removeEventListener('updatefound', onUpdateFound);
+                };
+            } catch (err) {
+                console.error('[PWA] Service worker setup failed:', err);
             }
         };
 
-        navigator.serviceWorker.addEventListener('message', handleMessage);
-
-        // Get registration
-        navigator.serviceWorker.ready.then((registration) => {
-            setState(prev => ({ ...prev, registration }));
-
-            // Check for waiting SW - Just set updateAvailable
-            if (registration.waiting) {
-                console.log('[PWA] Waiting update found.');
-                setState(prev => ({ ...prev, updateAvailable: true }));
-            }
-
-            // Listen for new SW installing
-            registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                if (!newWorker) return;
-
-                newWorker.addEventListener('statechange', () => {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        // New SW is ready, let the user decide when to update
-                        console.log('[PWA] New update installed and waiting.');
-                        setState(prev => ({ ...prev, updateAvailable: true }));
-                    }
-                });
-            });
-        });
+        const cleanup = setupSW();
 
         // Check for updates every 5 minutes
         const interval = setInterval(() => {
             navigator.serviceWorker.getRegistration().then((reg) => {
-                if (reg) reg.update();
+                if (reg) reg.update().catch(() => { });
             });
         }, 5 * 60 * 1000);
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            cleanup.then(unsub => unsub?.());
+        };
     }, []);
 
     return {

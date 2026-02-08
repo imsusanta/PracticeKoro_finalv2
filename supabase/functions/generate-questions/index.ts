@@ -49,12 +49,17 @@ Deno.serve(async (req) => {
     - option_c (string)
     - option_d (string)
     - correct_answer (string, one of: "A", "B", "C", "D")
-    - explanation (string) - Detailed "Short Notes" explaining the concept and why the answer is correct.
+    - explanation (string) - "Short Notes" formatted as bullet points (use "• " prefix). Each bullet point should be on a new line (use \\n). Include:
+      • Key concept definition related to the question
+      • Why the correct answer is right  
+      • Important facts, dates, names, or formulas relevant to the topic
+      • Common mistakes to avoid
+      • Memory tips or mnemonics if applicable
 
     Language: ${language || 'English'}
     
     Ensure the questions are accurate, challenging, and follow standard exam patterns. 
-    The "explanation" field must contain helpful "Short Notes" for the student.`;
+    The "explanation" field must contain helpful bullet-pointed "Short Notes" for easy revision.`;
 
         const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
 
@@ -70,15 +75,15 @@ Deno.serve(async (req) => {
                 "model": openRouterModel,
                 "messages": [
                     { "role": "system", "content": finalSystemPrompt },
-                    { "role": "user", "content": `Generate ${count} MCQ questions in ${language || 'English'} based on the instructions.` }
-                ],
-                "response_format": { "type": "json_object" }
+                    { "role": "user", "content": `Generate ${count} MCQ questions in ${language || 'English'} based on the instructions. Return ONLY valid JSON, no markdown or extra text.` }
+                ]
             })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
+            console.error("OpenRouter API error:", response.status, errorText);
+            throw new Error(`OpenRouter API error: ${response.status} - ${errorText.substring(0, 200)}`);
         }
 
         const aiData = await response.json();
@@ -88,15 +93,32 @@ Deno.serve(async (req) => {
             throw new Error('No content received from AI model');
         }
 
+        console.log("Raw AI response:", content.substring(0, 500));
+
+        // Try to extract JSON from the response
+        let parsedContent;
         try {
-            const parsedContent = JSON.parse(content);
-            return new Response(JSON.stringify(parsedContent), {
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
+            // First try direct parse
+            parsedContent = JSON.parse(content);
         } catch (parseError) {
-            console.error("Failed to parse AI response:", content);
-            throw new Error("AI returned invalid JSON format. Please try again.");
+            // Try to extract JSON from markdown code blocks or text
+            const jsonMatch = content.match(/\{[\s\S]*"questions"[\s\S]*\}/);
+            if (jsonMatch) {
+                try {
+                    parsedContent = JSON.parse(jsonMatch[0]);
+                } catch (e) {
+                    console.error("Failed to parse extracted JSON:", e);
+                    throw new Error("AI returned invalid JSON format. Please try again.");
+                }
+            } else {
+                console.error("No JSON found in response:", content);
+                throw new Error("AI did not return JSON format. Please try again.");
+            }
         }
+
+        return new Response(JSON.stringify(parsedContent), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
 
     } catch (error) {
         console.error("Edge Function Error:", error);

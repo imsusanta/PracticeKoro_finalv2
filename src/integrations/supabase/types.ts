@@ -332,7 +332,7 @@ export type Database = {
           created_by: string
           description: string | null
           duration_minutes: number
-          exam_id: string
+          exam_id: string | null
           id: string
           is_published: boolean
           passing_marks: number
@@ -342,6 +342,9 @@ export type Database = {
           test_type: Database["public"]["Enums"]["test_type"]
           title: string
           total_marks: number
+          is_paid: boolean
+          price: number
+          subject_id: string | null
           updated_at: string
         }
         Insert: {
@@ -350,7 +353,7 @@ export type Database = {
           created_by: string
           description?: string | null
           duration_minutes: number
-          exam_id: string
+          exam_id?: string | null
           id?: string
           is_published?: boolean
           passing_marks: number
@@ -360,6 +363,9 @@ export type Database = {
           test_type: Database["public"]["Enums"]["test_type"]
           title: string
           total_marks: number
+          is_paid?: boolean
+          price?: number
+          subject_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -368,7 +374,7 @@ export type Database = {
           created_by?: string
           description?: string | null
           duration_minutes?: number
-          exam_id?: string
+          exam_id?: string | null
           id?: string
           is_published?: boolean
           passing_marks?: number
@@ -378,6 +384,9 @@ export type Database = {
           test_type?: Database["public"]["Enums"]["test_type"]
           title?: string
           total_marks?: number
+          is_paid?: boolean
+          price?: number
+          subject_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -386,6 +395,13 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_tests_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -423,6 +439,56 @@ export type Database = {
         }
         Relationships: []
       }
+      purchases: {
+        Row: {
+          id: string
+          user_id: string
+          content_type: "test" | "note" | "subscription"
+          content_id: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_signature: string | null
+          status: "pending" | "completed" | "failed"
+          amount: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          content_type: "test" | "note" | "subscription"
+          content_id: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: "pending" | "completed" | "failed"
+          amount: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          content_type?: "test" | "note" | "subscription"
+          content_id?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_signature?: string | null
+          status?: "pending" | "completed" | "failed"
+          amount?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pdfs: {
         Row: {
           content: string | null
@@ -434,6 +500,8 @@ export type Database = {
           subject_id: string | null
           title: string
           topic_id: string | null
+          is_paid: boolean
+          price: number
           uploaded_by: string
         }
         Insert: {
@@ -446,6 +514,8 @@ export type Database = {
           subject_id?: string | null
           title: string
           topic_id?: string | null
+          is_paid?: boolean
+          price?: number
           uploaded_by: string
         }
         Update: {
@@ -458,6 +528,8 @@ export type Database = {
           subject_id?: string | null
           title?: string
           topic_id?: string | null
+          is_paid?: boolean
+          price?: number
           uploaded_by?: string
         }
         Relationships: [
@@ -984,7 +1056,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "student" | "instructor"
+      app_role: "admin" | "student" | "instructor" | "super_admin"
       approval_status_type:
         | "pending"
         | "approved"
@@ -1119,7 +1191,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "student", "instructor"],
+      app_role: ["admin", "student", "instructor", "super_admin"],
       approval_status_type: [
         "pending",
         "approved",

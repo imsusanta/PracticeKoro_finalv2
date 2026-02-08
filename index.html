@@ -34,7 +34,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Baloo+Da+2:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
     rel="stylesheet">
 
   <!-- Open Graph / Facebook -->
@@ -150,15 +150,16 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('ServiceWorker registered:', registration.scope);
+          .then(registration => {
+            console.log('SW registered: ', registration);
           })
-          .catch((error) => {
-            console.log('ServiceWorker registration failed:', error);
+          .catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
           });
       });
     }
   </script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
 </body>
 
 </html>

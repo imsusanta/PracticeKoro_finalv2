@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS public.subjects (
     created_by UUID REFERENCES auth.users(id)
 );
 
+-- Add missing columns to subjects table if they don't exist
+ALTER TABLE public.subjects ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
 -- Create topics table (linked to subjects)
 CREATE TABLE IF NOT EXISTS public.topics (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -25,6 +28,9 @@ CREATE TABLE IF NOT EXISTS public.topics (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     created_by UUID REFERENCES auth.users(id)
 );
+
+-- Add missing columns to topics table if they don't exist
+ALTER TABLE public.topics ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 
 -- Add topic_id column to pdfs table (notes)
 ALTER TABLE public.pdfs ADD COLUMN IF NOT EXISTS topic_id UUID REFERENCES public.topics(id) ON DELETE SET NULL;
@@ -40,20 +46,24 @@ CREATE INDEX IF NOT EXISTS idx_pdfs_subject_id ON public.pdfs(subject_id);
 -- Enable RLS on subjects
 ALTER TABLE public.subjects ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for subjects
+-- RLS Policies for subjects (drop first to make idempotent)
+DROP POLICY IF EXISTS "Anyone can view active subjects" ON public.subjects;
 CREATE POLICY "Anyone can view active subjects" ON public.subjects
     FOR SELECT USING (is_active = true);
 
+DROP POLICY IF EXISTS "Admins can manage subjects" ON public.subjects;
 CREATE POLICY "Admins can manage subjects" ON public.subjects
     FOR ALL USING (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 -- Enable RLS on topics
 ALTER TABLE public.topics ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies for topics
+-- RLS Policies for topics (drop first to make idempotent)
+DROP POLICY IF EXISTS "Anyone can view active topics" ON public.topics;
 CREATE POLICY "Anyone can view active topics" ON public.topics
     FOR SELECT USING (is_active = true);
 
+DROP POLICY IF EXISTS "Admins can manage topics" ON public.topics;
 CREATE POLICY "Admins can manage topics" ON public.topics
     FOR ALL USING (public.has_role(auth.uid(), 'admin'::public.app_role));
 

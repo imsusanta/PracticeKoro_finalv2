@@ -142,10 +142,12 @@ const Footer = () => {
                         © 2026 Practice Koro. Made with <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" /> in India
                     </p>
                     <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
-                        <a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors">Privacy Policy</a>
-                        <a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors">Terms of Service</a>
-                        <a href="#" className="text-slate-500 hover:text-emerald-400 transition-colors">Cookie Policy</a>
+                        <Link to="/privacy-policy" className="text-slate-500 hover:text-emerald-400 transition-colors">Privacy Policy</Link>
+                        <Link to="/terms-of-service" className="text-slate-500 hover:text-emerald-400 transition-colors">Terms of Service</Link>
+                        <Link to="/refund-policy" className="text-slate-500 hover:text-emerald-400 transition-colors">Refund Policy</Link>
+                        <Link to="/cookie-policy" className="text-slate-500 hover:text-emerald-400 transition-colors">Cookie Policy</Link>
                     </div>
+
                 </div>
             </div>
         </footer>

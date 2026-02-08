@@ -47,36 +47,53 @@ const AdminDashboard = () => {
   // Fast auth check - show UI immediately if session exists in localStorage
   useEffect(() => {
     const initAuth = async () => {
-      // Check session quickly
-      const { data: { session } } = await supabase.auth.getSession();
+      try {
+        // Check session quickly
+        const { data: { session } } = await supabase.auth.getSession();
 
-      if (!session) {
-        navigate("/admin/login");
-        return;
-      }
+        if (!session) {
+          navigate("/admin/login");
+          return;
+        }
 
-      // Show UI immediately, check role in background
-      setAuthChecked(true);
+        // Show UI immediately, check role in background
+        setAuthChecked(true);
 
-      // Start loading data immediately while checking role
-      const [roleResult] = await Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle(),
-        loadStats(),
-        loadRecentActivity()
-      ]);
+        // Start loading data immediately while checking role using RPC
+        const [adminRoleResult, superAdminRoleResult] = await Promise.all([
+          supabase.rpc('has_role', { _user_id: session.user.id, _role: 'admin' }),
+          supabase.rpc('has_role', { _user_id: session.user.id, _role: 'super_admin' }),
+          loadStats(),
+          loadRecentActivity()
+        ]);
 
-      if (!roleResult.data) {
-        await supabase.auth.signOut();
+        const isAdmin = adminRoleResult.data === true || superAdminRoleResult.data === true;
+
+        if (!isAdmin) {
+          console.error("Dashboard: Role check failed - user is not an admin:", {
+            userId: session.user.id,
+            hasAdminRole: adminRoleResult.data,
+            hasSuperAdminRole: superAdminRoleResult.data
+          });
+          // Removed signOut() here to prevent accidental logouts
+          toast({
+            title: "Access Denied",
+            description: `No admin privileges found for user ID: ${session.user.id.substring(0, 8)}...`,
+            variant: "destructive",
+          });
+          navigate("/admin/login");
+          return;
+        }
+      } catch (error) {
+        console.error("Error during admin auth check:", error);
         toast({
-          title: "Access Denied",
-          description: "You do not have admin privileges",
+          title: "Connection Error",
+          description: "Failed to verify admin access. Please try again.",
           variant: "destructive",
         });
-        navigate("/admin/login");
-        return;
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     initAuth();
@@ -87,7 +104,8 @@ const AdminDashboard = () => {
     today.setHours(0, 0, 0, 0);
 
     const [studentsResult, approvalsResult, questionsResult, testsResult, testsTodayResult] = await Promise.all([
-      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      // Count only students (not admins) by filtering with user_roles
+      supabase.from("profiles").select("id, user_roles!inner(role)", { count: "exact", head: true }).eq("user_roles.role", "student"),
       supabase.from("approval_status").select("id", { count: "exact", head: true }).eq("status", "pending"),
       supabase.from("questions").select("id", { count: "exact", head: true }),
       supabase.from("mock_tests").select("id", { count: "exact", head: true }),

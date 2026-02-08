@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Shield } from "lucide-react";
@@ -14,11 +14,7 @@ const AdminIndex = () => {
     const navigate = useNavigate();
     const [checking, setChecking] = useState(true);
 
-    useEffect(() => {
-        checkAdminAuth();
-    }, []);
-
-    const checkAdminAuth = async () => {
+    const checkAdminAuth = useCallback(async () => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
 
@@ -33,27 +29,26 @@ const AdminIndex = () => {
                 .from("user_roles")
                 .select("role")
                 .eq("user_id", session.user.id)
-                .eq("role", "admin")
-                .maybeSingle();
+                .in("role", ["admin", "super_admin"]);
 
-            if (roleData) {
+            if (roleData && roleData.length > 0) {
                 // User is admin - go to dashboard
                 navigate("/admin/dashboard", { replace: true });
             } else {
                 // User is logged in but not admin - go to login
-                try {
-                    await supabase.auth.signOut();
-                } catch (err) {
-                    console.error('Sign out error:', err);
-                }
-                localStorage.clear();
+                // We DON'T sign out here anymore to prevent unnecessary logouts
+                // if there's a transient query failure or if the user just isn't an admin
                 navigate("/admin/login", { replace: true });
             }
         } catch (error) {
             console.error("Error checking admin auth:", error);
             navigate("/admin/login", { replace: true });
         }
-    };
+    }, [navigate]);
+
+    useEffect(() => {
+        checkAdminAuth();
+    }, [checkAdminAuth]);
 
     // Show loading state while checking auth
     return (

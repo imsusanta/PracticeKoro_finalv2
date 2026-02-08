@@ -128,7 +128,7 @@ self.addEventListener('fetch', (event) => {
             }).catch(error => {
                 console.error('[SW] Fetch failed:', error);
                 return new Response('Network error occurred', {
-                    status: 408,
+                    status: 503,
                     headers: { 'Content-Type': 'text/plain' }
                 });
             });

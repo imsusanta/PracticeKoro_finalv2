@@ -70,7 +70,10 @@ const Install = () => {
       try {
         const resp = await fetch("/manifest.json");
         hasManifest = resp.ok;
-      } catch (e) { }
+      } catch (e) {
+        // Manifest check failed, which is expected in some environments
+        console.debug('Manifest check failed:', e);
+      }
 
       setDiag({
         https: isHttps,
@@ -278,46 +281,103 @@ const Install = () => {
                   </div>
                 </div>
 
-                <div className="space-y-5">
-                  {[
-                    {
-                      step: "1",
-                      icon: Share,
-                      color: "text-blue-600",
-                      bg: "bg-blue-50",
-                      title: "Tap Share",
-                      desc: "Find this icon in your browser's bottom or top menu."
-                    },
-                    {
-                      step: "2",
-                      icon: Plus,
-                      color: "text-emerald-600",
-                      bg: "bg-emerald-50",
-                      title: "Add to Home Screen",
-                      desc: "Scroll down the menu to find this magic button."
-                    },
-                    {
-                      step: "3",
-                      icon: CheckCircle,
-                      color: "text-purple-600",
-                      bg: "bg-purple-50",
-                      title: "Confirm 'Add'",
-                      desc: "Tap 'Add' in the top right corner to finish."
-                    },
-                  ].map((item) => (
-                    <div key={item.step} className="flex gap-4 group">
-                      <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0 shadow-sm border border-white transition-transform group-hover:scale-110`}>
-                        <item.icon className={`w-5 h-5 ${item.color}`} />
+                {/* Android/Chrome Instructions */}
+                {isAndroid && !isIOS && (
+                  <div className="space-y-5 mb-6">
+                    {[
+                      {
+                        step: "1",
+                        icon: Chrome,
+                        color: "text-blue-600",
+                        bg: "bg-blue-50",
+                        title: "Tap ⋮ Menu",
+                        desc: "Find the 3 dots (⋮) in the top-right corner of your browser."
+                      },
+                      {
+                        step: "2",
+                        icon: Download,
+                        color: "text-emerald-600",
+                        bg: "bg-emerald-50",
+                        title: "Find 'Install App' or 'Add to Home'",
+                        desc: "Look for 'Install app', 'Add to Home screen' or 'Install Practice Koro'."
+                      },
+                      {
+                        step: "3",
+                        icon: CheckCircle,
+                        color: "text-purple-600",
+                        bg: "bg-purple-50",
+                        title: "Confirm Install",
+                        desc: "Tap 'Install' or 'Add' to complete the installation."
+                      },
+                    ].map((item) => (
+                      <div key={item.step} className="flex gap-4 group">
+                        <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0 shadow-sm border border-white transition-transform group-hover:scale-110`}>
+                          <item.icon className={`w-5 h-5 ${item.color}`} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 text-sm leading-tight mb-1">{item.title}</p>
+                          <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{item.desc}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-black text-slate-900 text-sm leading-tight mb-1">{item.title}</p>
-                        <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{item.desc}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
-                <div className="mt-8 p-4 bg-indigo-50 rounded-2xl border border-indigo-100/50">
+                {/* iOS/Safari Instructions */}
+                {(isIOS || browserInfo?.name === "Safari") && (
+                  <div className="space-y-5">
+                    {[
+                      {
+                        step: "1",
+                        icon: Share,
+                        color: "text-blue-600",
+                        bg: "bg-blue-50",
+                        title: "Tap Share",
+                        desc: "Find this icon in your browser's bottom or top menu."
+                      },
+                      {
+                        step: "2",
+                        icon: Plus,
+                        color: "text-emerald-600",
+                        bg: "bg-emerald-50",
+                        title: "Add to Home Screen",
+                        desc: "Scroll down the menu to find this magic button."
+                      },
+                      {
+                        step: "3",
+                        icon: CheckCircle,
+                        color: "text-purple-600",
+                        bg: "bg-purple-50",
+                        title: "Confirm 'Add'",
+                        desc: "Tap 'Add' in the top right corner to finish."
+                      },
+                    ].map((item) => (
+                      <div key={item.step} className="flex gap-4 group">
+                        <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center shrink-0 shadow-sm border border-white transition-transform group-hover:scale-110`}>
+                          <item.icon className={`w-5 h-5 ${item.color}`} />
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 text-sm leading-tight mb-1">{item.title}</p>
+                          <p className="text-[11px] text-slate-500 font-medium leading-relaxed">{item.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tips for Android users who can't install */}
+                {isAndroid && !deferredPrompt && (
+                  <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-100/50">
+                    <p className="text-[10px] text-amber-700 font-black flex items-center gap-2 uppercase tracking-tight">
+                      💡 না পাচ্ছেন?
+                    </p>
+                    <p className="text-[11px] text-amber-600 font-medium mt-1 leading-normal">
+                      Chrome browser এ open করুন: Chrome এ সবথেকে ভালো PWA support আছে। Samsung/Mi browser এ কাজ না করলে Chrome try করুন।
+                    </p>
+                  </div>
+                )}
+
+                <div className="mt-6 p-4 bg-indigo-50 rounded-2xl border border-indigo-100/50">
                   <p className="text-[10px] text-indigo-700 font-black flex items-center gap-2 uppercase tracking-tight">
                     <Zap className="w-3.5 h-3.5" />
                     Pro Tip

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import {
   Shield,
   Clock,
   Camera,
-  Bell
+  Bell,
+  Sparkles,
+  Mail
 } from "lucide-react";
 import StudentLayout from "@/components/student/StudentLayout";
 import { differenceInDays } from "date-fns";
@@ -26,6 +28,8 @@ import { motion } from "framer-motion";
 import StudentChat from "@/components/StudentChat";
 import { getStudentUnreadCount } from "@/config/chat";
 import { formatDistanceToNow } from "date-fns";
+import { initRazorpayPayment } from "@/utils/payment";
+import { Badge } from "@/components/ui/badge";
 
 interface ProfileStatistics {
   totalTests: number;
@@ -45,10 +49,13 @@ const StudentProfile = () => {
   const [formData, setFormData] = useState({ full_name: "", whatsapp_number: "" });
   const [isEditing, setIsEditing] = useState(false);
   const [accountDays, setAccountDays] = useState(0);
+  const [subscription, setSubscription] = useState<any>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  const [subscriptionFee, setSubscriptionFee] = useState<number>(0);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,7 +75,8 @@ const StudentProfile = () => {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${profile.id}-${Date.now()}.${fileExt}`;
-      const filePath = fileName;
+      // Path must be: {user_id}/{filename} - required by RLS policy
+      const filePath = `${profile.id}/${fileName}`;
 
       // Upload to storage
       const { error: uploadError, data: uploadData } = await supabase.storage
@@ -104,20 +112,7 @@ const StudentProfile = () => {
     setUploadingImage(false);
   };
 
-  useEffect(() => {
-    checkAuthAndLoadData();
-  }, []);
-
-  // Load notifications
-  useEffect(() => {
-    if (profile?.id) {
-      loadNotifications();
-      const interval = setInterval(loadNotifications, 30000);
-      return () => clearInterval(interval);
-    }
-  }, [profile?.id]);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!profile?.id) return;
 
     const { data, error } = await supabase
@@ -136,64 +131,49 @@ const StudentProfile = () => {
       setNotifications(data);
       setUnreadNotificationCount(data.filter(n => !n.is_read).length);
     }
-  };
-
-  // Load chat unread count
-  useEffect(() => {
-    if (profile?.id) {
-      loadChatUnreadCount(profile.id);
-      const interval = setInterval(() => loadChatUnreadCount(profile.id), 5000);
-      return () => clearInterval(interval);
-    }
   }, [profile?.id]);
 
-  const loadChatUnreadCount = async (studentId: string) => {
+  const loadChatUnreadCount = useCallback(async (studentId: string) => {
     const count = await getStudentUnreadCount(studentId);
     setChatUnreadCount(count);
-  };
+  }, []);
 
-  const handleNotificationClick = async (notif: any) => {
-    if (!notif.is_read) {
-      await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("id", notif.id);
-      loadNotifications();
+  const loadStatistics = useCallback(async (userId: string) => {
+    const { data: attempts } = await supabase
+      .from("test_attempts")
+      .select("passed")
+      .eq("user_id", userId);
+
+    if (attempts && attempts.length > 0) {
+      const passed = attempts.filter(a => a.passed).length;
+      setStatistics({
+        totalTests: attempts.length,
+        passRate: Math.round((passed / attempts.length) * 100),
+      });
     }
+  }, []);
 
-    if (notif.link) {
-      navigate(notif.link);
-    } else if (notif.test_id) {
-      // For backwards compatibility if test_id exists in any old local testing data
-      navigate(`/student/take-test/${notif.test_id}`);
-    }
-  };
-
-  const formatNotificationTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-  };
-
-  const checkAuthAndLoadData = async () => {
+  const checkAuthAndLoadData = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/login");
       return;
     }
+    setUserEmail(session.user.email || null);
 
-    const [profileResult, approvalResult] = await Promise.all([
+    const [profileResult, approvalResult, subscriptionResult, settingsResult] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", session.user.id).single(),
-      supabase.from("approval_status").select("status").eq("user_id", session.user.id).single()
+      supabase.from("approval_status").select("status").eq("user_id", session.user.id).single(),
+      supabase
+        .from("purchases" as any)
+        .select("*")
+        .eq("user_id", session.user.id)
+        .eq("content_type", "subscription")
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from("site_settings").select("value").eq("key", "yearly_subscription_fee").maybeSingle()
     ]);
 
     if (profileResult.data) {
@@ -208,24 +188,82 @@ const StudentProfile = () => {
     }
 
     setApprovalStatus(approvalResult.data?.status || "pending");
+
+    // Set subscription fee
+    const fee = (settingsResult as any).data?.value;
+    if (fee) setSubscriptionFee(parseFloat(fee));
+
+    const subscriptionData = (subscriptionResult as any).data;
+    if (subscriptionData) {
+      const createdAt = new Date(subscriptionData.created_at);
+      const expiryDate = new Date(createdAt);
+      expiryDate.setDate(expiryDate.getDate() + 365);
+
+      if (new Date() < expiryDate) {
+        setSubscription({
+          ...subscriptionData,
+          expiryDate: expiryDate
+        });
+      }
+    }
     await loadStatistics(session.user.id);
     setLoading(false);
-  };
+  }, [navigate, loadStatistics]);
 
-  const loadStatistics = async (userId: string) => {
-    const { data: attempts } = await supabase
-      .from("test_attempts")
-      .select("passed")
-      .eq("user_id", userId);
+  useEffect(() => {
+    checkAuthAndLoadData();
+  }, [checkAuthAndLoadData]);
 
-    if (attempts && attempts.length > 0) {
-      const passed = attempts.filter(a => a.passed).length;
-      setStatistics({
-        totalTests: attempts.length,
-        passRate: Math.round((passed / attempts.length) * 100),
-      });
+  // Load notifications
+  useEffect(() => {
+    if (profile?.id) {
+      loadNotifications();
+      const interval = setInterval(loadNotifications, 30000);
+      return () => clearInterval(interval);
     }
-  };
+  }, [profile?.id, loadNotifications]);
+
+  // Load chat unread count
+  useEffect(() => {
+    if (profile?.id) {
+      const studentId = profile.id;
+      loadChatUnreadCount(studentId);
+      const interval = setInterval(() => loadChatUnreadCount(studentId), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [profile?.id, loadChatUnreadCount]);
+
+  const handleNotificationClick = useCallback(async (notif: any) => {
+    if (!notif.is_read) {
+      await supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("id", notif.id);
+      loadNotifications();
+    }
+
+    if (notif.link) {
+      navigate(notif.link);
+    } else if (notif.test_id) {
+      // For backwards compatibility if test_id exists in any old local testing data
+      navigate(`/student/take-test/${notif.test_id}`);
+    }
+  }, [navigate, loadNotifications]);
+
+  const formatNotificationTime = useCallback((dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -273,32 +311,6 @@ const StudentProfile = () => {
     );
   }
 
-  if (approvalStatus === "payment_locked") {
-    return (
-      <StudentLayout title="Profile" subtitle="Your account">
-        <div className="w-full flex items-center justify-center min-h-[50vh]">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center w-full px-4"
-          >
-            <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-slate-400" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-2">Account Locked</h2>
-            <p className="text-sm text-slate-500 mb-6">Complete payment to continue</p>
-            <button
-              onClick={() => window.open("https://wa.me/919547771118", "_blank")}
-              className="w-full bg-emerald-500 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-            >
-              <MessageSquare className="w-5 h-5" />
-              Contact Support
-            </button>
-          </motion.div>
-        </div>
-      </StudentLayout>
-    );
-  }
 
   const initials = profile?.full_name
     ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -351,14 +363,20 @@ const StudentProfile = () => {
               <div className="flex-1 min-w-0">
                 <p className="text-white/70 text-xs sm:text-sm font-medium mb-1">👤 Profile</p>
                 <h2 className="text-xl sm:text-2xl font-bold text-white truncate">{profile?.full_name || "Student"}</h2>
-                <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {subscription && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-black text-white bg-gradient-to-r from-amber-400 to-orange-500 px-2 py-0.5 rounded-full shadow-sm shadow-amber-500/20">
+                      <Sparkles className="w-3 h-3" />
+                      PREMIUM
+                    </span>
+                  )}
                   {approvalStatus === "approved" ? (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-100 bg-emerald-500/30 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-100 bg-emerald-500/30 px-2 py-0.5 rounded-full backdrop-blur-sm">
                       <CheckCircle className="w-3 h-3" />
                       Verified
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-100 bg-amber-500/30 px-2 py-0.5 rounded-full">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-100 bg-amber-500/30 px-2 py-0.5 rounded-full backdrop-blur-sm">
                       <Clock className="w-3 h-3" />
                       Pending
                     </span>
@@ -385,6 +403,35 @@ const StudentProfile = () => {
           </div>
         </motion.div>
 
+        {/* Premium Subscription Details */}
+        {subscription && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 relative overflow-hidden shadow-lg shadow-amber-500/20"
+          >
+            <div className="absolute top-0 right-0 w-24 h-24 bg-white/20 rounded-full blur-2xl -mr-12 -mt-12" />
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/30">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-white font-bold text-base">Premium Plan</h4>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                  <p className="text-white/90 text-xs font-semibold uppercase tracking-wider">Active</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-white/70 font-bold uppercase tracking-widest">Valid Till</p>
+                <p className="text-white font-black text-sm">
+                  {subscription.expiryDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {/* Account Details Form */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -394,6 +441,28 @@ const StudentProfile = () => {
         >
           <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-100">
             <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Account Details</p>
+          </div>
+
+          <div className="p-3 border-b border-slate-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0">
+                {userEmail?.includes("@whatsapp.practicekoro.local") ? (
+                  <Phone className="w-4 h-4 text-indigo-600" />
+                ) : (
+                  <Mail className="w-4 h-4 text-indigo-600" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[9px] text-slate-400 font-medium uppercase mb-0.5">
+                  {userEmail?.includes("@whatsapp.practicekoro.local") ? "Login Mobile" : "Login Email"}
+                </p>
+                <p className="text-sm font-medium text-slate-900 truncate">
+                  {userEmail?.includes("@whatsapp.practicekoro.local")
+                    ? userEmail.split("@")[0]
+                    : userEmail || "Not set"}
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="p-3 border-b border-slate-100">

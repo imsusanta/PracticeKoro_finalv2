@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,25 +20,77 @@ const AdminLoginPage = () => {
     password: "",
   });
 
-  useEffect(() => {
-    checkSession();
-  }, []);
+  const [requestPending, setRequestPending] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
 
-  const checkSession = async () => {
+  const checkSession = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", session.user.id)
-        .eq("role", "admin")
-        .maybeSingle();
+      // Check if user has admin role
+      const { data: hasAdminRole } = await supabase
+        .rpc('has_role', { _user_id: session.user.id, _role: 'admin' });
+      const { data: hasSuperAdminRole } = await supabase
+        .rpc('has_role', { _user_id: session.user.id, _role: 'super_admin' });
 
-      if (roleData) {
+      if (hasAdminRole || hasSuperAdminRole) {
         navigate("/admin/dashboard");
+        return;
+      }
+
+      // User logged in via Google but has no admin access
+      // Check if they already have a pending request
+      const { data: existingRequest } = await supabase
+        .from("admin_requests")
+        .select("status")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (existingRequest?.status === 'pending') {
+        // Request already pending
+        setPendingEmail(session.user.email || "");
+        setRequestPending(true);
+        await supabase.auth.signOut();
+      } else if (existingRequest?.status === 'rejected') {
+        // Request was rejected
+        toast({
+          title: "Request Rejected",
+          description: "Your admin access request was rejected. Contact support for more information.",
+          variant: "destructive",
+        });
+        await supabase.auth.signOut();
+      } else if (!existingRequest) {
+        // Create new admin request
+        const { error: insertError } = await supabase
+          .from("admin_requests")
+          .insert({
+            user_id: session.user.id,
+            email: session.user.email,
+            full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
+          });
+
+        if (!insertError) {
+          setPendingEmail(session.user.email || "");
+          setRequestPending(true);
+          toast({
+            title: "Request Submitted!",
+            description: "Your admin access request has been submitted for approval.",
+          });
+        } else {
+          console.error("Error creating admin request:", insertError);
+          toast({
+            title: "Error",
+            description: "Failed to submit admin request. Please try again.",
+            variant: "destructive",
+          });
+        }
+        await supabase.auth.signOut();
       }
     }
-  };
+  }, [navigate, toast]);
+
+  useEffect(() => {
+    checkSession();
+  }, [checkSession]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,19 +113,37 @@ const AdminLoginPage = () => {
       }
 
       if (authData.user) {
-        // Check if user is admin
-        const { data: roleData, error: roleError } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", authData.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
+        // Check if user is admin using RPC to bypass RLS
+        const { data: hasAdminRole, error: rpcError } = await supabase
+          .rpc('has_role', {
+            _user_id: authData.user.id,
+            _role: 'admin'
+          });
 
-        if (roleError || !roleData) {
+        // Also check for super_admin
+        const { data: hasSuperAdminRole } = await supabase
+          .rpc('has_role', {
+            _user_id: authData.user.id,
+            _role: 'super_admin'
+          });
+
+        const isAdmin = hasAdminRole === true || hasSuperAdminRole === true;
+
+        if (rpcError) {
+          console.error("RPC role check error:", rpcError);
+        }
+
+        if (!isAdmin) {
+          console.error("Role check failed - user is not an admin:", {
+            userId: authData.user.id,
+            hasAdminRole,
+            hasSuperAdminRole,
+            rpcError
+          });
           await supabase.auth.signOut();
           toast({
             title: "Access Denied",
-            description: "You do not have administrative privileges.",
+            description: `No admin privileges found for user ID: ${authData.user.id.substring(0, 8)}...`,
             variant: "destructive",
           });
           setLoading(false);
@@ -97,6 +167,65 @@ const AdminLoginPage = () => {
       setLoading(false);
     }
   };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    // Store where we want to redirect after auth
+    sessionStorage.setItem("authRedirect", "/admin/login");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      setLoading(false);
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Show pending request UI
+  if (requestPending) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full text-center"
+        >
+          <div className="w-20 h-20 mx-auto mb-6 bg-amber-100 rounded-full flex items-center justify-center">
+            <Shield className="w-10 h-10 text-amber-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h2>
+          <p className="text-gray-600 mb-4">
+            Your admin access request for <span className="font-semibold text-indigo-600">{pendingEmail}</span> is pending approval.
+          </p>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+            <p className="text-sm text-amber-800">
+              An existing administrator will review your request. You'll be able to access the admin panel once approved.
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setRequestPending(false);
+              setPendingEmail("");
+            }}
+            variant="outline"
+            className="w-full rounded-xl"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Login
+          </Button>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
@@ -288,6 +417,49 @@ const AdminLoginPage = () => {
                 )}
               </Button>
             </form>
+
+            <div className="relative py-4">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-border/60"></span>
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-[#f8fafc] px-2 text-muted-foreground font-medium">Or continue with</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="w-full h-14 text-base font-semibold rounded-xl border-border/60 hover:bg-white hover:text-indigo-600 hover:border-indigo-500/50 shadow-sm transition-all flex items-center justify-center gap-3 bg-white"
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-1.01.67-2.28 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Google
+                </>
+              )}
+            </Button>
 
             {/* Security Notice */}
             <div className="p-4 bg-muted/50 rounded-xl border border-border/40">

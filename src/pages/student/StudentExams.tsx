@@ -16,12 +16,22 @@ import {
   Award,
   ArrowRight
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentLayout from "@/components/student/StudentLayout";
 
 interface Exam {
   id: string;
   name: string;
+  is_paid: boolean;
+  price: number;
+  order_index?: number;
+}
+
+interface Subject {
+  id: string;
+  name: string;
+  order_index?: number;
 }
 
 interface MockTest {
@@ -30,7 +40,12 @@ interface MockTest {
   test_type: string;
   duration_minutes: number;
   total_marks: number;
-  exam_id: string;
+  exam_id: string | null;
+  subject_id: string | null;
+  is_paid: boolean;
+  price: number;
+  order_index?: number;
+  subjects?: { id: string, name: string, exam_id: string | null, order_index?: number };
 }
 
 interface TestAttemptInfo {
@@ -43,13 +58,40 @@ interface TestAttemptInfo {
 const StudentExams = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [hasSubscription, setHasSubscription] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const oneYearAgo = new Date();
+      oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+
+      const { data } = await (supabase
+        .from("purchases" as any)
+        .select("id")
+        .eq("user_id", session.user.id)
+        .eq("content_type", "subscription")
+        .eq("status", "completed")
+        .gt("created_at", oneYearAgo.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle() as any);
+
+      setHasSubscription(!!data);
+    };
+    checkSubscription();
+  }, []);
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [mockTests, setMockTests] = useState<{ [key: string]: MockTest[] }>({});
   const [testAttempts, setTestAttempts] = useState<{ [key: string]: TestAttemptInfo }>({});
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
   const [selectedExam, setSelectedExam] = useState<string>("all");
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
 
   const urlType = searchParams.get("type");
   const [filterType, setFilterType] = useState<"all" | "full_mock" | "topic_wise">(
@@ -57,31 +99,100 @@ const StudentExams = () => {
   );
 
   const checkAuthAndLoadData = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { navigate("/login"); return; }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { navigate("/login"); return; }
 
-    const approvalResult = await supabase.from("approval_status").select("status").eq("user_id", session.user.id).single();
-    setApprovalStatus(approvalResult.data?.status || "pending");
-    await Promise.all([loadExamsAndTests(), loadTestAttempts(session.user.id)]);
-    setLoading(false);
-  }, [navigate]);
+      const approvalResult = await supabase.from("approval_status").select("status").eq("user_id", session.user.id).single();
+      setApprovalStatus(approvalResult.data?.status || "pending");
+      await Promise.all([loadExamsAndTests(), loadTestAttempts(session.user.id)]);
+    } catch (error) {
+      console.error("Error loading exams:", error);
+      toast({
+        title: "Error loading tests",
+        description: "Please refresh the page and try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate, toast]);
 
   useEffect(() => {
     checkAuthAndLoadData();
   }, [checkAuthAndLoadData]);
 
   const loadExamsAndTests = async () => {
-    const { data: examsData } = await supabase.from("exams").select("id, name").eq("is_active", true).order("name");
-    setExams(examsData || []);
+    // Try fetching with order_index first
+    let { data: examsData, error: examsError } = await supabase
+      .from("exams")
+      .select("id, name, is_paid, price, order_index")
+      .eq("is_active", true)
+      .order("order_index", { ascending: true });
 
-    const { data: testsData } = await supabase.from("mock_tests").select("id, title, test_type, duration_minutes, total_marks, exam_id").eq("is_published", true).order("title");
+    // Fallback if column missing (order_index doesn't exist yet)
+    if (examsError) {
+      console.warn("Exams fetch with order_index failed, falling back to name:", examsError);
+      const { data: fallbackExams } = await supabase
+        .from("exams")
+        .select("id, name, is_paid, price")
+        .eq("is_active", true)
+        .order("name");
+      examsData = fallbackExams;
+    }
+    setExams((examsData as any) || []);
+
+    // Load subjects for topic-wise filter
+    let { data: subjectsData, error: subjectsError } = await supabase
+      .from("subjects")
+      .select("id, name, order_index")
+      .or('category.eq.questions,category.is.null')
+      .order("order_index", { ascending: true });
+
+    if (subjectsError) {
+      console.warn("Subjects fetch with order_index failed, falling back to name:", subjectsError);
+      const { data: fallbackSubjects } = await supabase
+        .from("subjects")
+        .select("id, name")
+        .or('category.eq.questions,category.is.null')
+        .order("name");
+      subjectsData = fallbackSubjects as any;
+    }
+    setSubjects((subjectsData as any) || []);
+
+    // Auto-select first exam if search params type is set but no exam is selected
+    if (examsData && examsData.length > 0 && selectedExam === "all" && searchParams.get("type")) {
+      // Keep "all" but we can use this data for badges
+    }
+
+    // Try fetching tests with order_index
+    let { data: testsData, error: testsError } = await supabase
+      .from("mock_tests")
+      .select("id, title, test_type, duration_minutes, total_marks, exam_id, is_paid, price, subject_id, order_index, subjects(id, name, exam_id, order_index)")
+      .eq("is_published", true)
+      .order("order_index", { ascending: true });
+
+    // Fallback for tests if order_index missing
+    if (testsError) {
+      console.warn("Tests fetch with order_index failed, falling back to title:", testsError);
+      const { data: fallbackTests } = await supabase
+        .from("mock_tests")
+        .select("id, title, test_type, duration_minutes, total_marks, exam_id, is_paid, price, subject_id, subjects(id, name, exam_id)")
+        .eq("is_published", true)
+        .order("title");
+      testsData = fallbackTests as any;
+    }
+
     const testsByExam: { [key: string]: MockTest[] } = {};
-    testsData?.forEach((test) => {
-      if (!testsByExam[test.exam_id]) testsByExam[test.exam_id] = [];
-      testsByExam[test.exam_id].push(test);
+    testsData?.forEach((test: any) => {
+      // Use test.exam_id, or if null, use subject's exam_id, or "general"
+      const groupingId = test.exam_id || test.subjects?.exam_id || "general";
+      if (!testsByExam[groupingId]) testsByExam[groupingId] = [];
+      testsByExam[groupingId].push(test as MockTest);
     });
     setMockTests(testsByExam);
   };
+
 
   const loadTestAttempts = async (userId: string) => {
     const { data } = await supabase.from("test_attempts").select("test_id, percentage, passed").eq("user_id", userId).eq("is_active", false);
@@ -105,6 +216,7 @@ const StudentExams = () => {
   const getAllTests = () => {
     let allTests: MockTest[] = [];
     Object.entries(mockTests).forEach(([examId, tests]) => {
+      // "general" tests are included in "all" or if specifically selected (though not in exams list)
       if (selectedExam === "all" || selectedExam === examId) allTests = [...allTests, ...tests];
     });
 
@@ -112,7 +224,33 @@ const StudentExams = () => {
       allTests = allTests.filter(t => t.test_type === filterType);
     }
 
-    return allTests;
+    // Filter by subject when in topic_wise mode
+    if (filterType === "topic_wise" && selectedSubject !== "all") {
+      allTests = allTests.filter(t => t.subject_id === selectedSubject);
+    }
+
+    // Final sorting to respect order_index
+    return allTests.sort((a, b) => {
+      // 1. Priority: Manual test order
+      const orderA = a.order_index ?? 999;
+      const orderB = b.order_index ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+
+      // 2. Fallback: Subject/Exam order
+      if (filterType === "topic_wise") {
+        const subA = a.subjects?.order_index ?? 999;
+        const subB = b.subjects?.order_index ?? 999;
+        if (subA !== subB) return subA - subB;
+      } else if (filterType === "full_mock") {
+        // Find exam order
+        const examA = exams.find(e => e.id === a.exam_id)?.order_index ?? 999;
+        const examB = exams.find(e => e.id === b.exam_id)?.order_index ?? 999;
+        if (examA !== examB) return examA - examB;
+      }
+
+      // 3. Last fallback: Title
+      return a.title.localeCompare(b.title);
+    });
   };
 
   const filteredTests = getAllTests();
@@ -138,31 +276,6 @@ const StudentExams = () => {
     );
   }
 
-  if (approvalStatus === "payment_locked") {
-    return (
-      <StudentLayout title="Mock Tests" subtitle="Practice & improve">
-        <div className="w-full md:max-w-5xl md:mx-auto flex items-center justify-center min-h-[50vh]">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-sm w-full"
-          >
-            <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-slate-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Locked</h2>
-            <p className="text-slate-500 mb-8">Complete payment to unlock all tests</p>
-            <button
-              onClick={() => navigate("/student/dashboard")}
-              className="w-full bg-indigo-600 text-white py-4 rounded-xl font-semibold active:scale-[0.98] transition-all"
-            >
-              Back to Dashboard
-            </button>
-          </motion.div>
-        </div>
-      </StudentLayout>
-    );
-  }
 
   return (
     <StudentLayout title="Mock Tests" subtitle="Practice & improve">
@@ -226,6 +339,7 @@ const StudentExams = () => {
                 onClick={() => {
                   setFilterType(tab.key as any);
                   setSelectedExam("all");
+                  setSelectedSubject("all");
                 }}
                 className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 tap-highlight ${filterType === tab.key
                   ? "bg-indigo-600 text-white shadow-md"
@@ -238,36 +352,75 @@ const StudentExams = () => {
             ))}
           </div>
 
-          {exams.length > 0 && (
-            <div
-              className="scrollbar-hide pb-1 -mx-1 px-1"
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                flexWrap: 'nowrap',
-                overflowX: 'auto',
-                gap: '0.5rem',
-                WebkitOverflowScrolling: 'touch'
-              }}
-            >
-              <button
-                onClick={() => setSelectedExam("all")}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all tap-highlight ${selectedExam === "all" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
-                style={{ flexShrink: 0 }}
+          {/* Show Exam tabs for All/Full Mock, Subject tabs for Topic */}
+          {filterType === "topic_wise" ? (
+            // Subject tabs for topic-wise tests
+            subjects.length > 0 && (
+              <div
+                className="scrollbar-hide pb-1 -mx-1 px-1"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  flexWrap: 'nowrap',
+                  overflowX: 'auto',
+                  gap: '0.5rem',
+                  WebkitOverflowScrolling: 'touch'
+                }}
               >
-                All
-              </button>
-              {exams.map(e => (
                 <button
-                  key={e.id}
-                  onClick={() => setSelectedExam(e.id)}
-                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap tap-highlight ${selectedExam === e.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
+                  onClick={() => setSelectedSubject("all")}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all tap-highlight ${selectedSubject === "all" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
                   style={{ flexShrink: 0 }}
                 >
-                  {e.name}
+                  All
                 </button>
-              ))}
-            </div>
+                {subjects.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => setSelectedSubject(s.id)}
+                    className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap tap-highlight flex items-center gap-1.5 ${selectedSubject === s.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
+                    style={{ flexShrink: 0 }}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            )
+          ) : (
+            // Exam tabs for All/Full Mock
+            exams.length > 0 && (
+              <div
+                className="scrollbar-hide pb-1 -mx-1 px-1"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'row',
+                  flexWrap: 'nowrap',
+                  overflowX: 'auto',
+                  gap: '0.5rem',
+                  WebkitOverflowScrolling: 'touch'
+                }}
+              >
+                <button
+                  onClick={() => setSelectedExam("all")}
+                  className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all tap-highlight ${selectedExam === "all" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
+                  style={{ flexShrink: 0 }}
+                >
+                  All
+                </button>
+                {exams.map(e => (
+                  <button
+                    key={e.id}
+                    onClick={() => setSelectedExam(e.id)}
+                    className={`shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all whitespace-nowrap tap-highlight flex items-center gap-1.5 ${selectedExam === e.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-600"}`}
+                    style={{ flexShrink: 0 }}
+                  >
+                    {e.name}
+                    {e.is_paid && !hasSubscription && <Lock className="w-2.5 h-2.5 opacity-60" />}
+                    {e.is_paid && hasSubscription && <CheckCircle className="w-2.5 h-2.5 text-emerald-500" />}
+                  </button>
+                ))}
+              </div>
+            )
           )}
 
           {/* ═══════════════════════════════════════════════════════════════
@@ -308,7 +461,14 @@ const StudentExams = () => {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-bold text-slate-900 truncate">{test.title}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-bold text-slate-900 truncate">{test.title}</h3>
+                          {test.is_paid && (
+                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 ${hasSubscription ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-amber-50 text-amber-600 border-amber-100'}`}>
+                              {hasSubscription ? 'PREMIUM UNLOCKED' : 'PREMIUM'}
+                            </Badge>
+                          )}
+                        </div>
                         <div className="flex items-center gap-2 mt-1 text-slate-400">
                           <div className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />

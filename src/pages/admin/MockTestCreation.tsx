@@ -13,10 +13,46 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { GripVertical } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 import { isTestVisibleOnLanding, toggleTestLandingVisibility } from "@/config/landingVisibility";
 import { addNotification, sendBrowserNotification } from "@/config/notifications";
+
+const SortableTestItem = ({ test, children }: { test: MockTest, children: React.ReactNode }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: test.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+    position: 'relative' as const,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div className="flex items-center">
+        <div {...listeners} className="px-2 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors">
+          <GripVertical className="w-4 h-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 interface MockTest {
   id: string;
@@ -27,9 +63,14 @@ interface MockTest {
   passing_marks: number;
   total_marks: number;
   is_published: boolean;
+  is_paid: boolean;
+  price: number;
   exam_id: string;
+  subject_id?: string;
   exams?: { name: string };
+  subjects?: { name: string };
   created_at: string;
+  order_index?: number;
 }
 
 interface Exam {
@@ -55,6 +96,7 @@ const MockTestCreation = () => {
   const { toast } = useToast();
   const [tests, setTests] = useState<MockTest[]>([]);
   const [exams, setExams] = useState<Exam[]>([]);
+  const [questionSubjects, setQuestionSubjects] = useState<{ id: string, name: string }[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -68,16 +110,21 @@ const MockTestCreation = () => {
   const [topicOptions, setTopicOptions] = useState<{ id: string, name: string }[]>([]);
   // Filters for tests list
   const [testSearchQuery, setTestSearchQuery] = useState("");
+  const [testFilterType, setTestFilterType] = useState<string>("all");
   const [testFilterExam, setTestFilterExam] = useState<string>("all");
+  const [testFilterSubject, setTestFilterSubject] = useState<string>("all");
   const [testFilterStatus, setTestFilterStatus] = useState<string>("all");
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     exam_id: "",
+    subject_id: "",
     test_type: "full_mock",
     duration_minutes: 60,
     passing_marks: 40,
-    marks_per_question: 1
+    marks_per_question: 1,
+    is_paid: false,
+    price: 0
   });
   const [landingVisibility, setLandingVisibility] = useState<{ [key: string]: boolean }>({});
 
@@ -162,17 +209,20 @@ const MockTestCreation = () => {
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      setLoading(false);
       navigate("/admin/login");
       return;
     }
     const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle();
     if (!roleData) {
+      setLoading(false);
       await supabase.auth.signOut();
       toast({ title: "Access Denied", description: "You do not have admin privileges", variant: "destructive" });
       navigate("/admin/login");
       return;
     }
     await loadExams();
+    await loadQuestionSubjects();
     await loadTests();
     setLoading(false);
   };
@@ -182,17 +232,115 @@ const MockTestCreation = () => {
   }, [tests]);
 
   const loadExams = async () => {
-    const { data } = await supabase.from("exams").select("id, name").eq("is_active", true).order("name");
+    const { data } = await (supabase.from("exams").select("id, name, order_index").eq("is_active", true).order("order_index", { ascending: true }) as any);
     if (data) setExams(data);
   };
 
+  const loadQuestionSubjects = async () => {
+    const { data } = await (supabase
+      .from("subjects")
+      .select("id, name, order_index")
+      .or('category.eq.questions,category.is.null')
+      .order("order_index", { ascending: true }) as any);
+    if (data) setQuestionSubjects(data);
+  };
+
   const loadTests = async () => {
-    const { data, error } = await supabase.from("mock_tests").select("*, exams(name)").order("created_at", { ascending: false });
+    // Order by created_at in the database, then apply order_index sorting client-side if available
+    const { data, error } = await supabase.from("mock_tests").select("*, exams(name), subjects(name)").order("created_at", { ascending: false });
+
+    // Check for errors FIRST before processing data
     if (error) {
-      toast({ title: "Error", description: "Failed to load tests", variant: "destructive" });
+      console.error("Error loading tests:", error);
+      toast({ title: "Error", description: `Failed to load tests: ${error.message}`, variant: "destructive" });
       return;
     }
-    setTests(data || []);
+
+    // Sort logic: use order_index if available, otherwise fall back to created_at
+    // Cast to any to handle order_index which may not exist in the database schema yet
+    const sortedData = (data || []).sort((a: any, b: any) => {
+      // If both have order_index, sort by that
+      if (a.order_index !== null && b.order_index !== null && a.order_index !== undefined && b.order_index !== undefined) {
+        return a.order_index - b.order_index;
+      }
+      // Otherwise sort by created_at (newest first)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    setTests(sortedData as MockTest[]);
+  };
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setTests((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+
+        // Persist to database
+        persistOrder(newItems);
+
+        return newItems;
+      });
+    }
+  };
+
+  const persistOrder = async (newTests: MockTest[]) => {
+    try {
+      const updates = newTests.map((test, index) => ({
+        id: test.id,
+        order_index: index,
+      }));
+
+      // Try to persist order - this will fail if order_index column doesn't exist
+      const { error } = await supabase
+        .from("mock_tests")
+        .update({ order_index: updates[0].order_index } as any)
+        .eq("id", updates[0].id);
+
+      if (error && error.message.includes("order_index")) {
+        // Column doesn't exist - notify user but don't show error
+        console.warn("order_index column doesn't exist in mock_tests table. Drag-and-drop ordering is visual only.");
+        toast({
+          title: "Order Updated (Visual Only)",
+          description: "To save order permanently, add 'order_index' column to mock_tests table",
+        });
+        return;
+      }
+
+      // Column exists, persist all updates
+      for (const update of updates.slice(1)) {
+        await supabase
+          .from("mock_tests")
+          .update({ order_index: update.order_index } as any)
+          .eq("id", update.id);
+      }
+
+      toast({
+        title: "Order Updated",
+        description: "Test sequence saved successfully",
+      });
+    } catch (error) {
+      console.error("Error persisting order:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save test order",
+        variant: "destructive",
+      });
+    }
   };
 
   const loadQuestions = async () => {
@@ -272,36 +420,72 @@ const MockTestCreation = () => {
     const matchesSearch = !testSearchQuery ||
       test.title.toLowerCase().includes(testSearchQuery.toLowerCase()) ||
       (test.description || "").toLowerCase().includes(testSearchQuery.toLowerCase());
-    const matchesExam = testFilterExam === "all" || test.exam_id === testFilterExam;
+    // Filter by test type
+    const matchesType = testFilterType === "all" || test.test_type === testFilterType;
+    // Filter by exam (only for full_mock) or subject (only for topic_wise)
+    const matchesExam = testFilterType !== "full_mock" || testFilterExam === "all" || test.exam_id === testFilterExam;
+    const matchesSubject = testFilterType !== "topic_wise" || testFilterSubject === "all" || test.subject_id === testFilterSubject;
     const matchesStatus = testFilterStatus === "all" ||
       (testFilterStatus === "published" && test.is_published) ||
       (testFilterStatus === "draft" && !test.is_published);
-    return matchesSearch && matchesExam && matchesStatus;
+    return matchesSearch && matchesType && matchesExam && matchesSubject && matchesStatus;
   });
 
   const handleCreateTest = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const totalMarks = selectedQuestions.length * formData.marks_per_question;
-    const { data, error } = await supabase.from("mock_tests").insert([{
+
+    const testData = {
       title: formData.title,
       description: formData.description || null,
-      exam_id: formData.exam_id,
+      exam_id: formData.test_type === "topic_wise" ? null : (formData.exam_id || null),
+      subject_id: formData.test_type === "topic_wise" ? (formData.subject_id || null) : null,
       test_type: formData.test_type as "full_mock" | "topic_wise",
       duration_minutes: formData.duration_minutes,
       passing_marks: formData.passing_marks,
       total_marks: totalMarks,
       is_published: false,
+      is_paid: formData.is_paid,
+      price: formData.price,
       created_by: session.user.id
-    }]).select().single();
+    };
+
+    console.log("Attempting to create test with data:", testData);
+
+    const { data, error } = await supabase.from("mock_tests").insert([testData]).select().single();
 
     if (error || !data) {
-      toast({ title: "Error", description: "Failed to create test", variant: "destructive" });
+      console.error("Error creating test:", error);
+
+      // Fallback: If error is about missing columns (like is_paid/price), try a simpler insert
+      if (error?.message?.includes("column") && (error.message.includes("is_paid") || error.message.includes("price"))) {
+        console.warn("Retrying with simple insert (ignoring is_paid/price)");
+        const simpleTestData = { ...testData };
+        delete (simpleTestData as any).is_paid;
+        delete (simpleTestData as any).price;
+
+        const { data: retryData, error: retryError } = await supabase.from("mock_tests").insert([simpleTestData]).select().single();
+        if (retryError || !retryData) {
+          console.error("Retry failed:", retryError);
+          toast({ title: "Error", description: "Failed to create test: " + (retryError?.message || "Unknown error"), variant: "destructive" });
+          return;
+        }
+        // Success on retry
+        handleQuestionsInsert(retryData.id);
+        return;
+      }
+
+      toast({ title: "Error", description: "Failed to create test: " + (error?.message || "Check console for details"), variant: "destructive" });
       return;
     }
 
+    handleQuestionsInsert(data.id);
+  };
+
+  const handleQuestionsInsert = async (testId: string) => {
     const testQuestions = selectedQuestions.map((questionId, index) => ({
-      test_id: data.id,
+      test_id: testId,
       question_id: questionId,
       question_order: index + 1,
       marks: formData.marks_per_question
@@ -309,6 +493,7 @@ const MockTestCreation = () => {
 
     const { error: questionsError } = await supabase.from("test_questions").insert(testQuestions);
     if (questionsError) {
+      console.error("Error adding questions:", questionsError);
       toast({ title: "Error", description: "Failed to add questions to test", variant: "destructive" });
       return;
     }
@@ -316,7 +501,53 @@ const MockTestCreation = () => {
     toast({ title: "Success", description: "Test created successfully" });
     setDialogOpen(false);
     setQuestionDialogOpen(false);
-    setFormData({ title: "", description: "", exam_id: "", test_type: "full_mock", duration_minutes: 60, passing_marks: 40, marks_per_question: 1 });
+    setFormData({ title: "", description: "", exam_id: "", subject_id: "", test_type: "full_mock", duration_minutes: 60, passing_marks: 40, marks_per_question: 1, is_paid: false, price: 0 });
+    setSelectedQuestions([]);
+    await loadTests();
+  };
+
+  // Update questions for an existing test
+  const handleUpdateTestQuestions = async () => {
+    if (!editingTest) return;
+
+    // Delete existing questions for this test
+    const { error: deleteError } = await supabase
+      .from("test_questions")
+      .delete()
+      .eq("test_id", editingTest.id);
+
+    if (deleteError) {
+      console.error("Error deleting old questions:", deleteError);
+      toast({ title: "Error", description: "Failed to update questions", variant: "destructive" });
+      return;
+    }
+
+    // Insert new questions
+    const testQuestions = selectedQuestions.map((questionId, index) => ({
+      test_id: editingTest.id,
+      question_id: questionId,
+      question_order: index + 1,
+      marks: formData.marks_per_question
+    }));
+
+    const { error: insertError } = await supabase.from("test_questions").insert(testQuestions);
+    if (insertError) {
+      console.error("Error inserting new questions:", insertError);
+      toast({ title: "Error", description: "Failed to add questions", variant: "destructive" });
+      return;
+    }
+
+    // Update total_marks in mock_tests
+    const totalMarks = selectedQuestions.length * formData.marks_per_question;
+    await supabase.from("mock_tests").update({
+      total_marks: totalMarks,
+      total_questions: selectedQuestions.length
+    }).eq("id", editingTest.id);
+
+    toast({ title: "Success", description: `Updated ${selectedQuestions.length} questions` });
+    setQuestionDialogOpen(false);
+    setDialogOpen(false);
+    setEditingTest(null);
     setSelectedQuestions([]);
     await loadTests();
   };
@@ -354,17 +585,38 @@ const MockTestCreation = () => {
 
   const openCreateDialog = () => {
     setEditingTest(null);
-    setFormData({ title: "", description: "", exam_id: "", test_type: "full_mock", duration_minutes: 60, passing_marks: 40, marks_per_question: 1 });
+    setFormData({ title: "", description: "", exam_id: "", subject_id: "", test_type: "full_mock", duration_minutes: 60, passing_marks: 40, marks_per_question: 1, is_paid: false, price: 0 });
     setSelectedQuestions([]);
     setDialogOpen(true);
   };
 
   const proceedToQuestionSelection = async () => {
-    if (!formData.exam_id) {
-      toast({ title: "Error", description: "Please select an exam", variant: "destructive" });
-      return;
-    }
+    // Exam is now optional to align with Question Bank logic
     await loadQuestions();
+    setSearchQuery("");
+    setFilterSubject("all");
+    setFilterTopic("all");
+    setDialogOpen(false);
+    setQuestionDialogOpen(true);
+  };
+
+  // Function to manage questions for an existing test
+  const manageTestQuestions = async () => {
+    if (!editingTest) return;
+
+    // Load all available questions
+    await loadQuestions();
+
+    // Load questions currently in this test
+    const { data: testQuestionsData } = await supabase
+      .from("test_questions")
+      .select("question_id")
+      .eq("test_id", editingTest.id);
+
+    if (testQuestionsData) {
+      setSelectedQuestions(testQuestionsData.map(tq => tq.question_id));
+    }
+
     setSearchQuery("");
     setFilterSubject("all");
     setFilterTopic("all");
@@ -390,29 +642,64 @@ const MockTestCreation = () => {
       title: test.title,
       description: test.description || "",
       exam_id: test.exam_id,
+      subject_id: test.subject_id || "",
       test_type: test.test_type,
       duration_minutes: test.duration_minutes,
       passing_marks: test.passing_marks,
-      marks_per_question: 1
+      marks_per_question: 1,
+      is_paid: test.is_paid || false,
+      price: test.price || 0
     });
     setDialogOpen(true);
   };
 
   const handleUpdateTest = async () => {
     if (!editingTest) return;
-    const { error } = await supabase.from("mock_tests").update({
+
+    const updateData = {
       title: formData.title,
       description: formData.description || null,
-      exam_id: formData.exam_id,
+      exam_id: formData.test_type === "topic_wise" ? null : (formData.exam_id || null),
+      subject_id: formData.test_type === "topic_wise" ? (formData.subject_id || null) : null,
       test_type: formData.test_type as "full_mock" | "topic_wise",
       duration_minutes: formData.duration_minutes,
-      passing_marks: formData.passing_marks
-    }).eq("id", editingTest.id);
+      passing_marks: formData.passing_marks,
+      is_paid: formData.is_paid,
+      price: formData.price
+    };
+
+    console.log("Attempting to update test with data:", updateData);
+
+    const { error } = await supabase.from("mock_tests").update(updateData).eq("id", editingTest.id);
 
     if (error) {
-      toast({ title: "Error", description: "Failed to update test", variant: "destructive" });
+      console.error("Error updating test:", error);
+
+      // Fallback: If error is about missing columns (like is_paid/price), try a simpler update
+      if (error?.message?.includes("column") && (error.message.includes("is_paid") || error.message.includes("price"))) {
+        console.warn("Retrying with simple update (ignoring is_paid/price)");
+        const simpleUpdateData = { ...updateData };
+        delete (simpleUpdateData as any).is_paid;
+        delete (simpleUpdateData as any).price;
+
+        const { error: retryError } = await supabase.from("mock_tests").update(simpleUpdateData).eq("id", editingTest.id);
+        if (retryError) {
+          console.error("Retry update failed:", retryError);
+          toast({ title: "Error", description: "Failed to update test: " + (retryError?.message || "Unknown error"), variant: "destructive" });
+          return;
+        }
+        // Success on retry
+        toast({ title: "Success", description: "Test updated successfully (migration pending)" });
+        setDialogOpen(false);
+        setEditingTest(null);
+        await loadTests();
+        return;
+      }
+
+      toast({ title: "Error", description: "Failed to update test: " + (error?.message || "Check console for details"), variant: "destructive" });
       return;
     }
+
     toast({ title: "Success", description: "Test updated successfully" });
     setDialogOpen(false);
     setEditingTest(null);
@@ -445,15 +732,26 @@ const MockTestCreation = () => {
             <Textarea value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} rows={2} className="rounded-xl mt-1" />
           </div>
           <div className="space-y-2">
-            <Label>Exam Category *</Label>
-            <Select value={formData.exam_id} onValueChange={value => setFormData({ ...formData, exam_id: value })}>
-              <SelectTrigger className="h-12 rounded-xl mt-1">
-                <SelectValue placeholder="Select exam" />
-              </SelectTrigger>
-              <SelectContent>
-                {exams.map(exam => <SelectItem key={exam.id} value={exam.id}>{exam.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>{formData.test_type === "topic_wise" ? "Subject *" : "Exam Category *"}</Label>
+            {formData.test_type === "topic_wise" ? (
+              <Select value={formData.subject_id} onValueChange={value => setFormData({ ...formData, subject_id: value })}>
+                <SelectTrigger className="h-12 rounded-xl mt-1">
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {questionSubjects.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Select value={formData.exam_id} onValueChange={value => setFormData({ ...formData, exam_id: value })}>
+                <SelectTrigger className="h-12 rounded-xl mt-1">
+                  <SelectValue placeholder="Select exam" />
+                </SelectTrigger>
+                <SelectContent>
+                  {exams.map(exam => <SelectItem key={exam.id} value={exam.id}>{exam.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Test Type *</Label>
@@ -481,13 +779,32 @@ const MockTestCreation = () => {
             <Label>Marks per Question *</Label>
             <Input type="number" value={formData.marks_per_question} onChange={e => setFormData({ ...formData, marks_per_question: parseInt(e.target.value) || 1 })} className="h-12 rounded-xl mt-1" />
           </div>
+          <div className="flex items-center space-x-2 py-2">
+            <Checkbox
+              id="is_paid"
+              checked={formData.is_paid}
+              onCheckedChange={(checked) => setFormData({ ...formData, is_paid: checked as boolean, price: checked ? 0 : 0 })}
+            />
+            <Label htmlFor="is_paid" className="text-sm font-medium leading-none cursor-pointer">
+              Requires Premium Subscription?
+            </Label>
+          </div>
         </div>
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 flex-wrap">
           <Button variant="outline" onClick={() => { setDialogOpen(false); setEditingTest(null); }} className="rounded-xl h-12 flex-1 sm:flex-none">Cancel</Button>
           {editingTest ? (
-            <Button onClick={handleUpdateTest} disabled={!formData.title} className="rounded-xl h-12 bg-gradient-to-r from-emerald-500 to-teal-600 flex-1 sm:flex-none">Update Test</Button>
+            <>
+              <Button
+                variant="outline"
+                onClick={manageTestQuestions}
+                className="rounded-xl h-12 flex-1 sm:flex-none border-indigo-200 text-indigo-600 hover:bg-indigo-50"
+              >
+                Manage Questions
+              </Button>
+              <Button onClick={handleUpdateTest} disabled={!formData.title} className="rounded-xl h-12 bg-gradient-to-r from-emerald-500 to-teal-600 flex-1 sm:flex-none">Update Test</Button>
+            </>
           ) : (
-            <Button onClick={proceedToQuestionSelection} disabled={!formData.title || !formData.exam_id} className="rounded-xl h-12 bg-gradient-to-r from-emerald-500 to-teal-600 flex-1 sm:flex-none">Next: Select Que.</Button>
+            <Button onClick={proceedToQuestionSelection} disabled={!formData.title} className="rounded-xl h-12 bg-gradient-to-r from-emerald-500 to-teal-600 flex-1 sm:flex-none">Next: Select Que.</Button>
           )}
         </DialogFooter>
       </DialogContent>
@@ -535,6 +852,30 @@ const MockTestCreation = () => {
           </button>
         </div>
 
+        {/* Test Type Filter Tabs */}
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { key: "all", label: "All Tests" },
+            { key: "full_mock", label: "Full Test" },
+            { key: "topic_wise", label: "Topic Test" }
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => {
+                setTestFilterType(tab.key);
+                setTestFilterExam("all");
+                setTestFilterSubject("all");
+              }}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${testFilterType === tab.key
+                ? "bg-emerald-600 text-white shadow-md"
+                : "bg-white text-slate-600 border border-slate-200 hover:border-emerald-200"
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* Filters Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex gap-3">
           <div className="flex-1 lg:min-w-[300px] relative">
@@ -546,15 +887,29 @@ const MockTestCreation = () => {
               className="pl-10 h-12 rounded-xl bg-white border-gray-200"
             />
           </div>
-          <Select value={testFilterExam} onValueChange={setTestFilterExam}>
-            <SelectTrigger className="h-12 rounded-xl bg-white lg:w-[180px]">
-              <SelectValue placeholder="All Exams" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Exams</SelectItem>
-              {exams.map(exam => <SelectItem key={exam.id} value={exam.id}>{exam.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
+          {/* Show Exam filter for Full Test, Subject filter for Topic Test */}
+          {testFilterType === "full_mock" && (
+            <Select value={testFilterExam} onValueChange={setTestFilterExam}>
+              <SelectTrigger className="h-12 rounded-xl bg-white lg:w-[180px]">
+                <SelectValue placeholder="All Exams" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Exams</SelectItem>
+                {exams.map(exam => <SelectItem key={exam.id} value={exam.id}>{exam.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          {testFilterType === "topic_wise" && (
+            <Select value={testFilterSubject} onValueChange={setTestFilterSubject}>
+              <SelectTrigger className="h-12 rounded-xl bg-white lg:w-[180px]">
+                <SelectValue placeholder="All Subjects" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Subjects</SelectItem>
+                {questionSubjects.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {/* Tests List - Row Based */}
@@ -580,7 +935,7 @@ const MockTestCreation = () => {
               </div>
               <h3 className="text-lg font-semibold mb-2">No Tests Found</h3>
               <p className="text-gray-500 text-sm mb-4">Try adjusting your search or filters</p>
-              <Button variant="outline" onClick={() => { setTestSearchQuery(""); setTestFilterExam("all"); setTestFilterStatus("all"); }} className="rounded-xl">
+              <Button variant="outline" onClick={() => { setTestSearchQuery(""); setTestFilterType("all"); setTestFilterExam("all"); setTestFilterSubject("all"); setTestFilterStatus("all"); }} className="rounded-xl">
                 Clear Filters
               </Button>
             </CardContent>
@@ -590,7 +945,7 @@ const MockTestCreation = () => {
             {/* Table Header */}
             <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] gap-4 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
               <span>Test Name</span>
-              <span>Exam</span>
+              <span>Category/Subject</span>
               <span>Duration</span>
               <span>Marks</span>
               <span>Status</span>
@@ -598,205 +953,227 @@ const MockTestCreation = () => {
             </div>
 
             <div className="divide-y divide-gray-100">
-              {filteredTests.map(test => (
-                <div key={test.id} className="hover:bg-gray-50/50 transition-colors">
-                  {/* Desktop Row */}
-                  <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] gap-4 px-4 py-3 items-center">
-                    {/* Test Name */}
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${test.is_published
-                        ? "bg-gradient-to-br from-emerald-100 to-teal-100"
-                        : "bg-gray-100"
-                        }`}>
-                        <BarChart className={`w-5 h-5 ${test.is_published ? "text-emerald-600" : "text-gray-400"}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{test.title}</p>
-                        {test.description && <p className="text-xs text-gray-500 truncate">{test.description}</p>}
-                      </div>
-                    </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={filteredTests.map(t => t.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {filteredTests.map(test => (
+                    <SortableTestItem key={test.id} test={test}>
+                      <div className="hover:bg-gray-50/50 transition-colors w-full">
+                        {/* Desktop Row */}
+                        <div className="hidden md:grid md:grid-cols-[2fr_1fr_1fr_1fr_1fr_80px] gap-4 px-4 py-3 items-center">
+                          {/* Test Name */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${test.is_published
+                              ? "bg-gradient-to-br from-emerald-100 to-teal-100"
+                              : "bg-gray-100"
+                              }`}>
+                              <BarChart className={`w-5 h-5 ${test.is_published ? "text-emerald-600" : "text-gray-400"}`} />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900 truncate">{test.title}</p>
+                              {test.description && <p className="text-xs text-gray-500 truncate">{test.description}</p>}
+                            </div>
+                          </div>
 
-                    {/* Exam */}
-                    <div>
-                      <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-gray-100">
-                        {test.exams?.name || "—"}
-                      </Badge>
-                    </div>
+                          {/* Category/Subject */}
+                          <div>
+                            <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-gray-100">
+                              {test.test_type === "topic_wise" ? (test.subjects?.name || "Subject") : (test.exams?.name || "Exam")}
+                            </Badge>
+                          </div>
 
-                    {/* Duration */}
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      {test.duration_minutes} min
-                    </div>
+                          {/* Duration */}
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Clock className="w-3.5 h-3.5 text-gray-400" />
+                            {test.duration_minutes} min
+                          </div>
 
-                    {/* Marks */}
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <Target className="w-3.5 h-3.5 text-gray-400" />
-                      {test.total_marks} ({test.passing_marks} pass)
-                    </div>
+                          {/* Marks */}
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Target className="w-3.5 h-3.5 text-gray-400" />
+                            {test.total_marks} ({test.passing_marks} pass)
+                          </div>
 
-                    {/* Status */}
-                    <div>
-                      <Badge
-                        variant="secondary"
-                        className={`text-[10px] px-2 py-0.5 ${test.is_published
-                          ? "bg-emerald-100 text-emerald-700"
-                          : "bg-amber-100 text-amber-700"
-                          }`}
-                      >
-                        {test.is_published ? "PUBLISHED" : "DRAFT"}
-                      </Badge>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex justify-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-emerald-50">
-                            <MoreVertical className="w-4 h-4 text-gray-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl min-w-[180px]">
-                          <DropdownMenuItem onClick={() => openEditDialog(test)} className="gap-2">
-                            <Pencil className="w-4 h-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleTogglePublish(test)} className="gap-2">
-                            {test.is_published ? (
-                              <>
-                                <PowerOff className="w-4 h-4" />
-                                Unpublish
-                              </>
+                          {/* Status */}
+                          <div>
+                            <Badge
+                              variant="secondary"
+                              className={`text-[10px] px-2 py-0.5 ${test.is_published
+                                ? "bg-emerald-100 text-emerald-700"
+                                : "bg-amber-100 text-amber-700"
+                                }`}
+                            >
+                              {test.is_published ? "PUBLISHED" : "DRAFT"}
+                            </Badge>
+                            {test.is_paid ? (
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200 ml-1">
+                                PREMIUM
+                              </Badge>
                             ) : (
-                              <>
-                                <Power className="w-4 h-4" />
-                                Publish
-                              </>
+                              <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-green-50 text-green-700 border-green-200 ml-1">
+                                FREE
+                              </Badge>
                             )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleToggleLandingVisibility(test.id, test.title)}
-                            className={`gap-2 ${landingVisibility[test.id] ? "text-emerald-600" : ""}`}
-                          >
-                            {landingVisibility[test.id] ? (
-                              <>
-                                <Eye className="w-4 h-4" />
-                                On Landing ✓
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="w-4 h-4" />
-                                Show on Landing
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleSendNotification(test)}
-                            className="gap-2 text-blue-600"
-                          >
-                            <Bell className="w-4 h-4" />
-                            Send Notification
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleDeleteTest(test.id)} className="gap-2 text-red-600 focus:text-red-600">
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
+                          </div>
 
-                  {/* Mobile Row */}
-                  <div className="md:hidden p-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${test.is_published
-                        ? "bg-gradient-to-br from-emerald-100 to-teal-100"
-                        : "bg-gray-100"
-                        }`}>
-                        <BarChart className={`w-5 h-5 ${test.is_published ? "text-emerald-600" : "text-gray-400"}`} />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 truncate text-sm">{test.title}</p>
-                          <Badge
-                            variant="secondary"
-                            className={`text-[9px] px-1.5 py-0 shrink-0 ${test.is_published
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-amber-100 text-amber-700"
-                              }`}
-                          >
-                            {test.is_published ? "PUB" : "DRAFT"}
-                          </Badge>
+                          {/* Actions */}
+                          <div className="flex justify-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-emerald-50">
+                                  <MoreVertical className="w-4 h-4 text-gray-400" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl min-w-[180px]">
+                                <DropdownMenuItem onClick={() => openEditDialog(test)} className="gap-2">
+                                  <Pencil className="w-4 h-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleTogglePublish(test)} className="gap-2">
+                                  {test.is_published ? (
+                                    <>
+                                      <PowerOff className="w-4 h-4" />
+                                      Unpublish
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Power className="w-4 h-4" />
+                                      Publish
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleToggleLandingVisibility(test.id, test.title)}
+                                  className={`gap-2 ${landingVisibility[test.id] ? "text-emerald-600" : ""}`}
+                                >
+                                  {landingVisibility[test.id] ? (
+                                    <>
+                                      <Eye className="w-4 h-4" />
+                                      On Landing ✓
+                                    </>
+                                  ) : (
+                                    <>
+                                      <EyeOff className="w-4 h-4" />
+                                      Show on Landing
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleSendNotification(test)}
+                                  className="gap-2 text-blue-600"
+                                >
+                                  <Bell className="w-4 h-4" />
+                                  Send Notification
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleDeleteTest(test.id)} className="gap-2 text-red-600 focus:text-red-600">
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
-                          <span>{test.exams?.name}</span>
-                          <span>•</span>
-                          <span>{test.duration_minutes}min</span>
-                          <span>•</span>
-                          <span>{test.total_marks}marks</span>
+
+                        {/* Mobile Row */}
+                        <div className="md:hidden p-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${test.is_published
+                              ? "bg-gradient-to-br from-emerald-100 to-teal-100"
+                              : "bg-gray-100"
+                              }`}>
+                              <BarChart className={`w-5 h-5 ${test.is_published ? "text-emerald-600" : "text-gray-400"}`} />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-gray-900 truncate text-sm">{test.title}</p>
+                                <Badge
+                                  variant="secondary"
+                                  className={`text-[9px] px-1.5 py-0 shrink-0 ${test.is_published
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : "bg-amber-100 text-amber-700"
+                                    }`}
+                                >
+                                  {test.is_published ? "PUB" : "DRAFT"}
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
+                                <span>{test.test_type === "topic_wise" ? test.subjects?.name : test.exams?.name}</span>
+                                <span>•</span>
+                                <span>{test.duration_minutes}min</span>
+                                <span>•</span>
+                                <span>{test.total_marks}marks</span>
+                              </div>
+                            </div>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-emerald-50 shrink-0">
+                                  <MoreVertical className="w-4 h-4 text-gray-400" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="rounded-xl min-w-[180px]">
+                                <DropdownMenuItem onClick={() => openEditDialog(test)} className="gap-2">
+                                  <Pencil className="w-4 h-4" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleTogglePublish(test)} className="gap-2">
+                                  {test.is_published ? (
+                                    <>
+                                      <PowerOff className="w-4 h-4" />
+                                      Unpublish
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Power className="w-4 h-4" />
+                                      Publish
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleToggleLandingVisibility(test.id, test.title)}
+                                  className={`gap-2 ${landingVisibility[test.id] ? "text-emerald-600" : ""}`}
+                                >
+                                  {landingVisibility[test.id] ? (
+                                    <>
+                                      <Eye className="w-4 h-4" />
+                                      On Landing ✓
+                                    </>
+                                  ) : (
+                                    <>
+                                      <EyeOff className="w-4 h-4" />
+                                      Show on Landing
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleSendNotification(test)}
+                                  className="gap-2 text-blue-600"
+                                >
+                                  <Bell className="w-4 h-4" />
+                                  Send Notification
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleDeleteTest(test.id)} className="gap-2 text-red-600 focus:text-red-600">
+                                  <Trash2 className="w-4 h-4" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
                         </div>
                       </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-lg hover:bg-emerald-50 shrink-0">
-                            <MoreVertical className="w-4 h-4 text-gray-400" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl min-w-[180px]">
-                          <DropdownMenuItem onClick={() => openEditDialog(test)} className="gap-2">
-                            <Pencil className="w-4 h-4" />
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleTogglePublish(test)} className="gap-2">
-                            {test.is_published ? (
-                              <>
-                                <PowerOff className="w-4 h-4" />
-                                Unpublish
-                              </>
-                            ) : (
-                              <>
-                                <Power className="w-4 h-4" />
-                                Publish
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleToggleLandingVisibility(test.id, test.title)}
-                            className={`gap-2 ${landingVisibility[test.id] ? "text-emerald-600" : ""}`}
-                          >
-                            {landingVisibility[test.id] ? (
-                              <>
-                                <Eye className="w-4 h-4" />
-                                On Landing ✓
-                              </>
-                            ) : (
-                              <>
-                                <EyeOff className="w-4 h-4" />
-                                Show on Landing
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleSendNotification(test)}
-                            className="gap-2 text-blue-600"
-                          >
-                            <Bell className="w-4 h-4" />
-                            Send Notification
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleDeleteTest(test.id)} className="gap-2 text-red-600 focus:text-red-600">
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    </SortableTestItem>
+                  ))}
+                </SortableContext>
+              </DndContext>
             </div>
           </Card>
         )}
@@ -882,10 +1259,35 @@ const MockTestCreation = () => {
           </div>
 
           <DialogFooter className="gap-2 mt-4">
-            <Button variant="outline" onClick={() => { setQuestionDialogOpen(false); setDialogOpen(true); }} className="rounded-xl h-12 flex-1 sm:flex-none">Back</Button>
-            <Button onClick={handleCreateTest} disabled={selectedQuestions.length === 0} className="rounded-xl h-12 bg-gradient-to-r from-emerald-500 to-teal-600 flex-1 sm:flex-none">
-              <span className="truncate">Create ({selectedQuestions.length} Qs)</span>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setQuestionDialogOpen(false);
+                if (editingTest) {
+                  setDialogOpen(true);
+                }
+              }}
+              className="rounded-xl h-12 flex-1 sm:flex-none"
+            >
+              {editingTest ? "Back" : "Cancel"}
             </Button>
+            {editingTest ? (
+              <Button
+                onClick={handleUpdateTestQuestions}
+                disabled={selectedQuestions.length === 0}
+                className="rounded-xl h-12 bg-gradient-to-r from-indigo-500 to-purple-600 flex-1 sm:flex-none"
+              >
+                <span className="truncate">Update Questions ({selectedQuestions.length})</span>
+              </Button>
+            ) : (
+              <Button
+                onClick={handleCreateTest}
+                disabled={selectedQuestions.length === 0}
+                className="rounded-xl h-12 bg-gradient-to-r from-emerald-500 to-teal-600 flex-1 sm:flex-none"
+              >
+                <span className="truncate">Create ({selectedQuestions.length} Qs)</span>
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

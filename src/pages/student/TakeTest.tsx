@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ import {
   Home,
   Lock,
   CreditCard,
-  MessageSquare
+  MessageSquare,
+  Sparkles
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -28,6 +29,7 @@ import { useExamSecurity } from "@/hooks/useExamSecurity";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast as sonnerToast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { initRazorpayPayment } from "@/utils/payment";
 
 interface Question {
   id: string;
@@ -59,6 +61,8 @@ interface MockTest {
   passing_marks: number;
   shuffle_questions: boolean;
   shuffle_options: boolean;
+  is_paid: boolean;
+  price: number;
 }
 
 const TakeTest = () => {
@@ -69,6 +73,7 @@ const TakeTest = () => {
   const [test, setTest] = useState<MockTest | null>(null);
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
   const [approvalStatus, setApprovalStatus] = useState<string | null>(null);
+  const [isPurchased, setIsPurchased] = useState<boolean>(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<{ [key: string]: string }>({});
   const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
@@ -79,6 +84,7 @@ const TakeTest = () => {
   const [submitting, setSubmitting] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [fiveMinuteWarningShown, setFiveMinuteWarningShown] = useState(false);
+  const [subscriptionFee, setSubscriptionFee] = useState<number>(0);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSaveRef = useRef<Date>(new Date());
 
@@ -96,157 +102,7 @@ const TakeTest = () => {
     onMaxViolations: () => handleAutoSubmit()
   });
 
-  useEffect(() => {
-    loadTest();
-    return () => {
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
-    };
-  }, [testId]);
-
-  useEffect(() => {
-    if (timeRemaining <= 0) return;
-    const timer = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          handleAutoSubmit();
-          return 0;
-        }
-        if (prev === 300 && !fiveMinuteWarningShown) {
-          setFiveMinuteWarningShown(true);
-          sonnerToast.warning("⏰ 5 minutes remaining!", {
-            description: "Review your answers and submit soon.",
-            duration: 10000
-          });
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [timeRemaining, fiveMinuteWarningShown]);
-
-  useEffect(() => {
-    if (!test || !testId) return;
-    autoSaveTimerRef.current = setInterval(() => autoSaveAnswers(), 30000);
-    return () => {
-      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
-    };
-  }, [answers, markedForReview, test, testId]);
-
-  const loadTest = async () => {
-    if (!testId) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/login");
-      return;
-    }
-
-
-
-    // Check approval status
-    const { data: approvalData } = await supabase.from("approval_status").select("status").eq("user_id", session.user.id).single();
-    if (approvalData?.status === "payment_locked") {
-      setApprovalStatus("payment_locked");
-      setLoading(false);
-      return;
-    }
-
-    const { data: activeAttempt } = await supabase.from("test_attempts").select("id").eq("test_id", testId).eq("user_id", session.user.id).eq("is_active", true).maybeSingle();
-    if (activeAttempt) {
-      toast({ title: "Test Already in Progress", description: "Complete or abandon your active attempt first.", variant: "destructive" });
-      navigate("/student/exams");
-      return;
-    }
-
-    const { data: testData, error: testError } = await supabase.from("mock_tests").select("*").eq("id", testId).single();
-    if (testError || !testData) {
-      toast({ title: "Error", description: "Test not found", variant: "destructive" });
-      navigate("/student/exams");
-      return;
-    }
-
-    const { data: questionsData, error: questionsError } = await supabase
-      .from("test_questions")
-      .select(`*, questions (*)`)
-      .eq("test_id", testId)
-      .order("question_order", { ascending: true })
-      .order("created_at", { ascending: true });
-    if (questionsError) {
-      toast({ title: "Error", description: "Failed to load questions", variant: "destructive" });
-      return;
-    }
-
-    let processedQuestions = questionsData as any[];
-    // Shuffling disabled as per user request to maintain upload order
-
-    const { data: existingTimer } = await supabase.from("test_timers").select("*").eq("test_id", testId).eq("user_id", session.user.id).maybeSingle();
-    let initialTime: number;
-    let startDateTime: Date;
-
-    if (existingTimer) {
-      const endsAt = new Date(existingTimer.ends_at);
-      initialTime = Math.max(0, Math.floor((endsAt.getTime() - Date.now()) / 1000));
-      startDateTime = new Date(existingTimer.started_at);
-      const { data: savedAnswers } = await supabase.from("test_answer_drafts").select("*").eq("test_id", testId).eq("user_id", session.user.id);
-      if (savedAnswers) {
-        const answersMap: { [key: string]: string } = {};
-        const reviewSet = new Set<string>();
-        savedAnswers.forEach(ans => {
-          if (ans.selected_answer) answersMap[ans.question_id] = ans.selected_answer;
-          if (ans.marked_for_review) reviewSet.add(ans.question_id);
-        });
-        setAnswers(answersMap);
-        setMarkedForReview(reviewSet);
-      }
-      sonnerToast.success("Test resumed", { description: "Your progress has been restored." });
-    } else {
-      initialTime = testData.duration_minutes * 60;
-      startDateTime = new Date();
-      const endsAt = new Date(startDateTime.getTime() + initialTime * 1000);
-      await supabase.from("test_timers").insert({
-        test_id: testId, user_id: session.user.id,
-        started_at: startDateTime.toISOString(), duration_minutes: testData.duration_minutes,
-        ends_at: endsAt.toISOString()
-      });
-    }
-
-    setTest(testData);
-    setQuestions(processedQuestions);
-    setTimeRemaining(initialTime);
-    setStartTime(startDateTime);
-    setLoading(false);
-  };
-
-  const autoSaveAnswers = async () => {
-    if (!testId || autoSaving) return;
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    setAutoSaving(true);
-    try {
-      const drafts = questions.map(q => ({
-        test_id: testId, user_id: session.user.id, question_id: q.question_id,
-        selected_answer: answers[q.question_id] || null,
-        marked_for_review: markedForReview.has(q.question_id),
-        last_saved_at: new Date().toISOString()
-      }));
-      const { error } = await supabase.from("test_answer_drafts").upsert(drafts, { onConflict: "test_id,user_id,question_id" });
-      if (!error) {
-        lastSaveRef.current = new Date();
-        sonnerToast.success("Progress saved", { duration: 2000 });
-      }
-    } catch (error) {
-      console.error("Auto-save error:", error);
-    } finally {
-      setAutoSaving(false);
-    }
-  };
-
-  const handleAutoSubmit = () => {
-    sonnerToast.error("⏰ Time's Up!", { description: "Submitting your test automatically...", duration: 5000 });
-    handleSubmitTest();
-  };
-
-  const handleSubmitTest = async () => {
+  const handleSubmitTest = useCallback(async () => {
     if (!test || !testId || !startTime) return;
     setSubmitting(true);
     const { data: { session } } = await supabase.auth.getSession();
@@ -296,7 +152,197 @@ const TakeTest = () => {
 
     sonnerToast.success("Test Submitted!", { description: `You scored ${totalScore}/${test.total_marks} (${percentage}%)` });
     navigate(`/student/test-review/${attemptData.id}`);
+  }, [test, testId, startTime, questions, answers, tabViolations, fullscreenViolations, navigate, toast]);
+
+  const handleAutoSubmit = useCallback(() => {
+    sonnerToast.error("⏰ Time's Up!", { description: "Submitting your test automatically...", duration: 5000 });
+    handleSubmitTest();
+  }, [handleSubmitTest]);
+
+  const autoSaveAnswers = useCallback(async () => {
+    if (!testId || autoSaving) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    setAutoSaving(true);
+    try {
+      const drafts = questions.map(q => ({
+        test_id: testId, user_id: session.user.id, question_id: q.question_id,
+        selected_answer: answers[q.question_id] || null,
+        marked_for_review: markedForReview.has(q.question_id),
+        last_saved_at: new Date().toISOString()
+      }));
+      const { error } = await supabase.from("test_answer_drafts").upsert(drafts, { onConflict: "test_id,user_id,question_id" });
+      if (!error) {
+        lastSaveRef.current = new Date();
+        sonnerToast.success("Progress saved", { duration: 2000 });
+      }
+    } catch (error) {
+      console.error("Auto-save error:", error);
+    } finally {
+      setAutoSaving(false);
+    }
+  }, [testId, autoSaving, questions, answers, markedForReview]);
+
+  const loadTest = useCallback(async () => {
+    if (!testId) return;
+
+    // Fetch subscription fee
+    const { data: settingsData } = await (supabase
+      .from("site_settings" as any)
+      .select("value")
+      .eq("key", "yearly_subscription_fee")
+      .maybeSingle() as any);
+    if (settingsData) setSubscriptionFee(parseFloat(settingsData.value) || 0);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+
+    // Check approval status
+    const { data: approvalData } = await supabase.from("approval_status").select("status").eq("user_id", session.user.id).single();
+    if (approvalData?.status === "payment_locked") {
+      setApprovalStatus("approved"); // Fallback to approved
+    } else {
+      setApprovalStatus(approvalData?.status || "pending");
+    }
+
+    const { data: activeAttempt } = await supabase.from("test_attempts").select("id").eq("test_id", testId).eq("user_id", session.user.id).eq("is_active", true).maybeSingle();
+    if (activeAttempt) {
+      toast({ title: "Test Already in Progress", description: "Complete or abandon your active attempt first.", variant: "destructive" });
+      navigate("/student/exams");
+      return;
+    }
+
+    const { data: testData, error: testError } = await supabase.from("mock_tests").select("*").eq("id", testId).single();
+    if (testError || !testData) {
+      toast({ title: "Error", description: "Test not found", variant: "destructive" });
+      navigate("/student/exams");
+      return;
+    }
+
+    // Check if test is paid and if user has active subscription
+    if (testData.is_paid) {
+      const oneYearAgo = new Date();
+      oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+
+      const { data: purchaseData } = await (supabase
+        .from("purchases" as any)
+        .select("id")
+        .eq("user_id", session.user.id)
+        .eq("content_type", "subscription")
+        .eq("status", "completed")
+        .gt("created_at", oneYearAgo.toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle() as any);
+
+      if (!purchaseData) {
+        setTest(testData);
+        setIsPurchased(false);
+        setLoading(false);
+        return;
+      }
+      setIsPurchased(true);
+    } else {
+      setIsPurchased(true);
+    }
+
+    const { data: questionsData, error: questionsError } = await supabase
+      .from("test_questions")
+      .select(`*, questions (*)`)
+      .eq("test_id", testId)
+      .order("question_order", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (questionsError) {
+      toast({ title: "Error", description: "Failed to load questions", variant: "destructive" });
+      return;
+    }
+
+    const processedQuestions = questionsData as any[];
+    // Shuffling disabled as per user request to maintain upload order
+
+    const { data: existingTimer } = await supabase.from("test_timers").select("*").eq("test_id", testId).eq("user_id", session.user.id).maybeSingle();
+    let initialTime: number;
+    let startDateTime: Date;
+
+    if (existingTimer) {
+      const endsAt = new Date(existingTimer.ends_at);
+      initialTime = Math.max(0, Math.floor((endsAt.getTime() - Date.now()) / 1000));
+      startDateTime = new Date(existingTimer.started_at);
+      const { data: savedAnswers } = await supabase.from("test_answer_drafts").select("*").eq("test_id", testId).eq("user_id", session.user.id);
+      if (savedAnswers) {
+        const answersMap: { [key: string]: string } = {};
+        const reviewSet = new Set<string>();
+        savedAnswers.forEach(ans => {
+          if (ans.selected_answer) answersMap[ans.question_id] = ans.selected_answer;
+          if (ans.marked_for_review) reviewSet.add(ans.question_id);
+        });
+        setAnswers(answersMap);
+        setMarkedForReview(reviewSet);
+      }
+      sonnerToast.success("Test resumed", { description: "Your progress has been restored." });
+    } else {
+      initialTime = testData.duration_minutes * 60;
+      startDateTime = new Date();
+      const endsAt = new Date(startDateTime.getTime() + initialTime * 1000);
+      await supabase.from("test_timers").insert({
+        test_id: testId, user_id: session.user.id,
+        started_at: startDateTime.toISOString(), duration_minutes: testData.duration_minutes,
+        ends_at: endsAt.toISOString()
+      });
+    }
+
+    setTest(testData);
+    setQuestions(processedQuestions);
+    setTimeRemaining(initialTime);
+    setStartTime(startDateTime);
+    setLoading(false);
+  }, [testId, navigate, toast]);
+
+  useEffect(() => {
+    loadTest();
+    return () => {
+      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+    };
+  }, [loadTest]);
+
+  useEffect(() => {
+    if (timeRemaining <= 0) return;
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleAutoSubmit();
+          return 0;
+        }
+        if (prev === 300 && !fiveMinuteWarningShown) {
+          setFiveMinuteWarningShown(true);
+          sonnerToast.warning("⏰ 5 minutes remaining!", {
+            description: "Review your answers and submit soon.",
+            duration: 10000
+          });
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeRemaining, fiveMinuteWarningShown, handleAutoSubmit]);
+
+  useEffect(() => {
+    if (!test || !testId) return;
+    autoSaveTimerRef.current = setInterval(() => autoSaveAnswers(), 30000);
+    return () => {
+      if (autoSaveTimerRef.current) clearInterval(autoSaveTimerRef.current);
+    };
+  }, [answers, markedForReview, test, testId, autoSaveAnswers]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
   };
+
 
   const toggleMarkForReview = (questionId: string) => {
     setMarkedForReview(prev => {
@@ -340,55 +386,77 @@ const TakeTest = () => {
   }
 
   // Show Payment Lock Screen
-  if (approvalStatus === "payment_locked") {
+
+  // Show Purchase Required Screen
+  if (test && test.is_paid && !isPurchased) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/30 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100">
-          <div className="bg-gradient-to-br from-rose-500 to-rose-600 p-8 flex flex-col items-center text-center">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-10 h-10 text-white" />
+      <div className="min-h-[100dvh] bg-gradient-to-br from-indigo-50 via-white to-violet-50 flex items-center justify-center p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md bg-white rounded-[32px] shadow-2xl overflow-hidden border border-slate-100"
+        >
+          <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-10 flex flex-col items-center text-center">
+            <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-3xl flex items-center justify-center mb-6 shadow-xl border border-white/30">
+              <CreditCard className="w-10 h-10 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2 font-display">Account Locked</h1>
-            <p className="text-rose-100 font-medium">Payment Required</p>
+            <Badge className="bg-white/20 text-white border-0 text-[10px] font-black tracking-widest uppercase px-3 py-1 mb-3">
+              Premium Content
+            </Badge>
+            <h1 className="text-2xl font-black text-white mb-2 font-display">Unlock Premium Access</h1>
+            <p className="text-indigo-100 font-medium">{test.title}</p>
           </div>
 
           <div className="p-8 flex flex-col gap-6">
-            <div className="text-center space-y-4">
-              <div className="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center mx-auto text-rose-600">
-                <CreditCard className="w-6 h-6" />
+            <div className="text-center space-y-2">
+              <p className="text-gray-500 text-sm">Join our yearly plan to unlock all premium notes and mock tests.</p>
+              <div className="flex flex-col items-center">
+                <span className="text-3xl font-black text-slate-900">₹{subscriptionFee}</span>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Per Year</span>
               </div>
-              <p className="text-slate-600 leading-relaxed">
-                Your account access has been temporarily restricted due to pending payment. Please complete your payment to restore full access to all features.
+            </div>
+
+            <div className="space-y-4">
+              <Button
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg shadow-indigo-500/25 font-black text-lg group transition-all"
+                onClick={async () => {
+                  if (!test) return;
+                  try {
+                    await initRazorpayPayment({
+                      amount: subscriptionFee,
+                      contentId: "site_yearly_subscription",
+                      contentType: "subscription" as any,
+                      title: "Yearly Premium Subscription",
+                      description: "Unlock all premium notes and mock tests for 1 year"
+                    });
+                    sonnerToast.success("Subscription Active", { description: "You now have full access to all premium content!" });
+                    setIsPurchased(true);
+                    loadTest();
+                  } catch (err: any) {
+                    toast({ title: "Payment Failed", description: err.message, variant: "destructive" });
+                  }
+                }}
+              >
+                Buy Now
+                <ChevronRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full h-12 rounded-xl text-slate-500 font-bold hover:bg-slate-50"
+                onClick={() => navigate("/student/exams")}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" /> Browse Other Tests
+              </Button>
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 text-center">
+              <p className="text-[11px] text-slate-400 font-medium">
+                Secure payment handled by Razorpay
               </p>
             </div>
-
-            <div className="space-y-3">
-              <Button
-                className="w-full py-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-indigo-500/25 group transition-all"
-                onClick={() => window.open("https://wa.me/919547771118?text=Hi, my account is locked due to payment. I want to make the payment.", "_blank")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                  <div className="flex flex-col items-start">
-                    <span className="text-xs font-medium opacity-90">Contact Admin</span>
-                    <span className="text-base font-bold">Pay via WhatsApp</span>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 ml-auto opacity-70 group-hover:translate-x-1 transition-transform" />
-              </Button>
-
-              <Button
-                variant="outline"
-                className="w-full py-6 rounded-2xl border-2 hover:bg-slate-50 text-slate-600"
-                onClick={() => navigate("/")}
-              >
-                <Home className="w-4 h-4 mr-2" /> Return Home
-              </Button>
-            </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }

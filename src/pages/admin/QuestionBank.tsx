@@ -25,6 +25,7 @@ interface Question {
   option_c: string;
   option_d: string;
   correct_answer: string;
+  explanation: string | null;
   subject: string | null;
   topic: string | null;
   subject_id: string | null;
@@ -79,6 +80,7 @@ const QuestionBank = () => {
     option_c: "",
     option_d: "",
     correct_answer: "A",
+    explanation: "",
     subject_id: "",
     subject_name: "" as string | null,
     topic_id: "",
@@ -96,11 +98,13 @@ const QuestionBank = () => {
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      setLoading(false);
       navigate("/admin/login");
       return;
     }
     const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle();
     if (!roleData) {
+      setLoading(false);
       await supabase.auth.signOut();
       toast({ title: "Access Denied", description: "You do not have admin privileges", variant: "destructive" });
       navigate("/admin/login");
@@ -126,8 +130,8 @@ const QuestionBank = () => {
   };
 
   const loadExams = async () => {
-    const { data } = await supabase.from("exams").select("id, name").eq("is_active", true).order("name");
-    if (data) setExams(data);
+    const { data } = await (supabase.from("exams").select("id, name, order_index").eq("is_active", true).order("order_index", { ascending: true }) as any);
+    if (data) setExams(data as Exam[]);
   };
 
   const loadQuestions = async () => {
@@ -194,6 +198,7 @@ const QuestionBank = () => {
       option_c: question.option_c,
       option_d: question.option_d,
       correct_answer: question.correct_answer,
+      explanation: question.explanation || "",
       subject_id: question.subject_id || "",
       subject_name: question.subjects?.name || question.subject || "",
       topic_id: question.topic_id || "",
@@ -276,6 +281,7 @@ const QuestionBank = () => {
       option_c: formData.option_c,
       option_d: formData.option_d,
       correct_answer: formData.correct_answer,
+      explanation: formData.explanation || null,
       subject: formData.subject_name || null,
       topic: formData.topic_name || null,
     };
@@ -880,6 +886,17 @@ const QuestionBank = () => {
                   <SelectItem value="D">D</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Short Notes / Explanation</Label>
+              <Textarea
+                value={formData.explanation}
+                onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
+                rows={3}
+                placeholder="Provide an explanation or short notes for this question..."
+                className="rounded-xl mt-1"
+              />
             </div>
 
             {selectedQuestion && (

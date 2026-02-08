@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -44,9 +44,63 @@ const AdminChatInbox = () => {
     const [studentToDelete, setStudentToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
+    const loadStudents = useCallback(async () => {
+        const { data } = await supabase
+            .from("profiles")
+            .select("id, full_name, whatsapp_number")
+            .order("full_name");
+        if (data) {
+            setAllStudents(data);
+        }
+    }, []);
+
+    const loadConversations = useCallback(async () => {
+        try {
+            const all = await getAllConversations();
+            const convList = Object.values(all).sort((a, b) =>
+                new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
+            );
+            setConversations(convList);
+        } catch (e) {
+            console.error("Error loading conversations:", e);
+        }
+    }, []);
+
+    const loadMessages = useCallback(async (studentId: string) => {
+        try {
+            const conv = await getConversation(studentId);
+            if (conv) {
+                setMessages(conv.messages);
+                await markMessagesAsRead(studentId, "admin");
+            } else {
+                setMessages([]);
+            }
+        } catch (e) {
+            console.error("Error loading messages:", e);
+        }
+    }, []);
+
+    const checkAuth = useCallback(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            navigate("/admin/login");
+            return;
+        }
+        setAdminId(session.user.id);
+        const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle();
+        if (!roleData) {
+            await supabase.auth.signOut();
+            navigate("/admin/login");
+            return;
+        }
+        await loadStudents();
+        await loadConversations();
+        setLoading(false);
+    }, [navigate, loadStudents, loadConversations]);
+
     useEffect(() => {
         checkAuth();
-    }, []);
+    }, [checkAuth]);
 
     // Real-time subscription + polling fallback
     useEffect(() => {
@@ -82,61 +136,7 @@ const AdminChatInbox = () => {
                 unsubscribeFromChat(channel);
             }
         };
-    }, [selectedStudent]);
-
-    const checkAuth = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            navigate("/admin/login");
-            return;
-        }
-        setAdminId(session.user.id);
-        const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle();
-        if (!roleData) {
-            await supabase.auth.signOut();
-            navigate("/admin/login");
-            return;
-        }
-        await loadStudents();
-        await loadConversations();
-        setLoading(false);
-    };
-
-    const loadStudents = async () => {
-        const { data } = await supabase
-            .from("profiles")
-            .select("id, full_name, whatsapp_number")
-            .order("full_name");
-        if (data) {
-            setAllStudents(data);
-        }
-    };
-
-    const loadConversations = async () => {
-        try {
-            const all = await getAllConversations();
-            const convList = Object.values(all).sort((a, b) =>
-                new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-            );
-            setConversations(convList);
-        } catch (e) {
-            console.error("Error loading conversations:", e);
-        }
-    };
-
-    const loadMessages = async (studentId: string) => {
-        try {
-            const conv = await getConversation(studentId);
-            if (conv) {
-                setMessages(conv.messages);
-                await markMessagesAsRead(studentId, "admin");
-            } else {
-                setMessages([]);
-            }
-        } catch (e) {
-            console.error("Error loading messages:", e);
-        }
-    };
+    }, [selectedStudent, loadConversations, loadMessages]);
 
     useEffect(() => {
         if (selectedStudent) {
@@ -148,13 +148,13 @@ const AdminChatInbox = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages.length]);
 
-    const handleSelectStudent = (studentId: string, studentName: string) => {
+    const handleSelectStudent = useCallback((studentId: string, studentName: string) => {
         setSelectedStudent(studentId);
         setSelectedStudentName(studentName);
         loadMessages(studentId);
-    };
+    }, [loadMessages]);
 
-    const handleSend = async () => {
+    const handleSend = useCallback(async () => {
         if (!newMessage.trim() || !selectedStudent || !adminId) return;
 
         await sendMessage(
@@ -166,13 +166,13 @@ const AdminChatInbox = () => {
         setNewMessage("");
         await loadMessages(selectedStudent);
         await loadConversations();
-    };
+    }, [newMessage, selectedStudent, adminId, loadMessages, loadConversations]);
 
-    const handleDelete = async (studentId: string) => {
+    const handleDelete = useCallback(async (studentId: string) => {
         setStudentToDelete(studentId);
-    };
+    }, []);
 
-    const confirmDelete = async () => {
+    const confirmDelete = useCallback(async () => {
         if (!studentToDelete) return;
         setIsDeleting(true);
         try {
@@ -187,7 +187,7 @@ const AdminChatInbox = () => {
             setIsDeleting(false);
             setStudentToDelete(null);
         }
-    };
+    }, [studentToDelete, loadConversations, toast]);
 
     const formatTime = (dateString: string) => {
         const date = new Date(dateString);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -43,14 +43,34 @@ const AddQuestion = () => {
     explanation: "",
   });
 
-  useEffect(() => {
-    checkAuth();
+  const loadExams = useCallback(async () => {
+    const { data } = await supabase
+      .from("exams")
+      .select("id, name")
+      .eq("is_active", true)
+      .order("name");
+
+    if (data) {
+      setExams(data);
+    }
   }, []);
 
-  const checkAuth = async () => {
+  const checkColumns = useCallback(async () => {
+    const { error } = await supabase.from("questions").select("subject_id").limit(0);
+    if (error) {
+      if (error.message?.includes("subject_id") || error.code === "PGRST100" || error.code === "42703") {
+        setHasStructuredColumns(false);
+        return;
+      }
+    }
+    setHasStructuredColumns(true);
+  }, []);
+
+  const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
+      setLoading(false);
       navigate("/admin/login");
       return;
     }
@@ -63,6 +83,7 @@ const AddQuestion = () => {
       .maybeSingle();
 
     if (!roleData) {
+      setLoading(false);
       await supabase.auth.signOut();
       toast({
         title: "Access Denied",
@@ -76,30 +97,11 @@ const AddQuestion = () => {
     await loadExams();
     await checkColumns();
     setLoading(false);
-  };
+  }, [navigate, toast, loadExams, checkColumns]);
 
-  const checkColumns = async () => {
-    const { error } = await supabase.from("questions").select("subject_id").limit(0);
-    if (error) {
-      if (error.message?.includes("subject_id") || error.code === "PGRST100" || error.code === "42703") {
-        setHasStructuredColumns(false);
-        return;
-      }
-    }
-    setHasStructuredColumns(true);
-  };
-
-  const loadExams = async () => {
-    const { data } = await supabase
-      .from("exams")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("name");
-
-    if (data) {
-      setExams(data);
-    }
-  };
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const ensureSubjectAndTopic = async (userId: string) => {
     let finalSubjectId = formData.subject_id;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,24 +46,47 @@ const AddNote = () => {
         content: "",
         subject_id: "",
         topic_id: "",
+        is_paid: false,
+        price: 0,
     });
 
-    useEffect(() => {
-        checkAuth();
+    const loadSubjects = useCallback(async () => {
+        // Order by order_index to match Subject Management order
+        const { data } = await supabase.from("subjects").select("id, name, order_index").eq("category", "notes").order("order_index", { ascending: true, nullsFirst: false });
+        if (data) setSubjects(data);
     }, []);
 
-    useEffect(() => {
-        if (formData.subject_id) {
-            setFilteredTopics(topics.filter(t => t.subject_id === formData.subject_id));
-            if (formData.topic_id && !topics.some(t => t.subject_id === formData.subject_id && t.id === formData.topic_id)) {
-                setFormData(prev => ({ ...prev, topic_id: "" }));
-            }
-        } else {
-            setFilteredTopics([]);
-        }
-    }, [formData.subject_id, topics]);
+    const loadTopics = useCallback(async () => {
+        const { data } = await supabase.from("topics").select("id, subject_id, name").eq("category", "notes").order("name");
+        if (data) setTopics(data);
+    }, []);
 
-    const checkAuth = async () => {
+    const loadNoteData = useCallback(async (id: string) => {
+        setInitialLoading(true);
+        const { data, error } = await supabase
+            .from("pdfs")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+        if (error || !data) {
+            toast({ title: "Error", description: "Failed to load note data", variant: "destructive" });
+            navigate("/admin/notes");
+            return;
+        }
+
+        setFormData({
+            title: data.title,
+            content: data.content || "",
+            subject_id: data.subject_id || "",
+            topic_id: data.topic_id || "",
+            is_paid: data.is_paid || false,
+            price: data.price || 0,
+        });
+        setInitialLoading(false);
+    }, [navigate, toast]);
+
+    const checkAuth = useCallback(async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) { navigate("/admin/login"); return; }
 
@@ -83,40 +107,26 @@ const AddNote = () => {
         }
 
         setLoading(false);
-    };
+    }, [navigate, toast, loadSubjects, loadTopics, editId, loadNoteData]);
 
-    const loadSubjects = async () => {
-        const { data } = await supabase.from("subjects").select("id, name").eq("category", "notes").order("name");
-        if (data) setSubjects(data);
-    };
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
 
-    const loadTopics = async () => {
-        const { data } = await supabase.from("topics").select("id, subject_id, name").eq("category", "notes").order("name");
-        if (data) setTopics(data);
-    };
-
-    const loadNoteData = async (id: string) => {
-        setInitialLoading(true);
-        const { data, error } = await supabase
-            .from("pdfs")
-            .select("*")
-            .eq("id", id)
-            .single();
-
-        if (error || !data) {
-            toast({ title: "Error", description: "Failed to load note data", variant: "destructive" });
-            navigate("/admin/notes");
-            return;
+    useEffect(() => {
+        if (formData.subject_id) {
+            setFilteredTopics(topics.filter(t => t.subject_id === formData.subject_id));
+            // Reset topic_id if current selection is invalid
+            setFormData(prev => {
+                if (prev.topic_id && !topics.some(t => t.subject_id === formData.subject_id && t.id === prev.topic_id)) {
+                    return { ...prev, topic_id: "" };
+                }
+                return prev;
+            });
+        } else {
+            setFilteredTopics([]);
         }
-
-        setFormData({
-            title: data.title,
-            content: data.content || "",
-            subject_id: data.subject_id || "",
-            topic_id: data.topic_id || "",
-        });
-        setInitialLoading(false);
-    };
+    }, [formData.subject_id, topics]);
 
     const handleSubmit = async () => {
         const { data: { session } } = await supabase.auth.getSession();
@@ -135,6 +145,8 @@ const AddNote = () => {
             subject_id: formData.subject_id,
             topic_id: formData.topic_id,
             exam_id: null, // Always null to keep it global as requested
+            is_paid: formData.is_paid,
+            price: formData.price,
             uploaded_by: session.user.id,
         };
 
@@ -162,7 +174,7 @@ const AddNote = () => {
         if (editId) {
             loadNoteData(editId);
         } else {
-            setFormData({ title: "", content: "", subject_id: "", topic_id: "" });
+            setFormData({ title: "", content: "", subject_id: "", topic_id: "", is_paid: false, price: 0 });
         }
     };
 
@@ -250,6 +262,23 @@ const AddNote = () => {
                                     placeholder="Enter a catchy title for your article..."
                                     className="h-14 rounded-2xl border-gray-200 bg-gray-50/50 focus:bg-white focus:ring-violet-500/20 transition-all font-bold text-lg shadow-sm"
                                 />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-violet-50/30 rounded-3xl border border-violet-100/50">
+                                <div className="flex items-center space-x-3 p-2">
+                                    <Checkbox
+                                        id="is_paid"
+                                        checked={formData.is_paid}
+                                        onCheckedChange={(checked) => setFormData({ ...formData, is_paid: checked as boolean, price: 0 })}
+                                        className="w-6 h-6 rounded-lg border-violet-300 data-[state=checked]:bg-violet-600 data-[state=checked]:border-violet-600"
+                                    />
+                                    <div className="grid gap-1.5 leading-none">
+                                        <Label htmlFor="is_paid" className="text-sm font-bold text-gray-700 cursor-pointer">
+                                            Premium Content
+                                        </Label>
+                                        <p className="text-xs text-gray-500">Enable this to make this article require a premium subscription</p>
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-3">

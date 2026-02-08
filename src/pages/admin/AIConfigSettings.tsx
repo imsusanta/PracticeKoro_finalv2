@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,15 +18,7 @@ const AIConfigSettings = () => {
         openrouter_model: "meta-llama/llama-3.1-405b-instruct:free",
     });
 
-    useEffect(() => {
-        const init = async () => {
-            await fetchUserRole();
-            fetchSettings();
-        };
-        init();
-    }, []);
-
-    const fetchUserRole = async () => {
+    const fetchUserRole = useCallback(async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
             const { data } = await supabase
@@ -36,9 +28,9 @@ const AIConfigSettings = () => {
                 .maybeSingle();
             setUserRole(data?.role || null);
         }
-    };
+    }, []);
 
-    const fetchSettings = async () => {
+    const fetchSettings = useCallback(async () => {
         try {
             const { data, error } = await supabase
                 .from("site_settings")
@@ -47,51 +39,81 @@ const AIConfigSettings = () => {
             if (error) throw error;
 
             if (data) {
-                const newSettings = { ...settings };
-                data.forEach((item) => {
-                    if (item.key === "openrouter_api_key") newSettings.openrouter_api_key = item.value || "";
-                    if (item.key === "openrouter_model") newSettings.openrouter_model = item.value || "";
+                setSettings(prev => {
+                    const newSettings = { ...prev };
+                    data.forEach((item) => {
+                        if (item.key === "openrouter_api_key") newSettings.openrouter_api_key = item.value || "";
+                        if (item.key === "openrouter_model") newSettings.openrouter_model = item.value || "";
+                    });
+                    return newSettings;
                 });
-                setSettings(newSettings);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as { code?: string; message?: string };
             console.error("Error fetching settings:", error);
             // Don't show toast on load failure if it's just missing table (first run)
-            if (error.code !== '42P01') {
+            if (err.code !== '42P01') {
                 toast({
                     title: "Error",
-                    description: error.message || "Failed to load settings",
+                    description: err.message || "Failed to load settings",
                     variant: "destructive",
                 });
             }
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
+
+    useEffect(() => {
+        const init = async () => {
+            await fetchUserRole();
+            fetchSettings();
+        };
+        init();
+    }, [fetchUserRole, fetchSettings]);
 
     const handleSave = async () => {
         setSaving(true);
         try {
             const updates = [
-                { key: "openrouter_api_key", value: settings.openrouter_api_key },
-                { key: "openrouter_model", value: settings.openrouter_model },
+                { key: "openrouter_api_key", value: settings.openrouter_api_key, updated_at: new Date().toISOString() },
+                { key: "openrouter_model", value: settings.openrouter_model, updated_at: new Date().toISOString() },
             ];
 
-            const { error } = await supabase.from("site_settings").upsert(updates);
+            // Use upsert with onConflict to properly handle existing keys
+            for (const update of updates) {
+                const { error } = await supabase
+                    .from("site_settings")
+                    .upsert(update, { onConflict: 'key' });
 
-            if (error) throw error;
+                if (error) {
+                    console.error(`Error saving ${update.key}:`, error);
+                    throw error;
+                }
+            }
 
             toast({
                 title: "Success",
                 description: "AI settings saved successfully",
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as { message?: string; code?: string };
             console.error("Error saving settings:", error);
-            toast({
-                title: "Error",
-                description: error.message || "Failed to save settings",
-                variant: "destructive",
-            });
+
+            // Check for RLS policy violation
+            if (err.code === '42501' || err.message?.includes('policy')) {
+                toast({
+                    title: "Permission Denied",
+                    description: "You need admin or super_admin role to save settings. Please run the latest SQL migration in your Supabase dashboard.",
+                    variant: "destructive",
+                });
+            } else {
+                toast({
+                    title: "Error",
+                    description: err.message || "Failed to save settings",
+                    variant: "destructive",
+                });
+            }
         } finally {
             setSaving(false);
         }

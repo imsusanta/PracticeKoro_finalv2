@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Bell, X, CheckCircle, Clock, Megaphone, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +39,7 @@ const NotificationBell = () => {
         fetchUser();
     }, []);
 
-    const loadNotifications = async () => {
+    const loadNotifications = useCallback(async () => {
         if (!userId) return;
 
         const { data, error } = await supabase
@@ -58,7 +58,7 @@ const NotificationBell = () => {
             setNotifications(data);
             setUnreadCount(data.filter(n => !n.is_read).length);
         }
-    };
+    }, [userId]);
 
     useEffect(() => {
         if (userId) {
@@ -67,7 +67,7 @@ const NotificationBell = () => {
             const interval = setInterval(loadNotifications, 30000);
             return () => clearInterval(interval);
         }
-    }, [userId]);
+    }, [userId, loadNotifications]);
 
     const handleMarkAsRead = async (id: string) => {
         await supabase

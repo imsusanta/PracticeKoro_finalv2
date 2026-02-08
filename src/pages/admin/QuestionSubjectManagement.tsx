@@ -576,7 +576,7 @@ const QuestionSubjectManagement = () => {
 
     if (loading) {
         return (
-            <AdminLayout title="Question Subjects" subtitle="Manage subjects and topics for questions">
+            <AdminLayout title="Subject Management" subtitle="Manage subjects and topics for questions">
                 <div className="flex items-center justify-center h-64">
                     <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                 </div>
@@ -585,7 +585,7 @@ const QuestionSubjectManagement = () => {
     }
 
     return (
-        <AdminLayout title="Question Subjects" subtitle="Manage subjects and topics for questions" headerActions={CreateSubjectButton}>
+        <AdminLayout title="Subject Management" subtitle="Manage subjects and topics for questions" headerActions={CreateSubjectButton}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Subjects List */}
                 <Card className="border-0 bg-white rounded-2xl">

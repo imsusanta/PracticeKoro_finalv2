@@ -45,7 +45,7 @@ const AIQuestionGenerator = () => {
     topic_id: "",
     topic_name: "" as string | null,
     count: 5,
-    language: "English",
+    language: "Bengali",
     systemPrompt: "",
     extractedText: "",
   });
@@ -59,6 +59,7 @@ const AIQuestionGenerator = () => {
     const initPage = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
+        setLoading(false);
         navigate("/admin/login");
         return;
       }
@@ -68,6 +69,7 @@ const AIQuestionGenerator = () => {
       ]);
 
       if (!roleResult.data) {
+        setLoading(false);
         await supabase.auth.signOut();
         toast({
           title: "Access Denied",
@@ -363,11 +365,12 @@ const AIQuestionGenerator = () => {
         title: "Success",
         description: `Generated ${questions.length} questions successfully`,
       });
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("Question generation error:", error);
+      const errorMessage = error?.message || error?.error || "Unknown error occurred";
       toast({
         title: "Error",
-        description: "Failed to generate questions. Please try again.",
+        description: `Failed to generate: ${errorMessage}`,
         variant: "destructive",
       });
     }
@@ -766,8 +769,8 @@ const AIQuestionGenerator = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="English">English</SelectItem>
                           <SelectItem value="Bengali">Bengali</SelectItem>
+                          <SelectItem value="English">English</SelectItem>
                           <SelectItem value="Hindi">Hindi</SelectItem>
                         </SelectContent>
                       </Select>
@@ -950,8 +953,8 @@ const AIQuestionGenerator = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="English">English</SelectItem>
                         <SelectItem value="Bengali">Bengali</SelectItem>
+                        <SelectItem value="English">English</SelectItem>
                         <SelectItem value="Hindi">Hindi</SelectItem>
                       </SelectContent>
                     </Select>

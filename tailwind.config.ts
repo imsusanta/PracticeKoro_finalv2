@@ -15,6 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        baloo: ['"Baloo Da 2"', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",

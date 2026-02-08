@@ -131,7 +131,7 @@ const PWAInstallPrompt = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 100, scale: 0.9 }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                    className="fixed bottom-20 left-3 right-3 md:left-auto md:right-4 md:bottom-4 md:max-w-sm z-[200]"
+                    className="fixed bottom-6 left-3 right-3 md:left-auto md:right-4 md:bottom-4 md:max-w-sm z-[200]"
                 >
                     <div className="relative overflow-hidden rounded-2xl bg-white p-5 shadow-2xl border border-slate-200">
                         <button
@@ -195,7 +195,7 @@ const PWAInstallPrompt = () => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 100, scale: 0.9 }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                    className="fixed bottom-20 left-3 right-3 md:left-auto md:right-4 md:bottom-4 md:max-w-sm z-[200]"
+                    className="fixed bottom-6 left-3 right-3 md:left-auto md:right-4 md:bottom-4 md:max-w-sm z-[200]"
                 >
                     <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-700 p-4 shadow-2xl shadow-indigo-500/30 border border-white/10">
                         {/* Decorative Elements */}

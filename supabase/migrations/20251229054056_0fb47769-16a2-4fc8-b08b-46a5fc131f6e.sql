@@ -5,4 +5,5 @@ ALTER TABLE public.pdfs ADD COLUMN IF NOT EXISTS content text;
 ALTER TABLE public.pdfs ALTER COLUMN file_path DROP NOT NULL;
 
 -- Add update policy for admins
+DROP POLICY IF EXISTS "Admins can update PDFs" ON public.pdfs;
 CREATE POLICY "Admins can update PDFs" ON public.pdfs FOR UPDATE USING (public.has_role(auth.uid(), 'admin'::public.app_role));

@@ -101,24 +101,33 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
 
         sidebar.addEventListener("scroll", handleScroll, { passive: true });
         return () => sidebar.removeEventListener("scroll", handleScroll);
-    }, []);
+    }, [sidebarContentRef]);
 
-    // Scroll active menu item into view when route changes
+    // Unified Sidebar Scroll Management
     useLayoutEffect(() => {
         const sidebar = sidebarContentRef.current;
         if (!sidebar) return;
 
-        // Find the active menu item and scroll it into view
+        // 1. Restore previous scroll position immediately (sync)
+        if (sidebarScrollPosition > 0) {
+            sidebar.scrollTop = sidebarScrollPosition;
+        }
+
+        // 2. Ensure active menu item is visible (with a small delay for page settling)
         const activeItem = sidebar.querySelector('[data-active-menu="true"]');
         if (activeItem) {
-            // Use a longer delay to allow page transition to complete first
             const timer = setTimeout(() => {
-                (activeItem as HTMLElement).scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest',
-                    inline: 'nearest'
-                });
-            }, 300); // Delay after page transition animation
+                const rect = (activeItem as HTMLElement).getBoundingClientRect();
+                const containerRect = sidebar.getBoundingClientRect();
+
+                // Only scroll into view if it's NOT already in the viewport
+                if (rect.top < containerRect.top || rect.bottom > containerRect.bottom) {
+                    (activeItem as HTMLElement).scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest'
+                    });
+                }
+            }, 100);
             return () => clearTimeout(timer);
         }
     }, [location.pathname]);
@@ -148,9 +157,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 relative flex flex-col overflow-x-hidden">
-            {/* Clean Background - No blur orbs */}
-
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/20 to-teal-50/30 relative flex overflow-x-hidden">
             <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 {/* Toggle Button - Fixed position, always accessible */}
                 <SidebarToggleButton />
@@ -160,7 +167,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                     side="left"
                     variant="sidebar"
                     collapsible="icon"
-                    className="bg-white/70 backdrop-blur-sm border-r border-white/50 shadow-xl shadow-emerald-500/5 transition-all duration-200 h-screen sticky top-0"
+                    className="bg-white/70 backdrop-blur-sm border-r border-white/50 shadow-xl shadow-emerald-500/10 transition-all duration-200"
                 >
 
                     <SidebarHeader className="border-b border-emerald-100/30 bg-gradient-to-r from-white/80 to-emerald-50/50 backdrop-blur-sm">
@@ -182,7 +189,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                         {/* Navigation Menu */}
                         <div className="flex-1">
                             <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3 group-data-[collapsible=icon]:hidden">Management</p>
-                            <SidebarMenu className="space-y-1">
+                            <SidebarMenu className="space-y-1.5">
                                 {managementTools.map((tool, index) => {
                                     const Icon = tool.icon;
                                     const isActive = location.pathname === tool.path;
@@ -193,28 +200,38 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                                             <SidebarMenuButton
                                                 asChild
                                                 isActive={isActive}
-                                                className={`rounded-xl transition-all duration-150 group/item h-auto ${isActive
-                                                    ? `bg-gradient-to-r ${colorSet.activeBg} text-white shadow-lg`
-                                                    : "text-gray-600 hover:bg-white/80 hover:shadow-sm"
+                                                className={`rounded-xl transition-all duration-300 ease-out group/item h-auto ${isActive
+                                                    ? `bg-gradient-to-r ${colorSet.activeBg} text-white shadow-lg shadow-emerald-500/20 scale-[1.02]`
+                                                    : "text-gray-600 hover:bg-gradient-to-r hover:from-white/90 hover:to-gray-50/80 hover:shadow-md hover:scale-[1.02] hover:translate-x-1"
                                                     } group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2`}
                                             >
                                                 <Link
                                                     to={tool.path}
                                                     title={tool.name}
                                                     onClick={saveScrollPosition}
-                                                    className="flex items-center gap-3 px-3 py-2.5 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
+                                                    className="flex items-center gap-3 px-3 py-3 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center"
                                                 >
                                                     <motion.div
-                                                        whileHover={{ scale: 1.1 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-150 shrink-0 ${isActive
-                                                            ? "bg-white/25 shadow-inner"
-                                                            : `bg-gradient-to-br ${colorSet.bg} shadow-sm`
+                                                        whileHover={{ scale: 1.15, rotate: 5 }}
+                                                        whileTap={{ scale: 0.9 }}
+                                                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                                                        className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 shrink-0 ${isActive
+                                                            ? "bg-white/30 shadow-inner backdrop-blur-sm"
+                                                            : `bg-gradient-to-br ${colorSet.bg} shadow-sm group-hover/item:shadow-md group-hover/item:scale-105`
                                                             }`}
                                                     >
-                                                        <Icon className={`w-4 h-4 ${isActive ? "text-white" : colorSet.icon}`} />
+                                                        <Icon className={`w-5 h-5 transition-all duration-300 ${isActive ? "text-white drop-shadow-sm" : `${colorSet.icon} group-hover/item:scale-110`}`} />
                                                     </motion.div>
-                                                    <span className="font-medium text-sm group-data-[collapsible=icon]:hidden whitespace-nowrap">{tool.name}</span>
+                                                    <span className={`font-semibold text-sm group-data-[collapsible=icon]:hidden whitespace-nowrap transition-all duration-300 ${isActive ? "tracking-wide" : "group-hover/item:text-gray-800 group-hover/item:tracking-wide"}`}>{tool.name}</span>
+                                                    {isActive && (
+                                                        <motion.div
+                                                            layoutId="activeIndicator"
+                                                            className="absolute right-2 w-1.5 h-8 bg-white/40 rounded-full group-data-[collapsible=icon]:hidden"
+                                                            initial={{ opacity: 0 }}
+                                                            animate={{ opacity: 1 }}
+                                                            transition={{ duration: 0.2 }}
+                                                        />
+                                                    )}
                                                 </Link>
                                             </SidebarMenuButton>
                                         </SidebarMenuItem>
@@ -270,7 +287,7 @@ const AdminLayout = ({ title, subtitle, children, headerActions }: AdminLayoutPr
                     </SidebarContent>
                 </Sidebar>
 
-                <SidebarInset className="bg-transparent flex-1 md:h-screen md:overflow-y-auto">
+                <SidebarInset className="bg-transparent flex-1">
                     {/* Transparent Floating Header */}
                     <header className="sticky top-0 z-20 safe-area-top">
                         <div className="mx-4 md:mx-6 mt-4 rounded-2xl bg-white/40 backdrop-blur-sm border border-white/50 shadow-lg shadow-gray-200/20">

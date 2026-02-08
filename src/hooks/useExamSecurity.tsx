@@ -107,7 +107,7 @@ export const useExamSecurity = (config: ExamSecurityConfig) => {
             description: `Violation ${newViolations}/${maxFullscreenViolations}. Please return to fullscreen mode.`,
             variant: "destructive",
           });
-          
+
           // Auto re-enter fullscreen after 2 seconds
           setTimeout(() => {
             document.documentElement.requestFullscreen();
@@ -133,7 +133,7 @@ export const useExamSecurity = (config: ExamSecurityConfig) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [tabViolations, fullscreenViolations, maxTabViolations, maxFullscreenViolations]);
+  }, [tabViolations, fullscreenViolations, maxTabViolations, maxFullscreenViolations, config, toast]);
 
   const enterFullscreen = async () => {
     try {

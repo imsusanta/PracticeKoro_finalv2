@@ -61,7 +61,10 @@ const BulkMCQUpload = () => {
 (c) Kolkata
 (d) Chennai
 Ans:(b) New Delhi
-Short Notes: New Delhi is the capital of India and the seat of all three branches of the Government.
+Short Notes:
+• New Delhi is the capital of India.
+• It is the seat of all three branches of the Government.
+• Located along the banks of the Yamuna River.
 
 2. Who wrote "Romeo and Juliet"?
 (a) Charles Dickens
@@ -69,7 +72,9 @@ Short Notes: New Delhi is the capital of India and the seat of all three branche
 (c) Jane Austen
 (d) Mark Twain
 Ans:(b) William Shakespeare
-Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
+Short Notes:
+• William Shakespeare wrote Romeo and Juliet around 1594-1596.
+• It is one of the most famous tragedies in English literature.`;
 
   useEffect(() => {
     checkAuth();
@@ -79,6 +84,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
+      setLoading(false);
       navigate("/admin/login");
       return;
     }
@@ -91,6 +97,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
       .maybeSingle();
 
     if (!roleData) {
+      setLoading(false);
       await supabase.auth.signOut();
       toast({
         title: "Access Denied",
@@ -173,8 +180,35 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
       let subject = "";
       let topic = "";
       let explanation = "";
+      let inShortNotes = false; // Track if we're collecting multi-line short notes
 
-      for (const line of lines) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Check if this line starts a new field (which ends short notes collection)
+        const isNewField =
+          line.match(/^\d+\.\s+/) || // New question
+          line.match(/^\(a\)/i) || line.startsWith("A.") || line.startsWith("A)") ||
+          line.match(/^\(b\)/i) || line.startsWith("B.") || line.startsWith("B)") ||
+          line.match(/^\(c\)/i) || line.startsWith("C.") || line.startsWith("C)") ||
+          line.match(/^\(d\)/i) || line.startsWith("D.") || line.startsWith("D)") ||
+          line.toLowerCase().startsWith("ans:") ||
+          line.toLowerCase().startsWith("answer:") ||
+          line.toLowerCase().startsWith("subject:") ||
+          line.toLowerCase().startsWith("topic:") ||
+          line.toLowerCase().startsWith("question:");
+
+        // If we're in short notes mode and hit a new field, stop collecting
+        if (inShortNotes && isNewField) {
+          inShortNotes = false;
+        }
+
+        // If in short notes mode, append this line (bullet points, etc.)
+        if (inShortNotes) {
+          explanation += (explanation ? "\n" : "") + line;
+          continue;
+        }
+
         const questionMatch = line.match(/^\d+\.\s+(.+)$/);
         if (questionMatch) {
           question = questionMatch[1].trim();
@@ -196,7 +230,11 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
           }
         }
         else if (line.toLowerCase().startsWith("short notes:")) {
-          explanation = line.substring(12).trim();
+          // Start collecting short notes - can be single or multi-line
+          const firstLine = line.substring(12).trim();
+          explanation = firstLine;
+          inShortNotes = true; // Continue collecting on next lines
+          console.log("[BulkUpload] Started Short Notes:", firstLine);
         }
         else if (line.toLowerCase().startsWith("question:")) {
           question = line.substring(9).trim();
@@ -220,6 +258,8 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
           topic = line.substring(6).trim();
         }
       }
+
+      console.log("[BulkUpload] Final explanation for question:", question.substring(0, 30), "=>", explanation);
 
       if (question && optionA && optionB && optionC && optionD && answer) {
         questions.push({
@@ -246,6 +286,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
     }
 
     setParsedQuestions(questions);
+    console.log("[BulkUpload] Parsed questions:", questions.map(q => ({ text: q.question_text.substring(0, 30), explanation: q.explanation })));
     setShowPreview(true);
     toast({
       title: "Success",
@@ -263,19 +304,8 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
       return;
     }
 
-    if (!selectedExamId) {
-      // Auto-select first exam silently for database compatibility
-      if (exams.length > 0) {
-        setSelectedExamId(exams[0].id);
-      } else {
-        toast({
-          title: "Error",
-          description: "No exam categories available. Please create one first.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
+    // Exam selection is optional for Question Bank
+    const finalExamId = selectedExamId || (exams.length > 0 ? exams[0].id : null);
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
@@ -298,7 +328,7 @@ Short Notes: William Shakespeare wrote Romeo and Juliet around 1594-1596.`;
         const topName = q.topic || (subName === defaultSubject.name ? defaultTopic.name : null);
 
         return {
-          exam_id: selectedExamId || exams[0]?.id,
+          exam_id: finalExamId,
           question_text: q.question_text,
           option_a: q.option_a,
           option_b: q.option_b,

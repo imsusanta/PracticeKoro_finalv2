@@ -24,24 +24,28 @@ CREATE TABLE IF NOT EXISTS public.pdfs (
 ALTER TABLE public.pdfs ENABLE ROW LEVEL SECURITY;
 
 -- Allow admins to manage pdfs
+DROP POLICY IF EXISTS "Admins can manage pdfs" ON public.pdfs;
 CREATE POLICY "Admins can manage pdfs" ON public.pdfs
     FOR ALL
     USING (public.has_role(auth.uid(), 'admin'))
     WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 -- Allow authenticated users to view pdfs
+DROP POLICY IF EXISTS "Authenticated users can view pdfs" ON public.pdfs;
 CREATE POLICY "Authenticated users can view pdfs" ON public.pdfs
     FOR SELECT
     TO authenticated
     USING (true);
 
 -- Allow admins to manage site_settings
+DROP POLICY IF EXISTS "Admins can manage site_settings" ON public.site_settings;
 CREATE POLICY "Admins can manage site_settings" ON public.site_settings
     FOR ALL
     USING (public.has_role(auth.uid(), 'admin'))
     WITH CHECK (public.has_role(auth.uid(), 'admin'));
 
 -- Allow public read if needed (for Edge Functions without service role access)
+DROP POLICY IF EXISTS "Public read site_settings" ON public.site_settings;
 CREATE POLICY "Public read site_settings" ON public.site_settings
     FOR SELECT
     TO authenticated
@@ -53,6 +57,7 @@ VALUES ('pdfs_library', 'pdfs_library', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Storage policies for pdfs_library
+DROP POLICY IF EXISTS "Admins can upload to pdfs_library" ON storage.objects;
 CREATE POLICY "Admins can upload to pdfs_library"
 ON storage.objects FOR INSERT
 TO authenticated
@@ -61,6 +66,7 @@ WITH CHECK (
   AND public.has_role(auth.uid(), 'admin')
 );
 
+DROP POLICY IF EXISTS "Admins can update pdfs_library" ON storage.objects;
 CREATE POLICY "Admins can update pdfs_library"
 ON storage.objects FOR UPDATE
 TO authenticated
@@ -69,6 +75,7 @@ USING (
   AND public.has_role(auth.uid(), 'admin')
 );
 
+DROP POLICY IF EXISTS "Admins can delete from pdfs_library" ON storage.objects;
 CREATE POLICY "Admins can delete from pdfs_library"
 ON storage.objects FOR DELETE
 TO authenticated
@@ -77,6 +84,7 @@ USING (
   AND public.has_role(auth.uid(), 'admin')
 );
 
+DROP POLICY IF EXISTS "Library PDFs are accessible to authenticated users" ON storage.objects;
 CREATE POLICY "Library PDFs are accessible to authenticated users"
 ON storage.objects FOR SELECT
 TO authenticated
@@ -88,3 +96,4 @@ VALUES
     ('openrouter_api_key', ''),
     ('openrouter_model', 'meta-llama/llama-3.1-405b-instruct:free')
 ON CONFLICT (key) DO NOTHING;
+

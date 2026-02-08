@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { DeleteAlertDialog } from "@/components/admin/DeleteAlertDialog";
 
@@ -19,6 +20,8 @@ interface Note {
   exam_id: string | null;
   topic_id: string | null;
   subject_id: string | null;
+  is_paid: boolean;
+  price: number;
   created_at: string;
 }
 
@@ -67,7 +70,8 @@ const NotesManagement = () => {
   };
 
   const loadSubjects = async () => {
-    const { data } = await supabase.from("subjects").select("id, name, exam_id").eq("category", "notes").order("name");
+    // Order by order_index to match Subject Management order
+    const { data } = await supabase.from("subjects").select("id, name, exam_id, order_index").eq("category", "notes").order("order_index", { ascending: true, nullsFirst: false });
     if (data) setSubjects(data);
   };
 
@@ -77,17 +81,28 @@ const NotesManagement = () => {
   };
 
   const loadNotes = async () => {
+    console.log("Loading notes...");
     const { data, error } = await supabase
       .from("pdfs")
-      .select("id, title, content, exam_id, topic_id, subject_id, created_at")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast({ title: "Error", description: "Failed to load notes", variant: "destructive" });
+      console.error("Error loading notes:", error);
+      toast({ title: "Error", description: "Failed to load notes. Please check if the 'pdfs' table exists and has the required columns.", variant: "destructive" });
       return;
     }
-    setNotes((data || []) as Note[]);
+
+    // Map data to ensure is_paid and price exist even if columns are missing in DB
+    const mappedNotes = (data || []).map(note => ({
+      ...note,
+      is_paid: note.is_paid ?? false,
+      price: note.price ?? 0
+    })) as Note[];
+
+    setNotes(mappedNotes);
   };
+
 
   const handleDelete = async (note: Note) => {
     setNoteToDelete(note);
@@ -219,9 +234,19 @@ const NotesManagement = () => {
                                 <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 border border-gray-100">
                                   <FileText className="w-4 h-4 text-gray-400 group-hover:text-violet-500 transition-colors" />
                                 </div>
-                                <div className="min-w-0">
-                                  <span className="text-sm font-semibold text-gray-700 truncate block">{note.title}</span>
-                                  <span className="text-[10px] text-gray-400">Published {new Date(note.created_at).toLocaleDateString()}</span>
+                                <div className="min-w-0 flex items-center gap-2">
+                                  <h3 className="font-bold text-gray-900 group-hover:text-amber-600 transition-colors line-clamp-1">
+                                    {note.title}
+                                  </h3>
+                                  {note.is_paid ? (
+                                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200 shrink-0">
+                                      PREMIUM
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-green-50 text-green-700 border-green-200 shrink-0">
+                                      FREE
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

@@ -10,15 +10,15 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     const [isExiting, setIsExiting] = useState(false);
 
     useEffect(() => {
-        // Start exit animation after 1.8 seconds
+        // Start exit animation after 500ms (reduced for faster loading)
         const exitTimer = setTimeout(() => {
             setIsExiting(true);
-        }, 1800);
+        }, 500);
 
-        // Complete and unmount after exit animation
+        // Complete and unmount after exit animation (reduced for faster loading)
         const completeTimer = setTimeout(() => {
             onComplete();
-        }, 2300);
+        }, 800);
 
         return () => {
             clearTimeout(exitTimer);

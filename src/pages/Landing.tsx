@@ -4,9 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import {
-  BookOpen, Brain, FileText, TrendingUp, Sparkles, LogOut, User, Clock, Award, PlayCircle, ChevronRight, CheckCircle, UserPlus, Library, LineChart, Target, FileQuestion, Zap, ArrowRight, Trophy, Download, Smartphone, Send, Mail, MapPin, Phone as PhoneIcon, Heart
+  BookOpen, Brain, FileText, TrendingUp, Sparkles, LogOut, User, Users, Clock, Award, PlayCircle, ChevronRight, CheckCircle, UserPlus, Library, LineChart, Target, FileQuestion, Zap, ArrowRight, Trophy, Download, Smartphone, Send, Mail, MapPin, Phone as PhoneIcon, Heart, Shield, Pen, Star
 } from "lucide-react";
 import HowItWorks from "@/components/landing/HowItWorks";
+import LatestBlogs from "@/components/landing/LatestBlogs";
 import Footer from "@/components/landing/Footer";
 import SplashScreen from "../components/landing/SplashScreen";
 // import PWAInstallPrompt removed to avoid conflict with global App.tsx version
@@ -14,12 +15,14 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { toast } from "sonner";
+import { getVisibleExamIds, getVisibleTestIds } from "@/config/landingVisibility"; // Kept for potential admin toggle feature
 
 
 interface Exam {
   id: string;
   name: string;
   description: string | null;
+  order_index?: number;
 }
 interface MockTest {
   id: string;
@@ -29,6 +32,9 @@ interface MockTest {
   duration_minutes: number;
   total_marks: number;
   exams?: {
+    name: string;
+  };
+  subjects?: {
     name: string;
   };
 }
@@ -55,7 +61,7 @@ const demoTests: MockTest[] = [
 const Landing = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<{ first_name?: string; last_name?: string; full_name?: string; avatar_url?: string } | null>(null);
   const [userRole, setUserRole] = useState<"student" | "admin" | null>(null);
   const [loading, setLoading] = useState(true);
   const [exams, setExams] = useState<Exam[]>([]);
@@ -80,77 +86,83 @@ const Landing = () => {
   });
 
   useEffect(() => {
-    checkAuth();
-    loadExams();
-    loadFeaturedTests();
+    // Run all initial loads in parallel for faster loading
+    Promise.all([checkAuth(), loadExams(), loadFeaturedTests()]);
   }, []);
   const checkAuth = async () => {
-    const {
-      data: {
-        session
-      }
-    } = await supabase.auth.getSession();
-    if (session) {
-      // Check for student role first
-      const { data: studentRole } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "student").maybeSingle();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Single query to get role and profile together for faster loading
+        const [roleResult, profileResult] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", session.user.id).in("role", ["student", "admin"]).maybeSingle(),
+          supabase.from("profiles").select("*").eq("id", session.user.id).single()
+        ]);
 
-      if (studentRole) {
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        setUserProfile(profileData);
-        setUserRole("student");
-        setIsLoggedIn(true);
-      } else {
-        // Check for admin role
-        const { data: adminRole } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle();
-
-        if (adminRole) {
-          const { data: profileData } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-          setUserProfile(profileData);
-          setUserRole("admin");
+        if (roleResult.data && profileResult.data) {
+          setUserProfile(profileResult.data);
+          setUserRole(roleResult.data.role as "student" | "admin");
           setIsLoggedIn(true);
         }
       }
+    } catch (error) {
+      console.error("Auth check error:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
   const loadExams = async () => {
-    const {
-      data
-    } = await supabase.from("exams").select("id, name, description").eq("is_active", true).order("name");
-    if (data && data.length > 0) {
-      // Filter to show only exams marked for landing page visibility
-      const { getVisibleExamIds } = await import("@/config/landingVisibility");
-      const visibleIds = getVisibleExamIds();
-      if (visibleIds.length > 0) {
-        const visibleExams = data.filter(exam => visibleIds.includes(exam.id));
-        setExams(visibleExams.length > 0 ? visibleExams : data);
-      } else {
-        setExams(data);
+    try {
+      console.log("[Landing] Loading exams from database...");
+      // Fetch ALL exams (removed is_active filter to show all database exams)
+      const { data, error } = await supabase.from("exams").select("id, name, description").order("created_at", { ascending: true });
+
+      console.log("[Landing] Exams query result:", { data, error, count: data?.length });
+
+      if (error) {
+        console.error("[Landing] Exams query error:", error);
+        setExams([]);  // Show empty if database error
+        return;
       }
-    } else {
-      // Show demo exams for non-logged-in users
-      setExams(demoExams);
+
+      if (data && data.length > 0) {
+        console.log("[Landing] Setting actual exams from database:", data.map(e => e.name));
+        setExams(data);
+      } else {
+        console.log("[Landing] No exams in database");
+        setExams([]);  // Show empty if no exams in database
+      }
+    } catch (error) {
+      console.error("[Landing] Error loading exams:", error);
+      setExams([]);  // Show empty on error
     }
   };
   const loadFeaturedTests = async () => {
-    const {
-      data
-    } = await supabase.from("mock_tests").select("id, title, description, test_type, duration_minutes, total_marks, exams(name)").eq("is_published", true).order("created_at", {
-      ascending: false
-    }).limit(8);
-    if (data && data.length > 0) {
-      // Filter to show only tests marked for landing page visibility
-      const { getVisibleTestIds } = await import("@/config/landingVisibility");
-      const visibleIds = getVisibleTestIds();
-      if (visibleIds.length > 0) {
-        const visibleTests = data.filter(test => visibleIds.includes(test.id));
-        setFeaturedTests(visibleTests.length > 0 ? visibleTests : data);
-      } else {
-        setFeaturedTests(data);
+    try {
+      console.log("[Landing] Loading mock tests from database...");
+      // Fetch ALL mock tests (removed is_published filter to show all database tests)
+      const { data, error } = await supabase.from("mock_tests").select("id, title, description, test_type, duration_minutes, total_marks, exams(name), subjects(name)").order("created_at", {
+        ascending: false
+      }).limit(8);
+
+      console.log("[Landing] Mock tests query result:", { data, error, count: data?.length });
+
+      if (error) {
+        console.error("[Landing] Mock tests query error:", error);
+        setFeaturedTests([]);
+        return;
       }
-    } else {
-      // Show demo tests for non-logged-in users
-      setFeaturedTests(demoTests);
+
+      if (data && data.length > 0) {
+        console.log("[Landing] Setting actual tests from database:", data.map(t => t.title));
+        setFeaturedTests(data as MockTest[]);
+      } else {
+        console.log("[Landing] No tests in database");
+        setFeaturedTests([]);
+      }
+    } catch (error) {
+      console.error("[Landing] Error loading featured tests:", error);
+      setFeaturedTests([]);
     }
   };
   const handleLogout = async () => {
@@ -185,7 +197,7 @@ const Landing = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className="min-h-screen bg-[#FAFAFA] relative overflow-y-auto"
+            className="min-h-screen bg-[#FAFAFA] relative overflow-x-hidden"
             {...containerProps}
           >
             <PullIndicator />
@@ -228,7 +240,7 @@ const Landing = () => {
             </header>
 
             {/* Hero Section with Integrated Header (Mobile only) */}
-            <section className="relative min-h-[100dvh] flex flex-col bg-gradient-to-br from-emerald-50 via-white to-teal-50 pb-8 overflow-hidden">
+            <section className="relative flex flex-col bg-gradient-to-br from-emerald-50 via-white to-teal-50 pb-8 overflow-hidden">
 
 
               {/* Mobile App Header - Enhanced Native Style */}
@@ -292,7 +304,7 @@ const Landing = () => {
               </div>
 
               {/* Mobile App Content */}
-              <div className="md:hidden flex-1 px-5 pb-8 flex flex-col overflow-y-auto">
+              <div className="md:hidden flex-1 px-5 pb-8 flex flex-col">
                 {/* Welcome Card - 3D Style */}
                 <motion.div
                   initial={{ opacity: 0, y: 30, rotateX: 10 }}
@@ -329,9 +341,9 @@ const Landing = () => {
                         </span>
                       </div>
                     </div>
-                    <h2 className="text-2xl font-extrabold text-white mb-2 leading-tight">আজই শুরু করো, সাফল্য তোমার হাতে!</h2>
+                    <h2 className="text-2xl font-extrabold text-white mb-2 leading-tight">Crack WBSSC, WBP & Railway Exams</h2>
                     <p className="text-emerald-100 text-sm mb-5 leading-relaxed max-w-[260px]">
-                      Start practicing with our curated mock tests and study materials.
+                      Practice with curated mock tests & study materials
                     </p>
                     {!isLoggedIn ? (
                       <Button
@@ -475,130 +487,372 @@ const Landing = () => {
                 </motion.div>
               </div>
 
-              {/* Desktop Hero Content - Unchanged */}
-              <div className="hidden md:flex flex-1 container mx-auto px-4 flex-col items-center justify-center relative z-10">
-                {/* Centered Hero Content */}
-                <div className="text-center max-w-2xl mx-auto">
+              {/* Desktop Hero Content - Premium Two-Column Layout */}
+              <div className="hidden md:flex flex-1 container mx-auto px-6 lg:px-12 flex-col justify-center relative z-10 pt-24 pb-16">
+                <div className="grid lg:grid-cols-[1.3fr_0.7fr] gap-12 lg:gap-16 items-center max-w-7xl mx-auto w-full">
+                  {/* Left Content */}
                   <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="space-y-6"
+                    initial={{ opacity: 0, x: -40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.7, delay: 0.2 }}
+                    className="space-y-8 relative z-10"
                   >
-                    <Badge className="bg-emerald-100/80 text-emerald-700 border-emerald-200/50 backdrop-blur-sm py-1.5 px-4 text-xs font-semibold uppercase tracking-wider pointer-events-none">
-                      #1 Mock Test Platform
-                    </Badge>
+                    <div className="space-y-6">
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-full py-2 px-4 shadow-sm"
+                      >
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+                          #1 Mock Test Platform for Govt Exams
+                        </span>
+                      </motion.div>
 
-                    <h2 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-[1.1] tracking-tight">
-                      Master Your Exams
-                      <br />
-                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
-                        Simply & Effectively
-                      </span>
-                    </h2>
+                      <h2 className="text-4xl sm:text-5xl lg:text-7xl font-black text-gray-900 leading-[1.1] tracking-tight">
+                        Crack <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">WBSSC, WBP</span>
+                        <br />
+                        & Railway Exams
+                      </h2>
 
-                    <p className="text-lg sm:text-xl text-gray-600 max-w-lg mx-auto leading-relaxed">
-                      Top-quality mock tests and AI-powered practice to boost your scores.
-                    </p>
+                      <p className="text-lg text-gray-600 max-w-lg leading-relaxed font-medium">
+                        Attempt selection-oriented mock tests, analyze your performance with AI, and secure your government job.
+                      </p>
+                    </div>
 
+                    {/* CTA Buttons */}
                     {!isLoggedIn ? (
-                      <div className="flex flex-col gap-3 items-center pt-4">
+                      <div className="flex flex-col sm:flex-row gap-4 pt-2">
                         <Button
                           size="lg"
                           variant="default"
                           onClick={() => navigate("/register")}
-                          className="text-base font-semibold py-6 px-8 rounded-2xl active:scale-95 transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                          className="h-14 px-8 rounded-2xl text-base font-bold bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all hover:-translate-y-1"
                         >
-                          Get Started Free
+                          Attempt Free Mock Test
                           <ChevronRight className="w-5 h-5 ml-2" />
                         </Button>
-
+                        <Button
+                          size="lg"
+                          variant="outline"
+                          onClick={() => navigate("/login")}
+                          className="h-14 px-8 rounded-2xl text-base font-bold border-2 border-gray-200 text-gray-700 hover:border-emerald-500 hover:text-emerald-700 hover:bg-emerald-50 transition-all"
+                        >
+                          <PlayCircle className="w-5 h-5 mr-2" />
+                          Watch Demo
+                        </Button>
                       </div>
                     ) : (
-                      <div className="flex justify-center pt-4">
+                      <div className="flex justify-start pt-2">
                         <Button
                           size="lg"
                           variant="default"
                           onClick={() => navigate(userRole === "admin" ? "/admin/dashboard" : "/student/dashboard")}
-                          className="text-base font-semibold py-6 px-8 rounded-2xl active:scale-95 transition-all duration-200 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700"
+                          className="h-14 px-8 rounded-2xl text-base font-bold bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all hover:-translate-y-1"
                         >
                           {userRole === "admin" ? "Go to Admin Panel" : "Go to Dashboard"}
                           <ChevronRight className="w-5 h-5 ml-2" />
                         </Button>
                       </div>
                     )}
+
+                    {/* Stats Row */}
+                    <div className="grid grid-cols-3 gap-6 pt-6 border-t border-gray-100">
+                      <div>
+                        <p className="text-3xl font-black text-gray-900">50K+</p>
+                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">Students</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-black text-gray-900">300+</p>
+                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">Mock Tests</p>
+                      </div>
+                      <div>
+                        <p className="text-3xl font-black text-gray-900">95%</p>
+                        <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mt-1">Success Rate</p>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Right Visual - Floating Cards Illustration */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.7, delay: 0.4 }}
+                    className="relative hidden lg:block"
+                  >
+                    {/* Main Container */}
+                    <div className="relative w-full max-w-lg mx-auto flex items-center justify-center lg:justify-center scale-[0.85]">
+                      {/* Background Glow REMOVED as requested */}
+
+                      <div className="relative w-full max-w-[300px] mx-auto z-20 perspective-1000 aspect-[9/19]">
+                        {/* Phone Frame */}
+                        <motion.div
+                          initial={{ y: 20, opacity: 0, rotateY: 0, rotateZ: 0 }}
+                          animate={{ y: 0, opacity: 1, rotateY: 0, rotateZ: 0 }}
+                          whileHover={{ scale: 1.02 }}
+                          transition={{ duration: 0.8, delay: 0.4 }}
+                          className="absolute inset-0 bg-gray-900 rounded-[3rem] shadow-2xl overflow-hidden border-[8px] border-gray-900 ring-1 ring-gray-900/5 z-20 transform transition-all duration-500"
+                          style={{ transformStyle: 'preserve-3d' }}
+                        >
+                          {/* Glass Reflection Overlay REMOVED as requested */}
+
+                          {/* Dynamic Island / Notch */}
+                          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-black rounded-b-2xl z-30 flex items-center justify-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-gray-800/50"></div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-blue-900/30"></div>
+                          </div>
+
+                          {/* Screen Content */}
+                          <div className="w-full h-full bg-slate-50 flex flex-col pt-10 px-4 relative">
+
+                            {/* Header */}
+                            <div className="flex justify-between items-center mb-6">
+                              <div>
+                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Good Morning</p>
+                                <h4 className="text-lg font-black text-gray-900">Choose Exam</h4>
+                              </div>
+                              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center border border-white shadow-sm">
+                                <User className="w-4 h-4 text-emerald-600" />
+                              </div>
+                            </div>
+
+                            {/* Search Bar */}
+                            <div className="h-10 bg-white rounded-xl border border-gray-100 shadow-sm mb-6 flex items-center px-3 gap-2">
+                              <div className="w-4 h-4 rounded-full border-2 border-gray-200"></div>
+                              <div className="h-2 w-24 bg-gray-100 rounded-full"></div>
+                            </div>
+
+                            {/* Exam Cards */}
+                            <div className="space-y-3">
+                              {/* Card 1: WBP (Active) */}
+                              <motion.div
+                                initial={{ x: 20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.6 }}
+                                className="bg-emerald-600 p-3.5 rounded-2xl shadow-lg shadow-emerald-500/20 border border-emerald-500 flex items-center gap-3.5 relative overflow-hidden"
+                              >
+                                <div className="absolute -right-4 -top-4 w-16 h-16 bg-white/10 rounded-full blur-2xl"></div>
+                                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-inner">
+                                  <Shield className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="flex-1 relative z-10">
+                                  <h5 className="font-bold text-white text-sm">West Bengal Police</h5>
+                                  <p className="text-[10px] text-emerald-100 font-medium">Selected • 12 Tests New</p>
+                                </div>
+                                <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center">
+                                  <CheckCircle className="w-3 h-3 text-emerald-600" />
+                                </div>
+                              </motion.div>
+
+                              {/* Card 2: WBSSC */}
+                              <motion.div
+                                initial={{ x: 20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.7 }}
+                                className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3.5 hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/10">
+                                  <BookOpen className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-gray-900 text-sm">WBSSC SLST</h5>
+                                  <p className="text-[10px] text-gray-500 font-medium">PT & Mains Full Mock</p>
+                                </div>
+                              </motion.div>
+
+                              {/* Card 3: Railway */}
+                              <motion.div
+                                initial={{ x: 20, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ delay: 0.8 }}
+                                className="bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-3.5 hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center shadow-lg shadow-orange-500/10">
+                                  <TrendingUp className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className="font-bold text-gray-900 text-sm">Railway Group D</h5>
+                                  <p className="text-[10px] text-gray-500 font-medium">NTPC & ALP Live Test</p>
+                                </div>
+                              </motion.div>
+                            </div>
+
+                            {/* Floating CTA */}
+                            <motion.div
+                              initial={{ y: 20, opacity: 0 }}
+                              animate={{ y: 0, opacity: 1 }}
+                              transition={{ delay: 1 }}
+                              className="absolute bottom-6 left-4 right-4"
+                            >
+                              <button className="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-xl shadow-gray-900/20 flex items-center justify-center gap-2 hover:bg-gray-800 active:scale-95 transition-all">
+                                <span>Attempt Mock Test</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </button>
+                            </motion.div>
+
+                          </div>
+                        </motion.div>
+
+                        {/* Decorative Background Blobs for Phone */}
+                        <div className="absolute top-10 -right-10 w-40 h-40 bg-emerald-300 rounded-full blur-3xl opacity-20 animate-pulse"></div>
+                        <div className="absolute bottom-10 -left-10 w-40 h-40 bg-blue-300 rounded-full blur-3xl opacity-20 animate-pulse delay-700"></div>
+
+                        {/* Floating Success Badge */}
+                        <motion.div
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                          className="absolute top-20 -left-8 bg-white p-3 rounded-2xl shadow-xl border border-gray-100 flex items-center gap-3 z-30"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase">Accuracy</p>
+                            <p className="text-sm font-black text-gray-900">92%</p>
+                          </div>
+                        </motion.div>
+
+                        {/* New Floating Live Badge */}
+                        <motion.div
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                          className="absolute bottom-32 -right-4 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-xl shadow-lg border border-gray-100 flex items-center gap-2 z-30"
+                        >
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                          </span>
+                          <p className="text-[10px] font-bold text-gray-800">Live: 240+</p>
+                        </motion.div>
+                      </div>
+                    </div>
                   </motion.div>
                 </div>
               </div>
             </section >
 
-            {/* Exams Section - Mobile Friendly */}
-            < section className="py-8 md:py-16 lg:py-24 bg-white" >
-              <div className="container mx-auto">
+            {/* Exams Section - Premium Redesign */}
+            <section className="py-12 md:py-16 lg:py-20 bg-gradient-to-b from-slate-50 via-white to-slate-50 relative overflow-hidden">
+              {/* Decorative Background */}
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-100 rounded-full blur-[120px] opacity-40" />
+                <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-teal-100 rounded-full blur-[100px] opacity-40" />
+              </div>
+
+              <div className="container mx-auto px-4 relative z-10">
                 {/* Section Header */}
-                <div className="text-center mb-6 md:mb-10 px-4">
-                  <Badge className="mb-3 bg-emerald-100/80 text-emerald-700 border-emerald-200/50 py-1 px-3 text-[10px] font-semibold uppercase tracking-wider pointer-events-none hover:bg-emerald-100/80">
-                    Exam Categories
-                  </Badge>
-                  <h3 className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-gray-900 mb-2">
-                    Available <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Exams</span>
-                  </h3>
-                  <p className="text-gray-600 text-sm md:text-base font-medium max-w-xl mx-auto">
-                    Choose from our exam categories
-                  </p>
+                <div className="text-center mb-10 md:mb-14">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    viewport={{ once: true }}
+                  >
+                    <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-full px-4 py-2 mb-4">
+                      <Target className="w-4 h-4 text-emerald-600" />
+                      <span className="text-emerald-700 text-xs font-bold uppercase tracking-wider">Choose Your Goal</span>
+                    </div>
+                    <h3 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-3">
+                      Target <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">Exams</span>
+                    </h3>
+                    <p className="text-gray-500 text-sm md:text-base font-medium max-w-md mx-auto">
+                      Select your exam category and start your preparation journey
+                    </p>
+                  </motion.div>
                 </div>
 
                 {exams.length === 0 ? (
-                  <div className="flex justify-center">
-                    <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="flex justify-center py-12">
+                    <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : (
-                  /* Horizontal Scroll Container - Force Single Row and Snap to Middle */
-                  <div className="w-full relative px-0 overflow-visible">
+                  <div className="max-w-5xl mx-auto">
                     <div
-                      className="overflow-x-auto pb-12 scrollbar-hide snap-x snap-mandatory flex flex-row flex-nowrap gap-4 px-6 md:gap-6 md:px-12 lg:justify-center lg:px-0 lg:mx-auto min-w-full"
+                      className="
+                        flex flex-wrap justify-center gap-5 px-4 pb-6
+                        md:gap-6 md:pb-0
+                      "
                       style={{
                         WebkitOverflowScrolling: 'touch',
                         scrollbarWidth: 'none',
                         msOverflowStyle: 'none',
-                        scrollPaddingLeft: '24px',
-                        scrollPaddingRight: '24px'
                       }}
                     >
-                      {exams.map((exam, index) => (
-                        <motion.div
-                          key={exam.id}
-                          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                          whileInView={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ duration: 0.5, delay: index * 0.1 }}
-                          viewport={{ once: true, margin: "-100px" }}
-                          whileTap={{ scale: 0.96 }}
-                          onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
-                          className="w-[240px] sm:w-[260px] shrink-0 bg-white border border-gray-100 rounded-[28px] p-5 sm:p-6 cursor-pointer hover:border-emerald-400 transition-all shadow-sm hover:shadow-2xl hover:-translate-y-2 flex flex-col items-center text-center snap-center group relative overflow-hidden"
-                          style={{
-                            boxShadow: '0 20px 40px -15px rgba(0,0,0,0.06)',
-                            background: 'linear-gradient(135deg, #ffffff 0%, #f9fafb 100%)'
-                          }}
-                        >
-                          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-[20px] sm:rounded-[24px] bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center mb-4 sm:mb-5 shadow-xl shadow-emerald-200 group-hover:scale-110 transition-transform duration-300">
-                            <BookOpen className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-                          </div>
+                      {exams.map((exam, index) => {
+                        const colors = [
+                          { bg: "bg-emerald-500", light: "bg-emerald-50", text: "text-emerald-600" },
+                          { bg: "bg-blue-500", light: "bg-blue-50", text: "text-blue-600" },
+                          { bg: "bg-purple-500", light: "bg-purple-50", text: "text-purple-600" },
+                          { bg: "bg-orange-500", light: "bg-orange-50", text: "text-orange-600" },
+                        ];
+                        const color = colors[index % colors.length];
 
-                          <h4 className="text-base sm:text-lg font-extrabold text-gray-900 mb-4 sm:mb-5 leading-tight min-h-[3rem] sm:min-h-[3.5rem] flex items-center justify-center">
-                            {exam.name}
-                          </h4>
+                        return (
+                          <motion.div
+                            key={exam.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: index * 0.08 }}
+                            viewport={{ once: true }}
+                            whileHover={{ y: -6 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
+                            className="w-full max-w-[280px] md:w-[240px] md:max-w-none cursor-pointer group"
+                          >
+                            <div className="bg-white rounded-2xl overflow-hidden h-full border border-gray-100 shadow-md hover:shadow-xl transition-all duration-300">
+                              {/* Top accent bar */}
+                              <div className={`h-1.5 ${color.bg}`} />
 
-                          <div className="flex items-center justify-center text-emerald-600 text-xs sm:text-sm font-bold mt-auto bg-emerald-50/80 backdrop-blur-sm w-full py-2.5 sm:py-3 rounded-[18px] sm:rounded-[22px] group-hover:bg-emerald-600 group-hover:text-white transition-all duration-300">
-                            <span>Explore Now</span>
-                            <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 ml-1 group-hover:translate-x-1.5 transition-transform" />
-                          </div>
-                        </motion.div>
-                      ))}
+                              <div className="p-5">
+                                {/* Icon */}
+                                <div className={`w-12 h-12 ${color.light} rounded-xl flex items-center justify-center mb-4`}>
+                                  <BookOpen className={`w-6 h-6 ${color.text}`} />
+                                </div>
+
+                                {/* Title */}
+                                <h4 className="text-lg font-bold text-gray-900 mb-1">
+                                  {exam.name}
+                                </h4>
+
+                                {/* Subtitle */}
+                                <p className="text-sm text-gray-400 mb-4">Practice Tests</p>
+
+                                {/* CTA */}
+                                <div className={`flex items-center gap-2 ${color.text} text-sm font-semibold`}>
+                                  <span>Start Now</span>
+                                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
                     </div>
+
+                    {/* View All Link */}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      whileInView={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      viewport={{ once: true }}
+                      className="text-center mt-8"
+                    >
+                      <button
+                        onClick={() => isLoggedIn ? navigate("/student/exams") : navigate("/login")}
+                        className="inline-flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-bold text-sm transition-colors"
+                      >
+                        View All Exams
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </motion.div>
                   </div>
                 )}
               </div>
-            </section >
+            </section>
 
             {/* Featured Tests Section - Premium Redesign */}
             <section className="py-16 sm:py-24 md:py-32 bg-gradient-to-b from-gray-50 via-white to-gray-50 relative overflow-hidden">
@@ -641,7 +895,7 @@ const Landing = () => {
                     ].map((tab) => (
                       <button
                         key={tab.key}
-                        onClick={() => setFilterType(tab.key as any)}
+                        onClick={() => setFilterType(tab.key as "all" | "full_mock" | "topic_wise")}
                         className={`flex items-center gap-1.5 px-3 sm:px-5 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-150 ${filterType === tab.key
                           ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-white"
                           : "text-gray-600 hover:text-gray-900"
@@ -723,11 +977,11 @@ const Landing = () => {
                               </div>
                             </div>
 
-                            {/* Exam Badge */}
-                            {test.exams?.name && (
+                            {/* Exam/Subject Badge */}
+                            {(test.exams?.name || test.subjects?.name) && (
                               <div className="flex items-center gap-1.5 text-gray-600 text-xs font-semibold mb-3">
                                 <FileText className="w-3 h-3" />
-                                <span>{test.exams.name}</span>
+                                <span>{test.test_type === "full_mock" ? test.exams?.name : (test.subjects?.name || test.exams?.name)}</span>
                               </div>
                             )}
 
@@ -775,14 +1029,13 @@ const Landing = () => {
                     viewport={{ once: true }}
                   >
                     <span className="inline-block mb-4 px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">
-                      Why Choose Us
+                      Why Practice Koro?
                     </span>
                     <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-4">
-                      Everything You Need to{' '}
-                      <span className="text-emerald-600">Succeed</span>
+                      Complete Ecosystem for <span className="text-emerald-600">Govt Exam Prep</span>
                     </h3>
                     <p className="text-slate-500 text-sm sm:text-base max-w-lg mx-auto">
-                      A complete learning ecosystem designed to help you crack your dream exam
+                      All the tools you need to secure a top rank in WBP, SSC, and Railway exams
                     </p>
                   </motion.div>
                 </div>
@@ -906,7 +1159,7 @@ const Landing = () => {
 
 
             {/* App Download Section - Green & White Theme with Phone Mockup */}
-            <section className="py-16 sm:py-24 bg-gradient-to-br from-emerald-50 via-white to-teal-50 relative">
+            <section className="py-12 sm:py-16 bg-gradient-to-br from-emerald-50 via-white to-teal-50 relative">
               {/* Subtle Background Decoration */}
               <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-emerald-100 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/2 opacity-60" />
@@ -916,15 +1169,15 @@ const Landing = () => {
               <div className="container mx-auto px-5 relative z-10">
                 <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-10 lg:gap-14">
 
-                  {/* Left - Phone Mockup */}
+                  {/* Left - Phone Mockup - Hidden on very small screens */}
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.6 }}
                     viewport={{ once: true }}
-                    className="flex-1 relative order-2 md:order-1 mt-12 md:mt-0 pl-6 pr-14 sm:pl-10 sm:pr-20 py-12"
+                    className="hidden sm:flex flex-1 relative order-2 md:order-1 mt-8 md:mt-0 justify-center items-center"
                   >
-                    <div className="relative mx-auto w-52 sm:w-56 lg:w-60 overflow-visible">
+                    <div className="relative w-44 sm:w-48 md:w-52 lg:w-56">
                       {/* Outer Glow */}
                       <div className="absolute inset-0 bg-emerald-200/30 rounded-[2.5rem] blur-2xl scale-110" />
 
@@ -936,43 +1189,71 @@ const Landing = () => {
                         </div>
 
                         {/* Screen Content */}
-                        <div className="bg-white rounded-[2rem] overflow-hidden aspect-[9/18] relative select-none touch-none">
-                          {/* App Preview */}
-                          <div className="p-3 pt-7 space-y-2.5 pointer-events-none">
-                            {/* App Header */}
-                            <div className="flex items-center gap-2 mb-3">
-                              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-                                <Zap className="w-4 h-4 text-white" />
+                        <div className="bg-slate-50 rounded-[2rem] overflow-hidden aspect-[9/18] relative select-none touch-none flex flex-col">
+                          {/* App Header with Timer */}
+                          <div className="bg-emerald-600 p-4 pb-6 text-white relative">
+                            <div className="flex justify-between items-center mb-4">
+                              <span className="text-xs font-medium opacity-90">Mock Test #105</span>
+                              <div className="bg-emerald-700/50 px-2 py-1 rounded text-xs font-mono">09:59</div>
+                            </div>
+                            <div className="absolute bottom-0 left-0 right-0 h-4 bg-slate-50 rounded-t-[1.5rem]" />
+                          </div>
+
+                          {/* Quiz Content */}
+                          <div className="px-4 -mt-2 flex-1 flex flex-col pb-4">
+                            {/* Question Card */}
+                            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Indian History</span>
+                                <span className="text-[10px] text-gray-400">Q. 5/20</span>
                               </div>
-                              <div className="space-y-1">
-                                <div className="h-3 bg-slate-800 rounded w-16" />
-                                <div className="h-1.5 bg-emerald-400/50 rounded w-10" />
-                              </div>
+                              <p className="text-xs text-gray-800 font-bold leading-relaxed font-bengali">
+                                সুভাষচন্দ্র বসুর রাজনৈতিক গুরু কে ছিলেন?
+                              </p>
                             </div>
 
-                            {/* Hero Card */}
-                            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl p-3">
-                              <div className="h-1 bg-white/30 rounded w-1/4 mb-1.5" />
-                              <div className="h-6 bg-white/20 rounded-lg w-full" />
-                            </div>
-
-                            {/* Mini Cards */}
-                            <div className="grid grid-cols-2 gap-1.5">
-                              {[1, 2].map((i) => (
-                                <div key={i} className="bg-slate-50 rounded-lg p-2 border border-slate-100">
-                                  <div className="w-6 h-6 rounded bg-blue-100 mb-1.5" />
-                                  <div className="h-1 bg-slate-200 rounded w-full" />
+                            {/* Options - hidden on very small screens */}
+                            <div className="hidden sm:block space-y-2 mb-auto">
+                              {[
+                                { id: "A", text: "মহাত্মা গান্ধী", active: false },
+                                { id: "B", text: "লালা লাজপত রায়", active: false },
+                                { id: "C", text: "চিত্তরঞ্জন দাশ", active: true },
+                                { id: "D", text: "গোপাল কৃষ্ণ গোখলে", active: false },
+                              ].map((opt) => (
+                                <div
+                                  key={opt.id}
+                                  className={`flex items-center gap-3 p-2.5 rounded-lg border text-xs font-medium transition-colors ${opt.active
+                                    ? "bg-emerald-50 border-emerald-500 text-emerald-700"
+                                    : "bg-white border-gray-100 text-gray-600"
+                                    }`}
+                                >
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${opt.active ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-300 text-gray-400"
+                                    }`}>
+                                    {opt.active && <CheckCircle className="w-3 h-3" />}
+                                    {!opt.active && <span className="text-[9px]">{opt.id}</span>}
+                                  </div>
+                                  {opt.text}
                                 </div>
                               ))}
                             </div>
 
-                            {/* List Item */}
-                            <div className="bg-white rounded-xl p-2.5 border border-slate-100 flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-lg bg-purple-100" />
-                              <div className="flex-1 space-y-1">
-                                <div className="h-1.5 bg-slate-700 rounded w-full" />
-                                <div className="h-1 bg-slate-200 rounded w-1/2" />
+                            {/* Simple options for mobile */}
+                            <div className="sm:hidden flex-1 flex flex-col justify-center gap-2">
+                              <div className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 bg-white text-xs">
+                                <span className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center text-[8px] text-gray-400">A</span>
+                                <span className="text-gray-500">Option A</span>
                               </div>
+                              <div className="flex items-center gap-2 p-2 rounded-lg border border-emerald-500 bg-emerald-50 text-xs">
+                                <span className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center">
+                                  <CheckCircle className="w-2.5 h-2.5 text-white" />
+                                </span>
+                                <span className="text-emerald-700 font-medium">Option C ✓</span>
+                              </div>
+                            </div>
+
+                            {/* Action Button */}
+                            <div className="bg-emerald-600 text-white text-center py-2 sm:py-3 rounded-xl font-bold text-[10px] sm:text-xs shadow-lg shadow-emerald-500/30 mt-2">
+                              Save & Next
                             </div>
                           </div>
                         </div>
@@ -988,7 +1269,7 @@ const Landing = () => {
                           y: { duration: 2, repeat: Infinity, ease: "easeInOut" },
                           scale: { duration: 2.5, repeat: Infinity, ease: "easeInOut" }
                         }}
-                        className="absolute top-4 right-2 z-20 bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border-2 border-white flex items-center gap-1 shadow-md shadow-emerald-500/20"
+                        className="absolute -top-2 -right-2 sm:top-4 sm:right-2 z-20 bg-gradient-to-br from-emerald-500 to-teal-600 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg border-2 border-white flex items-center gap-1 shadow-md shadow-emerald-500/20"
                       >
                         <Download className="w-3 h-3" />
                         <span>Install</span>
@@ -1056,63 +1337,8 @@ const Landing = () => {
               </div>
             </section>
 
-            {/* CTA Section */}
-            {
-              !isLoggedIn && (
-                <section className="relative py-16 sm:py-20 md:py-24 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 overflow-hidden">
-                  {/* Floating Icons */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.2 }}
-                      viewport={{ once: true }}
-                      className="absolute top-[20%] left-[8%] md:left-[15%]"
-                    >
-                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center rotate-12">
-                        <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-white/80" />
-                      </div>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.5, delay: 0.4 }}
-                      viewport={{ once: true }}
-                      className="absolute bottom-[20%] right-[8%] md:right-[15%]"
-                    >
-                      <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center -rotate-12">
-                        <Award className="w-6 h-6 md:w-7 md:h-7 text-white/80" />
-                      </div>
-                    </motion.div>
-                  </div>
-
-                  <div className="container mx-auto px-4 text-center relative z-10">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5 }}
-                      viewport={{ once: true }}
-                      className="max-w-2xl mx-auto"
-                    >
-                      <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 text-white leading-tight">
-                        Ready to Start Your Journey?
-                      </h3>
-                      <p className="text-lg sm:text-xl mb-8 text-white/90 max-w-xl mx-auto">
-                        Join thousands of students who are already improving their exam performance with Practice Koro.
-                      </p>
-                      <Button
-                        size="lg"
-                        onClick={() => navigate("/register")}
-                        className="text-base font-semibold py-6 px-8 rounded-2xl bg-white text-emerald-700 hover:bg-emerald-50 active:scale-95 transition-all duration-200"
-                      >
-                        Register Now - It's Free
-                        <ChevronRight className="w-5 h-5 ml-2" />
-                      </Button>
-                    </motion.div>
-                  </div>
-                </section>
-              )
-            }
+            {/* Latest Blogs Section */}
+            <LatestBlogs />
 
             <Footer />
           </motion.div >

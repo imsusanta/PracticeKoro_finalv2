@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Users, CheckCircle, XCircle, Search, UserX, Key, UserCheck, Trash2, Clock, MoreVertical, Plus, Phone, Mail, User, Calendar, Shield, MessageSquare, Send, CreditCard, Edit } from "lucide-react";
+import { Users, CheckCircle, XCircle, Search, UserX, Key, UserCheck, Trash2, Clock, MoreVertical, Plus, Phone, Mail, User, Calendar, Shield, MessageSquare, Send, CreditCard, Edit, Sparkles } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -18,6 +18,7 @@ interface Student {
   email: string;
   full_name: string | null;
   whatsapp_number: string | null;
+  avatar_url: string | null;
   age: number | null;
   created_at: string;
   approval_status?: {
@@ -25,6 +26,12 @@ interface Student {
     reviewed_at: string | null;
     expires_at: string | null;
   };
+  purchases?: {
+    id?: string;
+    status: string;
+    content_type?: string;
+    created_at?: string;
+  }[];
 }
 
 const StudentManagement = () => {
@@ -35,6 +42,7 @@ const StudentManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [paymentFilter, setPaymentFilter] = useState<string>("all");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [passwordResetOpen, setPasswordResetOpen] = useState(false);
@@ -57,6 +65,8 @@ const StudentManagement = () => {
   const [editActiveTimeDialogOpen, setEditActiveTimeDialogOpen] = useState(false);
   const [editDuration, setEditDuration] = useState<string>("permanent");
   const [editCustomDate, setEditCustomDate] = useState<string>("");
+  const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -64,16 +74,18 @@ const StudentManagement = () => {
 
   useEffect(() => {
     applyFilters();
-  }, [searchQuery, filterStatus, students]);
+  }, [searchQuery, filterStatus, paymentFilter, students]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      setLoading(false);
       navigate("/admin/login");
       return;
     }
     const { data: roleData } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id).eq("role", "admin").maybeSingle();
     if (!roleData) {
+      setLoading(false);
       await supabase.auth.signOut();
       toast({ title: "Access Denied", description: "You do not have admin privileges", variant: "destructive" });
       navigate("/admin/login");
@@ -84,31 +96,69 @@ const StudentManagement = () => {
   };
 
   const loadStudents = async () => {
-    const { data: studentsData, error } = await supabase.from("profiles").select(`
-      id, email, full_name, whatsapp_number, age, created_at,
-      user_roles!inner(role),
-      approval_status(status, reviewed_at, expires_at)
-    `).eq("user_roles.role", "student").order("created_at", { ascending: false });
+    try {
+      console.log("Loading students...");
+      const { data: studentsData, error: studentError } = await supabase.from("profiles").select(`
+        id, email, full_name, whatsapp_number, avatar_url, age, created_at,
+        user_roles(role),
+        approval_status(status, reviewed_at, expires_at)
+      `).order("created_at", { ascending: false });
 
-    if (error) {
-      toast({ title: "Error", description: "Failed to load students", variant: "destructive" });
-      return;
+      if (studentError) {
+        console.error("Error loading students profiles:", studentError);
+        toast({ title: "Error", description: "Failed to load students: " + studentError.message, variant: "destructive" });
+        return;
+      }
+
+      console.log("Students loaded:", studentsData?.length);
+
+      // 2. Fetch completed purchases
+      const { data: purchasesData, error: purchaseError } = await supabase
+        .from("purchases")
+        .select("user_id, status, content_type, created_at")
+        .eq("status", "completed")
+        .order("created_at", { ascending: false });
+
+      if (purchaseError) {
+        console.error("Error loading purchases:", purchaseError);
+      }
+
+      const students = (studentsData || [])
+        .filter((s: any) => {
+          const role = Array.isArray(s.user_roles) ? s.user_roles[0]?.role : s.user_roles?.role;
+          return role !== 'admin'; // Include everyone except admins
+        })
+        .map((s: any) => ({
+          id: s.id,
+          email: s.email,
+          full_name: s.full_name,
+          whatsapp_number: s.whatsapp_number,
+          avatar_url: s.avatar_url,
+          age: s.age,
+          created_at: s.created_at,
+          approval_status: Array.isArray(s.approval_status) ? s.approval_status[0] : s.approval_status,
+          purchases: (purchasesData || []).filter(p => p.user_id === s.id)
+        }));
+      setStudents(students);
+    } catch (err: any) {
+      console.error("Critical error in loadStudents:", err);
+      toast({ title: "Error", description: "Critical error loading students: " + err.message, variant: "destructive" });
     }
-
-    const students = (studentsData || []).map((s: any) => ({
-      id: s.id,
-      email: s.email,
-      full_name: s.full_name,
-      whatsapp_number: s.whatsapp_number,
-      age: s.age,
-      created_at: s.created_at,
-      approval_status: Array.isArray(s.approval_status) ? s.approval_status[0] : s.approval_status
-    }));
-    setStudents(students);
   };
 
   const applyFilters = () => {
     let filtered = [...students];
+
+    // Helper to check for active subscription
+    const hasActiveSubscription = (s: any) => {
+      return s.purchases?.some(p => {
+        if (p.content_type !== 'subscription') return false;
+        const expiryDate = new Date(p.created_at || "");
+        expiryDate.setDate(expiryDate.getDate() + 365);
+        return new Date() < expiryDate;
+      });
+    };
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       filtered = filtered.filter(s => {
@@ -126,9 +176,24 @@ const StudentManagement = () => {
         );
       });
     }
+
     if (filterStatus !== "all") {
-      filtered = filtered.filter(s => s.approval_status?.status === filterStatus);
+      filtered = filtered.filter(s => {
+        const studentStatus = s.approval_status?.status || "pending";
+        // If they have active subscription, they are treated as approved
+        if (filterStatus === "approved" && hasActiveSubscription(s)) return true;
+        return studentStatus === filterStatus;
+      });
     }
+
+    if (paymentFilter !== "all") {
+      filtered = filtered.filter(s => {
+        const isPremium = hasActiveSubscription(s);
+        if (paymentFilter === "premium") return isPremium;
+        return !isPremium;
+      });
+    }
+
     setFilteredStudents(filtered);
   };
 
@@ -200,21 +265,43 @@ const StudentManagement = () => {
     await loadStudents();
   };
 
-  const handlePaymentLock = async (studentId: string) => {
+  const handleManualUpgrade = async () => {
+    if (!selectedStudent) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { error } = await supabase.from("approval_status").update({
-      status: "payment_locked",
-      reviewed_by: session.user.id,
-      reviewed_at: new Date().toISOString()
-    }).eq("user_id", studentId);
-    if (error) {
-      console.error("Payment lock error:", error);
-      toast({ title: "Error", description: error.message || "Failed to lock account", variant: "destructive" });
-      return;
+
+    setUpgrading(true);
+    try {
+      // Insert a completed purchase record for the student
+      const { error } = await supabase.from("purchases").insert({
+        user_id: selectedStudent.id,
+        content_type: 'subscription',
+        content_id: 'site_yearly_subscription',
+        amount: 0,
+        status: 'completed',
+        razorpay_order_id: 'manual_upgrade_' + Date.now(),
+        razorpay_payment_id: 'manual_upgrade_' + Date.now(),
+        razorpay_signature: 'manual_upgrade'
+      });
+
+      if (error) throw error;
+
+      // Auto-approve the student if they were pending/rejected
+      await supabase.from("approval_status").update({
+        status: "approved",
+        reviewed_by: session.user.id,
+        reviewed_at: new Date().toISOString()
+      }).eq("user_id", selectedStudent.id);
+
+      toast({ title: "Success", description: `${selectedStudent.full_name} has been upgraded to PREMIUM.` });
+      setUpgradeDialogOpen(false);
+      await loadStudents();
+    } catch (error: any) {
+      console.error("Manual upgrade error:", error);
+      toast({ title: "Error", description: error.message || "Failed to upgrade student", variant: "destructive" });
+    } finally {
+      setUpgrading(false);
     }
-    toast({ title: "Success", description: "Account locked for payment" });
-    await loadStudents();
   };
 
   const handleActivate = async (studentId: string) => {
@@ -448,11 +535,33 @@ const StudentManagement = () => {
 
   const statusCounts = {
     all: students.length,
-    pending: students.filter(s => s.approval_status?.status === "pending").length,
-    approved: students.filter(s => s.approval_status?.status === "approved").length,
+    pending: students.filter(s => {
+      const isPremium = s.purchases?.some(p => {
+        if (p.content_type !== 'subscription') return false;
+        const expiryDate = new Date(p.created_at || "");
+        expiryDate.setDate(expiryDate.getDate() + 365);
+        return new Date() < expiryDate;
+      });
+      return s.approval_status?.status === "pending" && !isPremium;
+    }).length,
+    approved: students.filter(s => {
+      const isPremium = s.purchases?.some(p => {
+        if (p.content_type !== 'subscription') return false;
+        const expiryDate = new Date(p.created_at || "");
+        expiryDate.setDate(expiryDate.getDate() + 365);
+        return new Date() < expiryDate;
+      });
+      return s.approval_status?.status === "approved" || isPremium;
+    }).length,
     rejected: students.filter(s => s.approval_status?.status === "rejected").length,
     deactivated: students.filter(s => s.approval_status?.status === "deactivated").length,
     payment_locked: students.filter(s => s.approval_status?.status === "payment_locked").length,
+    premium: students.filter(s => s.purchases?.some(p => {
+      if (p.content_type !== 'subscription') return false;
+      const expiryDate = new Date(p.created_at || "");
+      expiryDate.setDate(expiryDate.getDate() + 365);
+      return new Date() < expiryDate;
+    })).length,
   };
 
   const AddButton = (
@@ -478,9 +587,10 @@ const StudentManagement = () => {
     <AdminLayout title="Student Management" subtitle={`${students.length} students`} headerActions={AddButton}>
       <div className="space-y-6">
         {/* Filter Tabs - Colored Card Style */}
-        <div className="flex overflow-x-auto gap-3 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-5 md:gap-4 no-scrollbar">
+        <div className="flex overflow-x-auto gap-3 pb-3 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-6 md:gap-4 no-scrollbar">
           {[
             { key: "all", label: "All", count: statusCounts.all, bgColor: "bg-emerald-50", textColor: "text-emerald-600", borderColor: "border-emerald-400", ringColor: "ring-emerald-400" },
+            { key: "premium", label: "Premium", count: statusCounts.premium, bgColor: "bg-amber-50", textColor: "text-amber-600", borderColor: "border-amber-400", ringColor: "ring-amber-400" },
             { key: "pending", label: "Pending", count: statusCounts.pending, bgColor: "bg-amber-50", textColor: "text-amber-600", borderColor: "border-amber-300", ringColor: "ring-amber-300" },
             { key: "approved", label: "Approved", count: statusCounts.approved, bgColor: "bg-green-50", textColor: "text-green-600", borderColor: "border-green-300", ringColor: "ring-green-300" },
             { key: "rejected", label: "Rejected", count: statusCounts.rejected, bgColor: "bg-red-50", textColor: "text-red-500", borderColor: "border-red-300", ringColor: "ring-red-300" },
@@ -488,8 +598,16 @@ const StudentManagement = () => {
           ].map((item) => (
             <button
               key={item.key}
-              onClick={() => setFilterStatus(item.key)}
-              className={`flex flex-col items-center justify-center min-w-[100px] md:min-w-0 py-4 px-5 rounded-2xl transition-all duration-200 shrink-0 ${item.bgColor} border-2 ${filterStatus === item.key
+              onClick={() => {
+                if (item.key === 'premium') {
+                  setPaymentFilter(item.key);
+                  setFilterStatus("all");
+                } else {
+                  setFilterStatus(item.key);
+                  setPaymentFilter("all");
+                }
+              }}
+              className={`flex flex-col items-center justify-center min-w-[100px] md:min-w-0 py-4 px-5 rounded-2xl transition-all duration-200 shrink-0 ${item.bgColor} border-2 ${(item.key === 'premium' ? paymentFilter === item.key : filterStatus === item.key)
                 ? `${item.borderColor}`
                 : "border-transparent hover:border-gray-200"
                 }`}
@@ -500,15 +618,37 @@ const StudentManagement = () => {
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative mt-2">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Search by name or phone..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-11 h-12 rounded-xl bg-white border-gray-200 shadow-sm focus:ring-emerald-500 focus:border-emerald-500"
-          />
+        {/* Search & Payment Filter */}
+        <div className="flex flex-col md:flex-row gap-4 mt-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search by name or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-11 h-12 rounded-xl bg-white border-gray-200 shadow-sm focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+          <div className="flex bg-gray-100 p-1 rounded-xl w-fit shrink-0">
+            <button
+              onClick={() => setPaymentFilter("all")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${paymentFilter === 'all' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              All Types
+            </button>
+            <button
+              onClick={() => setPaymentFilter("premium")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${paymentFilter === 'premium' ? 'bg-white text-amber-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Premium
+            </button>
+            <button
+              onClick={() => setPaymentFilter("free")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${paymentFilter === 'free' ? 'bg-white text-emerald-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Free
+            </button>
+          </div>
         </div>
 
         {/* Students List - Row Based */}
@@ -543,11 +683,15 @@ const StudentManagement = () => {
                     <div className="hidden md:grid md:grid-cols-[2fr_1.5fr_1fr_1fr_80px] gap-4 px-4 py-3 items-center">
                       {/* Student Info */}
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white font-semibold text-sm ${status === "approved" ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden ${!student.avatar_url ? (status === "approved" ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
                           status === "pending" ? "bg-gradient-to-br from-amber-500 to-orange-500" :
-                            "bg-gradient-to-br from-gray-400 to-gray-500"
+                            "bg-gradient-to-br from-gray-400 to-gray-500") : ""
                           }`}>
-                          {student.full_name?.[0]?.toUpperCase() || "?"}
+                          {student.avatar_url ? (
+                            <img src={student.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-white font-semibold text-sm">{student.full_name?.[0]?.toUpperCase() || "?"}</span>
+                          )}
                         </div>
                         <div className="min-w-0">
                           <p className="font-medium text-gray-900 truncate">{student.full_name || "No Name"}</p>
@@ -580,10 +724,35 @@ const StudentManagement = () => {
                       </div>
 
                       {/* Status */}
-                      <div className="flex flex-col gap-1">
-                        <Badge variant="secondary" className={`text-[10px] px-2 py-0.5 w-fit ${getStatusColor(status)}`}>
-                          {status.toUpperCase()}
-                        </Badge>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2">
+                          {(() => {
+                            const activeSub = student.purchases?.find(p => {
+                              if (p.content_type !== 'subscription') return false;
+                              const expiryDate = new Date(p.created_at || "");
+                              expiryDate.setDate(expiryDate.getDate() + 365);
+                              return new Date() < expiryDate;
+                            });
+                            const currentStatus = activeSub ? "approved" : (student.approval_status?.status || "pending");
+                            return (
+                              <Badge variant="secondary" className={`text-[10px] px-2 py-0.5 w-fit ${getStatusColor(currentStatus)}`}>
+                                {currentStatus.toUpperCase()}
+                              </Badge>
+                            );
+                          })()}
+                          {(() => {
+                            const activeSub = student.purchases?.find(p => {
+                              if (p.content_type !== 'subscription') return false;
+                              const expiryDate = new Date(p.created_at || "");
+                              expiryDate.setDate(expiryDate.getDate() + 365);
+                              return new Date() < expiryDate;
+                            });
+                            if (activeSub) {
+                              return <Badge className="bg-amber-500 text-white text-[10px] px-2 py-0.5 border-0 hover:bg-amber-600">PREMIUM</Badge>;
+                            }
+                            return <Badge variant="outline" className="text-gray-400 border-gray-200 text-[10px] px-2 py-0.5">FREE</Badge>;
+                          })()}
+                        </div>
                         {status === "approved" && student.approval_status?.expires_at && (
                           <span className="text-[10px] text-amber-600 flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
@@ -642,9 +811,16 @@ const StudentManagement = () => {
                                 <DropdownMenuItem onClick={() => { setSelectedStudent(student); setPaymentMessage(""); setPaymentReminderOpen(true); }} className="gap-2 text-blue-600">
                                   <MessageSquare className="w-4 h-4" /> Payment Reminder
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handlePaymentLock(student.id)} className="gap-2 text-rose-600">
-                                  <CreditCard className="w-4 h-4" /> Lock for Payment
-                                </DropdownMenuItem>
+                                {(!student.purchases?.some(p => {
+                                  if (p.content_type !== 'subscription') return false;
+                                  const expiryDate = new Date(p.created_at || "");
+                                  expiryDate.setDate(expiryDate.getDate() + 365);
+                                  return new Date() < expiryDate;
+                                })) && (
+                                    <DropdownMenuItem onClick={() => { setSelectedStudent(student); setUpgradeDialogOpen(true); }} className="gap-2 text-amber-600">
+                                      <Sparkles className="w-4 h-4" /> Upgrade to Premium
+                                    </DropdownMenuItem>
+                                  )}
                                 <DropdownMenuItem onClick={() => handleDeactivate(student.id)} className="gap-2 text-orange-600">
                                   <UserX className="w-4 h-4" /> Deactivate
                                 </DropdownMenuItem>
@@ -668,9 +844,16 @@ const StudentManagement = () => {
                                 <DropdownMenuItem onClick={() => { setSelectedStudent(student); setPaymentMessage(""); setPaymentReminderOpen(true); }} className="gap-2 text-blue-600">
                                   <MessageSquare className="w-4 h-4" /> Payment Reminder
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handlePaymentLock(student.id)} className="gap-2 text-rose-600">
-                                  <CreditCard className="w-4 h-4" /> Lock for Payment
-                                </DropdownMenuItem>
+                                {(!student.purchases?.some(p => {
+                                  if (p.content_type !== 'subscription') return false;
+                                  const expiryDate = new Date(p.created_at || "");
+                                  expiryDate.setDate(expiryDate.getDate() + 365);
+                                  return new Date() < expiryDate;
+                                })) && (
+                                    <DropdownMenuItem onClick={() => { setSelectedStudent(student); setUpgradeDialogOpen(true); }} className="gap-2 text-amber-600">
+                                      <Sparkles className="w-4 h-4" /> Upgrade to Premium
+                                    </DropdownMenuItem>
+                                  )}
                               </>
                             )}
                           </DropdownMenuContent>
@@ -681,19 +864,46 @@ const StudentManagement = () => {
                     {/* Mobile Row */}
                     <div className="md:hidden p-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white font-semibold text-sm ${status === "approved" ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden ${!student.avatar_url ? (status === "approved" ? "bg-gradient-to-br from-emerald-500 to-teal-600" :
                           status === "pending" ? "bg-gradient-to-br from-amber-500 to-orange-500" :
-                            "bg-gradient-to-br from-gray-400 to-gray-500"
+                            "bg-gradient-to-br from-gray-400 to-gray-500") : ""
                           }`}>
-                          {student.full_name?.[0]?.toUpperCase() || "?"}
+                          {student.avatar_url ? (
+                            <img src={student.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-white font-semibold text-sm">{student.full_name?.[0]?.toUpperCase() || "?"}</span>
+                          )}
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-900 truncate text-sm">{student.full_name || "No Name"}</p>
-                            <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 shrink-0 ${getStatusColor(status)}`}>
-                              {status.toUpperCase()}
-                            </Badge>
+                            {(() => {
+                              const activeSub = student.purchases?.find(p => {
+                                if (p.content_type !== 'subscription') return false;
+                                const expiryDate = new Date(p.created_at || "");
+                                expiryDate.setDate(expiryDate.getDate() + 365);
+                                return new Date() < expiryDate;
+                              });
+                              const currentStatus = activeSub ? "approved" : (student.approval_status?.status || "pending");
+                              return (
+                                <Badge variant="secondary" className={`text-[9px] px-1.5 py-0 shrink-0 ${getStatusColor(currentStatus)}`}>
+                                  {currentStatus.toUpperCase()}
+                                </Badge>
+                              );
+                            })()}
+                            {(() => {
+                              const activeSub = student.purchases?.find(p => {
+                                if (p.content_type !== 'subscription') return false;
+                                const expiryDate = new Date(p.created_at || "");
+                                expiryDate.setDate(expiryDate.getDate() + 365);
+                                return new Date() < expiryDate;
+                              });
+                              if (activeSub) {
+                                return <Badge className="bg-amber-500 text-white text-[9px] px-1.5 py-0 border-0">PREMIUM</Badge>;
+                              }
+                              return <Badge variant="outline" className="text-gray-400 border-gray-200 text-[9px] px-1.5 py-0">FREE</Badge>;
+                            })()}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-500">
                             {(() => {
@@ -755,9 +965,16 @@ const StudentManagement = () => {
                                 <DropdownMenuItem onClick={() => { setSelectedStudent(student); setPaymentMessage(""); setPaymentReminderOpen(true); }} className="gap-2 text-blue-600">
                                   <MessageSquare className="w-4 h-4" /> Payment Reminder
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handlePaymentLock(student.id)} className="gap-2 text-rose-600">
-                                  <CreditCard className="w-4 h-4" /> Lock for Payment
-                                </DropdownMenuItem>
+                                {(!student.purchases?.some(p => {
+                                  if (p.content_type !== 'subscription') return false;
+                                  const expiryDate = new Date(p.created_at || "");
+                                  expiryDate.setDate(expiryDate.getDate() + 365);
+                                  return new Date() < expiryDate;
+                                })) && (
+                                    <DropdownMenuItem onClick={() => { setSelectedStudent(student); setUpgradeDialogOpen(true); }} className="gap-2 text-amber-600">
+                                      <Sparkles className="w-4 h-4" /> Upgrade to Premium
+                                    </DropdownMenuItem>
+                                  )}
                                 <DropdownMenuItem onClick={() => handleDeactivate(student.id)} className="gap-2 text-orange-600">
                                   <UserX className="w-4 h-4" /> Deactivate
                                 </DropdownMenuItem>
@@ -817,14 +1034,32 @@ const StudentManagement = () => {
           {selectedStudent && (
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-2xl">
-                  {selectedStudent.full_name?.[0]?.toUpperCase() || "?"}
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center overflow-hidden ${!selectedStudent.avatar_url ? "bg-gradient-to-br from-emerald-500 to-teal-600" : ""}`}>
+                  {selectedStudent.avatar_url ? (
+                    <img src={selectedStudent.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-white font-bold text-2xl">{selectedStudent.full_name?.[0]?.toUpperCase() || "?"}</span>
+                  )}
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">{selectedStudent.full_name || "No Name"}</h3>
-                  <Badge className={getStatusColor(selectedStudent.approval_status?.status)}>
-                    {selectedStudent.approval_status?.status || "pending"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getStatusColor(selectedStudent.approval_status?.status)}>
+                      {selectedStudent.approval_status?.status || "pending"}
+                    </Badge>
+                    {(() => {
+                      const activeSub = selectedStudent.purchases?.find(p => {
+                        if (p.content_type !== 'subscription') return false;
+                        const expiryDate = new Date(p.created_at || "");
+                        expiryDate.setDate(expiryDate.getDate() + 365);
+                        return new Date() < expiryDate;
+                      });
+                      if (activeSub) {
+                        return <Badge className="bg-amber-500 text-white text-[10px] px-2 py-0.5 border-0">PREMIUM</Badge>;
+                      }
+                      return <Badge variant="outline" className="text-gray-400 border-gray-200 text-[10px] px-2 py-0.5">FREE</Badge>;
+                    })()}
+                  </div>
                 </div>
               </div>
               <div className="space-y-3 bg-gray-50 p-4 rounded-xl">
@@ -856,11 +1091,54 @@ const StudentManagement = () => {
                   <Calendar className="w-4 h-4 text-gray-400" />
                   <span>Joined {new Date(selectedStudent.created_at).toLocaleDateString()}</span>
                 </div>
+                {(() => {
+                  const activeSub = selectedStudent.purchases?.find(p => {
+                    if (p.content_type !== 'subscription') return false;
+                    const expiryDate = new Date(p.created_at || "");
+                    expiryDate.setDate(expiryDate.getDate() + 365);
+                    return new Date() < expiryDate;
+                  });
+                  if (activeSub) {
+                    const expiryDate = new Date(activeSub.created_at || "");
+                    expiryDate.setDate(expiryDate.getDate() + 365);
+                    return (
+                      <div className="flex items-center gap-3 text-amber-600 font-medium">
+                        <Shield className="w-4 h-4 text-amber-500" />
+                        <span>Premium Valid Till: {expiryDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+              <div className="pt-2 border-t mt-4">
+                <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Subscription History</h4>
+                {selectedStudent.purchases && selectedStudent.purchases.length > 0 ? (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                    {selectedStudent.purchases.map((purchase: any, idx: number) => (
+                      <div key={idx} className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex justify-between items-center">
+                        <div>
+                          <p className="text-xs font-bold text-slate-900 capitalize">{purchase.content_type}</p>
+                          <p className="text-[10px] text-slate-500">{new Date(purchase.created_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                        </div>
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[9px] px-2 py-0">
+                          {purchase.status.toUpperCase()}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-4 text-center">
+                    <p className="text-xs text-slate-400 font-medium">No purchase history found</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailsOpen(false)} className="rounded-xl">Close</Button>
+            <Button variant="outline" onClick={() => setDetailsOpen(false)} className="rounded-xl font-bold">
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1092,7 +1370,55 @@ const StudentManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AdminLayout>
+      {/* Manual Premium Upgrade Dialog */}
+      <Dialog open={upgradeDialogOpen} onOpenChange={setUpgradeDialogOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-amber-500" />
+              Manual Premium Upgrade
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to upgrade <strong>{selectedStudent?.full_name}</strong> to PREMIUM?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 space-y-2">
+              <p className="font-bold flex items-center gap-2">
+                <Shield className="w-4 h-4" /> What happens next?
+              </p>
+              <ul className="list-disc list-inside space-y-1 opacity-90">
+                <li>A permanent subscription record will be created</li>
+                <li>Student will gain instant access to all premium content</li>
+                <li>Status will be automatically set to "APPROVED"</li>
+              </ul>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setUpgradeDialogOpen(false)} className="rounded-xl" disabled={upgrading}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleManualUpgrade}
+              disabled={upgrading}
+              className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-100"
+            >
+              {upgrading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Upgrading...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Confirm Upgrade
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </AdminLayout >
   );
 };
 

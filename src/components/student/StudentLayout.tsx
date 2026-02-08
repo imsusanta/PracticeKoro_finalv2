@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { studentNav } from "@/config/studentNav";
@@ -84,17 +84,44 @@ const StudentLayout = ({
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [hasSubscription, setHasSubscription] = useState<boolean>(false);
+
+  const checkSubscription = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const oneYearAgo = new Date();
+    oneYearAgo.setDate(oneYearAgo.getDate() - 365);
+
+    const { data } = await (supabase
+      .from("purchases" as any)
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("content_type", "subscription")
+      .eq("status", "completed")
+      .gt("created_at", oneYearAgo.toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle() as any);
+
+    setHasSubscription(!!data);
+  }, [supabase]);
+
+  useEffect(() => {
+    checkSubscription();
+  }, [location.pathname, checkSubscription]);
+
   const goToHome = () => {
     navigate("/");
   };
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 relative flex flex-col overflow-x-hidden" style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-violet-50/40 relative flex overflow-x-hidden" style={{ paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
     {/* Clean Background - No blur orbs */}
 
     <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <SidebarToggleButton />
 
       {/* Desktop Sidebar - Fixed */}
-      <Sidebar side="left" variant="sidebar" collapsible="icon" className="hidden md:flex bg-white/80 backdrop-blur-sm border-r border-slate-100/80 transition-all duration-200 h-screen sticky top-0" style={{
+      <Sidebar side="left" variant="sidebar" collapsible="icon" className="hidden md:flex bg-white/80 backdrop-blur-sm border-r border-slate-100/80 transition-all duration-200 shadow-xl" style={{
         boxShadow: '4px 0 24px rgba(0, 0, 0, 0.04)'
       }}>
         <SidebarHeader className="border-b border-slate-100/60 bg-gradient-to-r from-white/90 to-indigo-50/30">
@@ -109,9 +136,21 @@ const StudentLayout = ({
             }}>
               <Zap className="w-5 h-5 text-white" />
             </motion.div>
-            <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
+            <div className="group-data-[collapsible=icon]:hidden overflow-hidden flex flex-col">
               <h1 className="text-base font-bold text-slate-900 whitespace-nowrap tracking-tight">Student Panel</h1>
-              <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider">Practice Koro</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider">Practice Koro</p>
+                {hasSubscription && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-[8px] font-black text-white shadow-sm shadow-amber-500/20"
+                  >
+                    <Zap className="w-2 h-2 fill-current" />
+                    PREMIUM
+                  </motion.div>
+                )}
+              </div>
             </div>
           </div>
         </SidebarHeader>
@@ -158,7 +197,7 @@ const StudentLayout = ({
         </SidebarContent>
       </Sidebar>
 
-      <SidebarInset className="bg-transparent flex-1 md:h-screen md:overflow-y-auto">
+      <SidebarInset className="bg-transparent flex-1">
         <AnimatePresence mode="wait">
           <motion.main
             key={location.pathname}
@@ -166,7 +205,7 @@ const StudentLayout = ({
             initial="initial"
             animate="animate"
             exit="exit"
-            className="flex min-h-screen flex-col px-0 pt-1 pb-20 sm:px-3 sm:pt-2 md:items-center md:p-6 md:pb-6 relative z-10 w-full overflow-x-hidden"
+            className="flex flex-col px-0 pt-1 pb-32 sm:px-3 sm:pt-2 md:items-center md:p-6 md:pb-6 relative z-10 w-full overflow-x-hidden"
           >
             <div className="w-full max-w-7xl mx-auto">
               {children}

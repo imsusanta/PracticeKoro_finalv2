@@ -11,32 +11,32 @@ import {
 const steps = [
     {
         icon: Search,
-        title: "Find Your Exam",
-        desc: "Browse 1,000+ mock tests for SSC, Railways, Banking & more",
+        title: "Select Exam Target",
+        desc: "Choose from WBP, SSC, Railway or WBSSC mock tests",
         color: "bg-blue-500",
         lightBg: "bg-blue-50",
         step: "1"
     },
     {
         icon: Gamepad2,
-        title: "Start Practicing",
-        desc: "Take timed tests with real exam interface",
+        title: "Attempt Mock Test",
+        desc: "Experience real exam interface with timer & negative marking",
         color: "bg-emerald-500",
         lightBg: "bg-emerald-50",
         step: "2"
     },
     {
         icon: LineChart,
-        title: "Analyze Results",
-        desc: "Get detailed explanations and track progress",
+        title: "Check Score & Rank",
+        desc: "Get instant results, detailed solutions & All-India Rank",
         color: "bg-purple-500",
         lightBg: "bg-purple-50",
         step: "3"
     },
     {
         icon: Trophy,
-        title: "Crack Your Goal",
-        desc: "Achieve your dream rank with confidence",
+        title: "Achieve Selection",
+        desc: "Improve consistently and secure your government job",
         color: "bg-amber-500",
         lightBg: "bg-amber-50",
         step: "4"
@@ -45,7 +45,7 @@ const steps = [
 
 const HowItWorks = () => {
     return (
-        <section id="how-it-works" className="py-20 sm:py-24 bg-white">
+        <section id="how-it-works" className="py-12 sm:py-16 bg-white">
             <div className="container mx-auto px-5">
                 {/* Header */}
                 <div className="text-center mb-12 max-w-2xl mx-auto">
@@ -70,58 +70,65 @@ const HowItWorks = () => {
 
                 {/* Steps - Horizontal Timeline */}
                 <div className="max-w-4xl mx-auto">
-                    {/* Desktop View */}
+                    {/* Desktop View - Premium Interactive Cards */}
                     <div className="hidden md:block">
-                        <div className="flex items-start justify-between relative">
+                        <div className="flex items-start justify-between relative gap-6">
                             {/* Connecting Line (Desktop) */}
-                            <div className="absolute top-8 left-[12.5%] right-[12.5%] h-[2px] bg-slate-100/50 rounded-full pointer-events-none overflow-hidden">
+                            <div className="absolute top-12 left-[10%] right-[10%] h-[3px] bg-slate-100 rounded-full pointer-events-none overflow-hidden z-0">
                                 <motion.div
                                     initial={{ width: "0%" }}
                                     whileInView={{ width: "100%" }}
-                                    transition={{ duration: 2, ease: "easeInOut" }}
+                                    transition={{ duration: 1.5, ease: "easeInOut", delay: 0.2 }}
                                     viewport={{ once: true }}
-                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-emerald-500 to-amber-500"
-                                >
-                                    {/* Moving Glow Pulse */}
-                                    <motion.div
-                                        animate={{ x: ["-100%", "500%"] }}
-                                        transition={{
-                                            duration: 3,
-                                            repeat: Infinity,
-                                            ease: "linear",
-                                            repeatDelay: 0.5
-                                        }}
-                                        className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent skew-x-12"
-                                    />
-                                </motion.div>
+                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-emerald-500 to-amber-500 opacity-30"
+                                />
+                                {/* Moving Glow Pulse */}
+                                <motion.div
+                                    animate={{ x: ["-100%", "500%"] }}
+                                    transition={{
+                                        duration: 3,
+                                        repeat: Infinity,
+                                        ease: "linear",
+                                        repeatDelay: 0.5
+                                    }}
+                                    className="absolute top-0 left-0 w-32 h-full bg-slate-300 blur-sm"
+                                />
                             </div>
 
                             {steps.map((step, idx) => (
                                 <motion.div
                                     key={idx}
-                                    initial={{ opacity: 0, y: 20 }}
+                                    initial={{ opacity: 0, y: 30 }}
                                     whileInView={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.4, delay: idx * 0.1 }}
+                                    transition={{ duration: 0.5, delay: idx * 0.15 }}
                                     viewport={{ once: true }}
-                                    className="flex flex-col items-center text-center relative z-10 w-1/4"
+                                    className="flex flex-col items-center text-center relative z-10 w-1/4 group"
                                 >
-                                    {/* Step Number Circle */}
-                                    <div className={`w-16 h-16 rounded-full ${step.color} flex items-center justify-center mb-4`}>
-                                        <step.icon className="w-7 h-7 text-white" />
+                                    {/* Card Container */}
+                                    <div className="w-full bg-white rounded-2xl p-6 border border-slate-100/60 shadow-lg shadow-slate-100/50 hover:shadow-xl hover:shadow-emerald-500/10 hover:border-emerald-100 transition-all duration-300 hover:-translate-y-2 relative overflow-hidden group-hover:bg-slate-50/30">
+                                        {/* Step Number Badge */}
+                                        <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-300 group-hover:text-emerald-500 transition-colors">
+                                            0{step.step}
+                                        </div>
+
+                                        {/* Icon */}
+                                        <div className={`w-20 h-20 mx-auto rounded-2xl ${step.color} flex items-center justify-center mb-6 shadow-lg shadow-${step.color.split('-')[1]}-500/30 group-hover:scale-110 transition-transform duration-300 ring-4 ring-white`}>
+                                            <step.icon className="w-9 h-9 text-white group-hover:rotate-6 transition-transform duration-300" />
+                                        </div>
+
+                                        {/* Title */}
+                                        <h3 className="text-lg font-bold text-slate-900 mb-3 group-hover:text-emerald-700 transition-colors">
+                                            {step.title}
+                                        </h3>
+
+                                        {/* Description */}
+                                        <p className="text-slate-500 text-sm leading-relaxed">
+                                            {step.desc}
+                                        </p>
                                     </div>
 
-                                    {/* Step Number */}
-                                    <span className="text-xs font-bold text-slate-400 mb-2">Step {step.step}</span>
-
-                                    {/* Title */}
-                                    <h3 className="text-base font-bold text-slate-900 mb-1">
-                                        {step.title}
-                                    </h3>
-
-                                    {/* Description */}
-                                    <p className="text-slate-500 text-xs leading-relaxed px-2">
-                                        {step.desc}
-                                    </p>
+                                    {/* Connecting Dot */}
+                                    <div className={`w-4 h-4 rounded-full border-4 border-white ${step.color} shadow-sm mt-8 relative z-20 group-hover:scale-125 transition-transform duration-300`} />
                                 </motion.div>
                             ))}
                         </div>

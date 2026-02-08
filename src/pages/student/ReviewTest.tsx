@@ -444,6 +444,7 @@ const ReviewTest = () => {
                         {/* Explanation - Premium Glassmorphism Style */}
                         {(() => {
                           const q = answer.questions;
+                          console.log("[ReviewTest] Question explanation:", { questionId: q?.id, explanation: q?.explanation });
                           if (!q?.explanation) return null;
 
                           return (

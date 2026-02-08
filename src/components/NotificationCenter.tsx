@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,9 +28,29 @@ export function NotificationCenter() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const loadNotifications = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", session.user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error("Error loading notifications:", error);
+      return;
+    }
+
+    setNotifications(data || []);
+    setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+  }, []);
+
   useEffect(() => {
     loadNotifications();
-    
+
     // Subscribe to realtime updates
     const channel = supabase
       .channel('notifications')
@@ -54,27 +74,7 @@ export function NotificationCenter() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
-
-  const loadNotifications = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", session.user.id)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    if (error) {
-      console.error("Error loading notifications:", error);
-      return;
-    }
-
-    setNotifications(data || []);
-    setUnreadCount(data?.filter(n => !n.is_read).length || 0);
-  };
+  }, [loadNotifications, toast]);
 
   const markAsRead = async (notificationId: string) => {
     const { error } = await supabase
@@ -119,8 +119,8 @@ export function NotificationCenter() {
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
             >
               {unreadCount}
@@ -153,9 +153,8 @@ export function NotificationCenter() {
                 <div
                   key={notification.id}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`p-4 cursor-pointer hover:bg-accent transition-colors ${
-                    !notification.is_read ? 'bg-accent/50' : ''
-                  }`}
+                  className={`p-4 cursor-pointer hover:bg-accent transition-colors ${!notification.is_read ? 'bg-accent/50' : ''
+                    }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
