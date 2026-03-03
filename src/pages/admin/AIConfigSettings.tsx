@@ -15,7 +15,7 @@ const AIConfigSettings = () => {
     const [userRole, setUserRole] = useState<string | null>(null);
     const [settings, setSettings] = useState({
         openrouter_api_key: "",
-        openrouter_model: "meta-llama/llama-3.1-405b-instruct:free",
+        openrouter_model: "meta-llama/llama-3.3-70b-instruct:free",
     });
 
     const fetchUserRole = useCallback(async () => {
@@ -161,11 +161,11 @@ const AIConfigSettings = () => {
                                 id="model"
                                 value={settings.openrouter_model}
                                 onChange={(e) => setSettings({ ...settings, openrouter_model: e.target.value })}
-                                placeholder="meta-llama/llama-3.1-405b-instruct:free"
+                                placeholder="meta-llama/llama-3.3-70b-instruct:free"
                                 className="rounded-xl"
                             />
                             <p className="text-xs text-gray-500">
-                                Model ID from OpenRouter (e.g., meta-llama/llama-3.1-405b-instruct:free)
+                                Model ID from OpenRouter (e.g., meta-llama/llama-3.3-70b-instruct:free)
                             </p>
                         </div>
 

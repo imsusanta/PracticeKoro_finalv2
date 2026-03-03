@@ -28,14 +28,18 @@ Deno.serve(async (req) => {
         if (settingsError) throw settingsError;
 
         const openRouterApiKey = settingsData?.find(s => s.key === 'openrouter_api_key')?.value;
-        const openRouterModel = settingsData?.find(s => s.key === 'openrouter_model')?.value || 'meta-llama/llama-3.1-405b-instruct:free';
+        const openRouterModel = settingsData?.find(s => s.key === 'openrouter_model')?.value || 'meta-llama/llama-3.3-70b-instruct:free';
 
         // If API key is not in DB, try env var as fallback
-        const finalApiKey = openRouterApiKey || Deno.env.get('OPENROUTER_API_KEY');
+        const rawApiKey = openRouterApiKey || Deno.env.get('OPENROUTER_API_KEY');
 
-        if (!finalApiKey) {
+        if (!rawApiKey) {
             throw new Error('OpenRouter API key not configured. Please set it in Admin Settings.');
         }
+
+        // Sanitize API key: trim whitespace/newlines and remove non-ASCII chars
+        // This prevents 'headers is not a valid ByteString' errors
+        const finalApiKey = rawApiKey.trim().replace(/[^\x20-\x7E]/g, '');
 
         const defaultSystemPrompt = `You are an expert question generator for competitive exams. 
     Generate ${count} MCQ questions based on the provided ${subject ? 'subject: ' + subject : ''} ${topic ? 'and topic: ' + topic : ''}.
@@ -63,7 +67,7 @@ Deno.serve(async (req) => {
 
         const finalSystemPrompt = systemPrompt || defaultSystemPrompt;
 
-        console.log(`Generating ${count} questions using model: ${openRouterModel}`);
+        console.log(`Generating ${count} questions using model: ${openRouterModel}, API key present: ${!!finalApiKey}, key prefix: ${finalApiKey?.substring(0, 10)}...`);
 
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
@@ -122,9 +126,9 @@ Deno.serve(async (req) => {
 
     } catch (error) {
         console.error("Edge Function Error:", error);
-        return new Response(JSON.stringify({ error: error.message }), {
+        return new Response(JSON.stringify({ error: error.message || 'Unknown error in generate-questions function' }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 400,
+            status: 200,
         })
     }
 })

@@ -94,9 +94,13 @@ const AddBlog = () => {
                 .select("key, value");
 
             if (data) {
+                const rawKey = data.find(d => d.key === "openrouter_api_key")?.value || "";
+                // Sanitize API key: trim whitespace/newlines and remove non-ASCII chars
+                // This prevents 'non ISO-8859-1 code point' errors in fetch headers
+                const sanitizedKey = rawKey.trim().replace(/[^\x20-\x7E]/g, '');
                 const settings = {
-                    apiKey: data.find(d => d.key === "openrouter_api_key")?.value || "",
-                    model: data.find(d => d.key === "openrouter_model")?.value || "meta-llama/llama-3.1-405b-instruct:free"
+                    apiKey: sanitizedKey,
+                    model: data.find(d => d.key === "openrouter_model")?.value || "meta-llama/llama-3.3-70b-instruct:free"
                 };
                 setAiSettings(settings);
             }
