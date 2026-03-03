@@ -28,7 +28,17 @@ Deno.serve(async (req) => {
         if (settingsError) throw settingsError;
 
         const openRouterApiKey = settingsData?.find(s => s.key === 'openrouter_api_key')?.value;
-        const openRouterModel = settingsData?.find(s => s.key === 'openrouter_model')?.value || 'meta-llama/llama-3.3-70b-instruct:free';
+        let openRouterModel = settingsData?.find(s => s.key === 'openrouter_model')?.value || 'meta-llama/llama-3.3-70b-instruct:free';
+
+        // Auto-replace deprecated models that are no longer free
+        const DEPRECATED_MODELS = [
+            'meta-llama/llama-3.1-405b-instruct:free',
+            'meta-llama/llama-3.1-405b-instruct',
+        ];
+        if (DEPRECATED_MODELS.includes(openRouterModel)) {
+            console.log(`Model ${openRouterModel} is deprecated, switching to meta-llama/llama-3.3-70b-instruct:free`);
+            openRouterModel = 'meta-llama/llama-3.3-70b-instruct:free';
+        }
 
         // If API key is not in DB, try env var as fallback
         const rawApiKey = openRouterApiKey || Deno.env.get('OPENROUTER_API_KEY');

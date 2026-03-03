@@ -2,7 +2,7 @@
     "id": "practice-koro-pwa-v2",
     "name": "Practice Koro",
     "short_name": "PracticeKoro",
-    "description": "Group C and D Mock Test - #1 Premium Mock Test Platform for Government Job Preparation",
+    "description": "পশ্চিমবঙ্গের #1 Mock Test Platform - WBSSC Group C, Group D, WBP, WBCS, Railway, SSC সরকারি চাকরির পরীক্ষার প্রস্তুতি",
     "start_url": "/",
     "display": "standalone",
     "display_override": [
@@ -10,9 +10,10 @@
         "minimal-ui"
     ],
     "background_color": "#ffffff",
-    "theme_color": "#4f46e5",
+    "theme_color": "#10B981",
     "orientation": "portrait",
     "scope": "/",
+    "lang": "bn",
     "icons": [
         {
             "src": "/icons/icon-72x72.png",
