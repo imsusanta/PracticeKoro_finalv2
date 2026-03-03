@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Rounded Green Square -->
+  <path d="M120 0C53.7 0 0 53.7 0 120V392C0 458.3 53.7 512 120 512H392C458.3 512 512 458.3 512 392V120C512 53.7 458.3 0 392 0H120Z" fill="#10B981"/>
+  <!-- White Lightning Bolt -->
+  <path d="M320 32L128 288H224L192 480L384 224H288L320 32Z" fill="white"/>
+</svg>
