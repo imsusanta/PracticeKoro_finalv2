@@ -232,25 +232,35 @@ const MockTestCreation = () => {
   }, [tests]);
 
   const loadExams = async () => {
-    // Try loading active exams first
-    const { data, error } = await (supabase.from("exams").select("id, name, order_index").eq("is_active", true).order("order_index", { ascending: true }) as any);
-    if (error) {
-      console.error("Error loading exams with is_active filter:", error);
-      // Fallback: load all exams without filter
-      const { data: allExams, error: fallbackError } = await (supabase.from("exams").select("id, name, order_index").order("order_index", { ascending: true }) as any);
-      if (fallbackError) {
-        console.error("Error loading exams (fallback):", fallbackError);
-      } else if (allExams) {
-        setExams(allExams);
+    try {
+      // First try to load with order_index (new feature)
+      let { data, error } = await supabase
+        .from("exams")
+        .select("id, name, is_active")
+        .order("order_index", { ascending: true });
+
+      // If it fails with "column does not exist", fallback to created_at
+      if (error) {
+        console.warn("Retrying exam load due to error:", error.message);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("exams")
+          .select("id, name, is_active")
+          .order("created_at", { ascending: true });
+
+        if (fallbackError) {
+          console.error("Exam load fallback failed:", fallbackError);
+          // Last resort: select all without order
+          const { data: finalResort } = await supabase.from("exams").select("id, name, is_active");
+          if (finalResort) setExams(finalResort);
+          return;
+        }
+        data = fallbackData;
       }
-      return;
-    }
-    if (data && data.length > 0) {
-      setExams(data);
-    } else {
-      // No active exams found, load all exams as fallback
-      const { data: allExams } = await (supabase.from("exams").select("id, name, order_index").order("order_index", { ascending: true }) as any);
-      if (allExams) setExams(allExams);
+
+      setExams(data || []);
+      console.log(`Loaded ${data?.length || 0} exams`);
+    } catch (err) {
+      console.error("loadExams catch blocker:", err);
     }
   };
 
@@ -752,23 +762,37 @@ const MockTestCreation = () => {
           <div className="space-y-2">
             <Label>{formData.test_type === "topic_wise" ? "Subject *" : "Exam Category *"}</Label>
             {formData.test_type === "topic_wise" ? (
-              <select
-                value={formData.subject_id}
-                onChange={e => setFormData({ ...formData, subject_id: e.target.value })}
-                className="flex h-12 w-full items-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-300 transition-all mt-1"
-              >
-                <option value="">Select subject</option>
-                {questionSubjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
-              </select>
+              <>
+                <select
+                  id="subject_select"
+                  name="subject_id"
+                  value={formData.subject_id}
+                  onChange={e => setFormData({ ...formData, subject_id: e.target.value })}
+                  className="flex h-12 w-full items-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-300 transition-all mt-1"
+                >
+                  <option value="">Select subject</option>
+                  {questionSubjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+                </select>
+                {questionSubjects.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">No subjects found. Add subjects in Question Bank first.</p>
+                )}
+              </>
             ) : (
-              <select
-                value={formData.exam_id}
-                onChange={e => setFormData({ ...formData, exam_id: e.target.value })}
-                className="flex h-12 w-full items-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-300 transition-all mt-1"
-              >
-                <option value="">Select exam</option>
-                {exams.map(exam => <option key={exam.id} value={exam.id}>{exam.name}</option>)}
-              </select>
+              <>
+                <select
+                  id="exam_select"
+                  name="exam_id"
+                  value={formData.exam_id}
+                  onChange={e => setFormData({ ...formData, exam_id: e.target.value })}
+                  className="flex h-12 w-full items-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-300 transition-all mt-1"
+                >
+                  <option value="">Select exam category</option>
+                  {exams.map(exam => <option key={exam.id} value={exam.id}>{exam.name}</option>)}
+                </select>
+                {exams.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">No exams found. Add exams in Exam Management first.</p>
+                )}
+              </>
             )}
           </div>
           <div className="space-y-2">
