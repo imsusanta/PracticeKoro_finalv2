@@ -735,13 +735,7 @@ const MockTestCreation = () => {
           <Plus className="w-5 h-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-2xl" onPointerDownOutside={(e) => {
-        // Prevent dialog from closing when clicking Select dropdown items (rendered via portal)
-        const target = e.target as HTMLElement;
-        if (target.closest('[data-radix-select-viewport]') || target.closest('[role="option"]') || target.closest('[data-radix-collection-item]')) {
-          e.preventDefault();
-        }
-      }}>
+      <DialogContent className="sm:max-w-md rounded-2xl">
         <DialogHeader>
           <DialogTitle>{editingTest ? "Edit Test" : "Create New Test"}</DialogTitle>
           <DialogDescription>{editingTest ? "Update test details" : "Fill in test details"}</DialogDescription>
@@ -758,36 +752,35 @@ const MockTestCreation = () => {
           <div className="space-y-2">
             <Label>{formData.test_type === "topic_wise" ? "Subject *" : "Exam Category *"}</Label>
             {formData.test_type === "topic_wise" ? (
-              <Select value={formData.subject_id} onValueChange={value => setFormData({ ...formData, subject_id: value })}>
-                <SelectTrigger className="h-12 rounded-xl mt-1">
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {questionSubjects.map(subject => <SelectItem key={subject.id} value={subject.id}>{subject.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <select
+                value={formData.subject_id}
+                onChange={e => setFormData({ ...formData, subject_id: e.target.value })}
+                className="flex h-12 w-full items-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-300 transition-all mt-1"
+              >
+                <option value="">Select subject</option>
+                {questionSubjects.map(subject => <option key={subject.id} value={subject.id}>{subject.name}</option>)}
+              </select>
             ) : (
-              <Select value={formData.exam_id} onValueChange={value => setFormData({ ...formData, exam_id: value })}>
-                <SelectTrigger className="h-12 rounded-xl mt-1">
-                  <SelectValue placeholder="Select exam" />
-                </SelectTrigger>
-                <SelectContent>
-                  {exams.map(exam => <SelectItem key={exam.id} value={exam.id}>{exam.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <select
+                value={formData.exam_id}
+                onChange={e => setFormData({ ...formData, exam_id: e.target.value })}
+                className="flex h-12 w-full items-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-300 transition-all mt-1"
+              >
+                <option value="">Select exam</option>
+                {exams.map(exam => <option key={exam.id} value={exam.id}>{exam.name}</option>)}
+              </select>
             )}
           </div>
           <div className="space-y-2">
             <Label>Test Type *</Label>
-            <Select value={formData.test_type} onValueChange={value => setFormData({ ...formData, test_type: value })}>
-              <SelectTrigger className="h-12 rounded-xl mt-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="full_mock">Full Mock Test</SelectItem>
-                <SelectItem value="topic_wise">Topic-wise Test</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              value={formData.test_type}
+              onChange={e => setFormData({ ...formData, test_type: e.target.value })}
+              className="flex h-12 w-full items-center rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:border-emerald-300 transition-all mt-1"
+            >
+              <option value="full_mock">Full Mock Test</option>
+              <option value="topic_wise">Topic-wise Test</option>
+            </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
