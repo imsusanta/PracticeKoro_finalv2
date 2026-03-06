@@ -105,8 +105,8 @@ export const sendBrowserNotification = async (title: string, body: string): Prom
     if (Notification.permission === "granted") {
         new Notification(title, {
             body,
-            icon: "/favicon.ico",
-            badge: "/favicon.ico",
+            icon: "/icons/icon-192x192.png",
+            badge: "/icons/icon-192x192.png",
             tag: "practicekoro-notification"
         });
         return true;
@@ -115,8 +115,8 @@ export const sendBrowserNotification = async (title: string, body: string): Prom
         if (permission === "granted") {
             new Notification(title, {
                 body,
-                icon: "/favicon.ico",
-                badge: "/favicon.ico",
+                icon: "/icons/icon-192x192.png",
+                badge: "/icons/icon-192x192.png",
                 tag: "practicekoro-notification"
             });
             return true;

@@ -232,8 +232,26 @@ const MockTestCreation = () => {
   }, [tests]);
 
   const loadExams = async () => {
-    const { data } = await (supabase.from("exams").select("id, name, order_index").eq("is_active", true).order("order_index", { ascending: true }) as any);
-    if (data) setExams(data);
+    // Try loading active exams first
+    const { data, error } = await (supabase.from("exams").select("id, name, order_index").eq("is_active", true).order("order_index", { ascending: true }) as any);
+    if (error) {
+      console.error("Error loading exams with is_active filter:", error);
+      // Fallback: load all exams without filter
+      const { data: allExams, error: fallbackError } = await (supabase.from("exams").select("id, name, order_index").order("order_index", { ascending: true }) as any);
+      if (fallbackError) {
+        console.error("Error loading exams (fallback):", fallbackError);
+      } else if (allExams) {
+        setExams(allExams);
+      }
+      return;
+    }
+    if (data && data.length > 0) {
+      setExams(data);
+    } else {
+      // No active exams found, load all exams as fallback
+      const { data: allExams } = await (supabase.from("exams").select("id, name, order_index").order("order_index", { ascending: true }) as any);
+      if (allExams) setExams(allExams);
+    }
   };
 
   const loadQuestionSubjects = async () => {
