@@ -735,7 +735,13 @@ const MockTestCreation = () => {
           <Plus className="w-5 h-5" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md rounded-2xl">
+      <DialogContent className="sm:max-w-md rounded-2xl" onPointerDownOutside={(e) => {
+        // Prevent dialog from closing when clicking Select dropdown items (rendered via portal)
+        const target = e.target as HTMLElement;
+        if (target.closest('[data-radix-select-viewport]') || target.closest('[role="option"]') || target.closest('[data-radix-collection-item]')) {
+          e.preventDefault();
+        }
+      }}>
         <DialogHeader>
           <DialogTitle>{editingTest ? "Edit Test" : "Create New Test"}</DialogTitle>
           <DialogDescription>{editingTest ? "Update test details" : "Fill in test details"}</DialogDescription>
